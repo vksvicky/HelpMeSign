@@ -22,5 +22,7 @@
     <string>NSApplication</string>
     <key>NSMainStoryboardFile</key>
     <string>Main</string>
+    <key>NSCameraUsageDescription</key>
+    <string>This app needs camera access to show the live feed.</string>
 </dict>
 </plist> 
