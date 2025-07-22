@@ -10,6 +10,7 @@ import Cocoa
 import MetalKit
 import AVFoundation
 import Vision
+import Macaw
 
 class HoverOverlayView: NSView {
     var onHoverChanged: ((Bool) -> Void)?
@@ -46,7 +47,6 @@ class HoverOverlayView: NSView {
     var overlay: HoverOverlayView!
     var startStopButton: NSButton!
     var blurButton: NSButton!
-    var centerButton: NSButton!
     var pulseLayer: CALayer?
     var languageLabel: NSTextField!
     var flagLabel: NSTextField!
@@ -142,11 +142,12 @@ class HoverOverlayView: NSView {
         blurIcon.backgroundColor = .clear
         blurIcon.isBordered = false
         blurIcon.isEditable = false
+        blurIcon.textColor = .systemGray // Start with gray to show it's off
         blurIcon.sizeToFit()
         blurIcon.frame.origin = CGPoint(x: (featureSize - blurIcon.frame.width)/2, y: (featureSize - blurIcon.frame.height)/2)
         blurButton.addSubview(blurIcon)
         blurButton.contentTintColor = .systemBlue
-        blurButton.toolTip = "Blur Background"
+        blurButton.toolTip = "Blur Background (Click to toggle)"
         overlay.addSubview(blurButton)
         // Start/Stop button (center)
         let buttonWidth: CGFloat = 120
@@ -172,26 +173,6 @@ class HoverOverlayView: NSView {
         startStopButton.contentTintColor = .systemGreen
         startStopButton.toolTip = "Start/Stop Recognition"
         overlay.addSubview(startStopButton)
-        // Feature button (right)
-        centerButton = NSButton(title: "", target: self, action: #selector(toggleCenter))
-        centerButton.bezelStyle = .regularSquare
-        centerButton.setFrameSize(NSSize(width: featureSize, height: featureSize))
-        centerButton.frame.origin = CGPoint(x: overlayWidth - featureSize, y: (overlayHeight - featureSize)/2)
-        centerButton.wantsLayer = true
-        centerButton.layer?.cornerRadius = featureSize/2
-        centerButton.layer?.backgroundColor = NSColor.clear.cgColor
-        centerButton.layer?.borderWidth = 0
-        let centerIcon = NSTextField(labelWithString: "◎")
-        centerIcon.font = NSFont.systemFont(ofSize: 28)
-        centerIcon.backgroundColor = .clear
-        centerIcon.isBordered = false
-        centerIcon.isEditable = false
-        centerIcon.sizeToFit()
-        centerIcon.frame.origin = CGPoint(x: (featureSize - centerIcon.frame.width)/2, y: (featureSize - centerIcon.frame.height)/2)
-        centerButton.addSubview(centerIcon)
-        centerButton.contentTintColor = .systemBlue
-        centerButton.toolTip = "Center Frame"
-        overlay.addSubview(centerButton)
         camView.addSubview(overlay)
         container.addSubview(topSection)
 
@@ -201,14 +182,21 @@ class HoverOverlayView: NSView {
         midSection.layer?.backgroundColor = NSColor(calibratedWhite: 0.99, alpha: 1.0).cgColor
         container.addSubview(midSection)
 
-        // --- Bottom Section: Empty Band, visually distinct ---
+        // --- Bottom Section: Alphabet Bar ---
         let botSection = NSView(frame: NSRect(x: 0, y: 0, width: width, height: botHeight))
         botSection.wantsLayer = true
         botSection.layer?.backgroundColor = NSColor(calibratedWhite: 0.95, alpha: 1.0).cgColor
+        
+        // Add divider at the top
         let divider = NSView(frame: NSRect(x: width * 0.15, y: botHeight - 2, width: width * 0.7, height: 2))
         divider.wantsLayer = true
         divider.layer?.backgroundColor = NSColor.systemGray.withAlphaComponent(0.13).cgColor
         botSection.addSubview(divider)
+        
+        // Add alphabet bar inside the bottom section
+        let alphabetBar = AlphabetBarView(frame: NSRect(x: 0, y: 0, width: width, height: botHeight))
+        botSection.addSubview(alphabetBar)
+        
         container.addSubview(botSection)
 
         self.view = container
@@ -229,13 +217,28 @@ class HoverOverlayView: NSView {
     // --- Feature Button Handlers ---
     @objc func toggleBlur() {
         blurBackground.toggle()
-        blurButton.contentTintColor = blurBackground ? .systemBlue : nil
-        // TODO: Add blur logic in Metal pipeline
-    }
-    @objc func toggleCenter() {
-        centerFrame.toggle()
-        centerButton.contentTintColor = centerFrame ? .systemBlue : nil
-        // TODO: Add centering logic
+        
+        // Update button visual state
+        if let blurIcon = blurButton.subviews.first as? NSTextField {
+            blurIcon.stringValue = blurBackground ? "💧" : "💧"
+            blurIcon.textColor = blurBackground ? .systemBlue : .systemGray
+        }
+        
+        // Update button background and border
+        if blurBackground {
+            blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.2).cgColor
+            blurButton.layer?.borderWidth = 2
+            blurButton.layer?.borderColor = NSColor.systemBlue.cgColor
+        } else {
+            blurButton.layer?.backgroundColor = NSColor.clear.cgColor
+            blurButton.layer?.borderWidth = 0
+        }
+        
+        // Force Metal view to redraw with new blur setting
+        metalView.setNeedsDisplay(metalView.bounds)
+        
+        // Print debug info
+        print("Blur background: \(blurBackground)")
     }
 
     // --- Camera & Metal Setup ---
@@ -304,6 +307,8 @@ class HoverOverlayView: NSView {
         let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
         encoder.setRenderPipelineState(pipelineState)
         encoder.setFragmentTexture(texture, index: 0)
+        var blurFlag = blurBackground
+        encoder.setFragmentBytes(&blurFlag, length: MemoryLayout<Bool>.size, index: 0)
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         encoder.endEncoding()
         commandBuffer.present(drawable)

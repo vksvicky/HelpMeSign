@@ -17,12 +17,19 @@ class PreferencesViewController: NSViewController {
     @objc func updateStatusLabels() {
         let cameraStatus = Self.permissionStatus(for: .video)
         let micStatus = Self.permissionStatus(for: .audio)
-        cameraStatusLabel.stringValue = "Camera: " + cameraStatus.text
-        micStatusLabel.stringValue = "Microphone: " + micStatus.text
-        cameraStatusLabel.textColor = cameraStatus.color
-        micStatusLabel.textColor = micStatus.color
-        cameraStatusLabel.font = NSFont.boldSystemFont(ofSize: 14)
-        micStatusLabel.font = NSFont.boldSystemFont(ofSize: 14)
+        
+        // Only update labels if they are connected (not nil)
+        if let cameraStatusLabel = cameraStatusLabel {
+            cameraStatusLabel.stringValue = "Camera: " + cameraStatus.text
+            cameraStatusLabel.textColor = cameraStatus.color
+            cameraStatusLabel.font = NSFont.boldSystemFont(ofSize: 14)
+        }
+        
+        if let micStatusLabel = micStatusLabel {
+            micStatusLabel.stringValue = "Microphone: " + micStatus.text
+            micStatusLabel.textColor = micStatus.color
+            micStatusLabel.font = NSFont.boldSystemFont(ofSize: 14)
+        }
     }
 
     enum PermissionType { case video, audio }
