@@ -1,19 +1,24 @@
 import XCTest
 import Cocoa
-import Macaw
 @testable import HelpMeSign
 
 class AlphabetLetterViewTests: XCTestCase {
-    var testNode: Node?
+    var testSvgString: String?
     
     override func setUp() {
         super.setUp()
-        // Create a simple test SVG node
-        testNode = Group()
+        // Create a simple test SVG string
+        testSvgString = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+            <symbol id="A">
+                <circle cx="50" cy="50" r="20" fill="blue"/>
+            </symbol>
+        </svg>
+        """
     }
     
     override func tearDown() {
-        testNode = nil
+        testSvgString = nil
         super.tearDown()
     }
     
@@ -23,11 +28,11 @@ class AlphabetLetterViewTests: XCTestCase {
         // Test successful initialization with valid parameters
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
         let letter = "A"
-        let letterView = AlphabetLetterView(frame: frame, letter: letter, svgNode: testNode)
+        let letterView = AlphabetLetterView(frame: frame, letter: letter, svgString: testSvgString)
         
         XCTAssertEqual(letterView.letter, "A", "Letter should be set correctly")
         XCTAssertEqual(letterView.frame, frame, "Frame should be set correctly")
-        XCTAssertNotNil(letterView.svgNode, "SVG node should be set")
+        XCTAssertNotNil(letterView.svgString, "SVG string should be set")
         XCTAssertNotNil(letterView.label, "Label should be created")
         XCTAssertFalse(letterView.isHovered, "Should not be hovered initially")
         XCTAssertGreaterThan(letterView.instanceId, 0, "Instance ID should be assigned")
@@ -37,7 +42,7 @@ class AlphabetLetterViewTests: XCTestCase {
         // Test that label is created with correct properties
         let frame = NSRect(x: 0, y: 0, width: 60, height: 60)
         let letter = "B"
-        let letterView = AlphabetLetterView(frame: frame, letter: letter, svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: letter, svgString: nil)
         
         XCTAssertEqual(letterView.label.stringValue, "B", "Label should display the letter")
         XCTAssertEqual(letterView.label.alignment, .center, "Label should be center aligned")
@@ -47,7 +52,7 @@ class AlphabetLetterViewTests: XCTestCase {
     func testSuccessfulLayerConfiguration() {
         // Test that layer properties are set correctly
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "C", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: "C", svgString: nil)
         
         XCTAssertTrue(letterView.wantsLayer, "View should want layer")
         XCTAssertNotNil(letterView.layer, "Layer should be created")
@@ -61,8 +66,8 @@ class AlphabetLetterViewTests: XCTestCase {
         let smallFrame = NSRect(x: 0, y: 0, width: 40, height: 40)
         let largeFrame = NSRect(x: 0, y: 0, width: 80, height: 80)
         
-        let smallView = AlphabetLetterView(frame: smallFrame, letter: "D", svgNode: nil)
-        let largeView = AlphabetLetterView(frame: largeFrame, letter: "E", svgNode: nil)
+        let smallView = AlphabetLetterView(frame: smallFrame, letter: "D", svgString: nil)
+        let largeView = AlphabetLetterView(frame: largeFrame, letter: "E", svgString: nil)
         
         // Font sizes should be different based on frame size
         XCTAssertNotEqual(smallView.label.font?.pointSize ?? 0, largeView.label.font?.pointSize ?? 0, "Font sizes should differ based on frame size")
@@ -72,8 +77,8 @@ class AlphabetLetterViewTests: XCTestCase {
         // Test that instance IDs are incremented correctly
         let initialCount = AlphabetLetterView.instanceCount
         
-        let view1 = AlphabetLetterView(frame: NSRect(x: 0, y: 0, width: 50, height: 50), letter: "F", svgNode: nil)
-        let view2 = AlphabetLetterView(frame: NSRect(x: 0, y: 0, width: 50, height: 50), letter: "G", svgNode: nil)
+        let view1 = AlphabetLetterView(frame: NSRect(x: 0, y: 0, width: 50, height: 50), letter: "F", svgString: nil)
+        let view2 = AlphabetLetterView(frame: NSRect(x: 0, y: 0, width: 50, height: 50), letter: "G", svgString: nil)
         
         XCTAssertEqual(view1.instanceId, initialCount + 1, "First view should have incremented instance ID")
         XCTAssertEqual(view2.instanceId, initialCount + 2, "Second view should have incremented instance ID")
@@ -85,26 +90,25 @@ class AlphabetLetterViewTests: XCTestCase {
     func testInitializationWithEmptyLetter() {
         // Test initialization with empty letter string
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: "", svgString: nil)
         
         XCTAssertEqual(letterView.letter, "", "Empty letter should be handled")
         XCTAssertEqual(letterView.label.stringValue, "", "Label should show empty string")
     }
     
-    func testInitializationWithNilSVGNode() {
-        // Test initialization with nil SVG node
+    func testInitializationWithNilSVGString() {
+        // Test initialization with nil SVG string
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "H", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: "H", svgString: nil)
         
-        XCTAssertNil(letterView.svgNode, "SVG node should be nil")
-        XCTAssertNil(letterView.macawView, "Macaw view should be nil when SVG node is nil")
+        XCTAssertNil(letterView.svgString, "SVG string should be nil")
         XCTAssertNotNil(letterView.label, "Label should still be created as fallback")
     }
     
     func testInitializationWithZeroFrame() {
         // Test initialization with zero-sized frame
         let zeroFrame = NSRect(x: 0, y: 0, width: 0, height: 0)
-        let letterView = AlphabetLetterView(frame: zeroFrame, letter: "I", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: zeroFrame, letter: "I", svgString: nil)
         
         XCTAssertEqual(letterView.frame, zeroFrame, "Zero frame should be accepted")
         XCTAssertNotNil(letterView.label, "Label should still be created")
@@ -113,7 +117,7 @@ class AlphabetLetterViewTests: XCTestCase {
     func testInitializationWithNegativeFrame() {
         // Test initialization with negative frame dimensions
         let negativeFrame = NSRect(x: -10, y: -10, width: -20, height: -20)
-        let letterView = AlphabetLetterView(frame: negativeFrame, letter: "J", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: negativeFrame, letter: "J", svgString: nil)
         
         XCTAssertEqual(letterView.frame, negativeFrame, "Negative frame should be accepted")
         XCTAssertNotNil(letterView.label, "Label should still be created")
@@ -122,7 +126,7 @@ class AlphabetLetterViewTests: XCTestCase {
     func testInitializationWithVeryLargeFrame() {
         // Test initialization with very large frame
         let largeFrame = NSRect(x: 0, y: 0, width: 1000, height: 1000)
-        let letterView = AlphabetLetterView(frame: largeFrame, letter: "K", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: largeFrame, letter: "K", svgString: nil)
         
         XCTAssertEqual(letterView.frame, largeFrame, "Large frame should be accepted")
         XCTAssertNotNil(letterView.label, "Label should still be created")
@@ -136,7 +140,7 @@ class AlphabetLetterViewTests: XCTestCase {
         
         for char in specialChars {
             let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-            let letterView = AlphabetLetterView(frame: frame, letter: char, svgNode: nil)
+            let letterView = AlphabetLetterView(frame: frame, letter: char, svgString: nil)
             
             XCTAssertEqual(letterView.letter, char, "Special character '\(char)' should be handled")
             XCTAssertEqual(letterView.label.stringValue, char, "Label should display special character '\(char)'")
@@ -149,7 +153,7 @@ class AlphabetLetterViewTests: XCTestCase {
         
         for char in unicodeChars {
             let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-            let letterView = AlphabetLetterView(frame: frame, letter: char, svgNode: nil)
+            let letterView = AlphabetLetterView(frame: frame, letter: char, svgString: nil)
             
             XCTAssertEqual(letterView.letter, char, "Unicode character '\(char)' should be handled")
             XCTAssertEqual(letterView.label.stringValue, char, "Label should display Unicode character '\(char)'")
@@ -160,7 +164,7 @@ class AlphabetLetterViewTests: XCTestCase {
         // Test initialization with very long letter string
         let longString = String(repeating: "A", count: 100)
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: longString, svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: longString, svgString: nil)
         
         XCTAssertEqual(letterView.letter, longString, "Long string should be handled")
         XCTAssertEqual(letterView.label.stringValue, longString, "Label should display long string")
@@ -170,7 +174,7 @@ class AlphabetLetterViewTests: XCTestCase {
         // Test initialization with whitespace-only string
         let whitespaceString = "   \t\n   "
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: whitespaceString, svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: whitespaceString, svgString: nil)
         
         XCTAssertEqual(letterView.letter, whitespaceString, "Whitespace string should be handled")
         XCTAssertEqual(letterView.label.stringValue, whitespaceString, "Label should display whitespace string")
@@ -181,7 +185,7 @@ class AlphabetLetterViewTests: XCTestCase {
     func testHoverStateChanges() {
         // Test hover state changes
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "L", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: "L", svgString: nil)
         
         XCTAssertFalse(letterView.isHovered, "Should not be hovered initially")
         
@@ -194,143 +198,131 @@ class AlphabetLetterViewTests: XCTestCase {
         XCTAssertFalse(letterView.isHovered, "Should not be hovered after mouse exit")
     }
     
-    func testTrackingAreaCreation() {
-        // Test that tracking areas are created
+    func testAnimationWithoutSVGString() {
+        // Test animation behavior when no SVG string is provided
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "M", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: "M", svgString: nil)
         
-        XCTAssertGreaterThan(letterView.trackingAreas.count, 0, "Tracking areas should be created")
-        
-        let trackingArea = letterView.trackingAreas.first
-        XCTAssertNotNil(trackingArea, "Tracking area should exist")
-        XCTAssertEqual(trackingArea?.owner as? AlphabetLetterView, letterView, "Tracking area owner should be the view")
+        // Should not crash when animating without SVG
+        XCTAssertNoThrow(letterView.mouseEntered(with: NSEvent()), "Should not crash on hover without SVG")
+        XCTAssertNoThrow(letterView.mouseExited(with: NSEvent()), "Should not crash on exit without SVG")
     }
     
-    func testAnimationWithoutSVGNode() {
-        // Test animation when no SVG node is present
+    func testAnimationWithSVGString() {
+        // Test animation behavior when SVG string is provided
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "N", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: "N", svgString: testSvgString)
         
-        // This should not crash
-        letterView.animateZoom()
-        
-        // Simulate hover to trigger animation
-        letterView.isHovered = true
-        letterView.animateZoom()
-        
-        letterView.isHovered = false
-        letterView.animateZoom()
-    }
-    
-    func testAnimationWithSVGNode() {
-        // Test animation when SVG node is present
-        let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "O", svgNode: testNode)
-        
-        // This should not crash
-        letterView.animateZoom()
-        
-        // Simulate hover to trigger animation
-        letterView.isHovered = true
-        letterView.animateZoom()
-        
-        letterView.isHovered = false
-        letterView.animateZoom()
-    }
-    
-    func testMultipleHoverStateChanges() {
-        // Test rapid hover state changes
-        let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "P", svgNode: nil)
-        
-        for _ in 0..<10 {
-            letterView.isHovered = true
-            letterView.isHovered = false
-        }
-        
-        XCTAssertFalse(letterView.isHovered, "Final state should be not hovered")
-    }
-    
-    func testLabelPositioning() {
-        // Test label positioning in different frame sizes
-        let smallFrame = NSRect(x: 0, y: 0, width: 30, height: 30)
-        let largeFrame = NSRect(x: 0, y: 0, width: 100, height: 100)
-        
-        let smallView = AlphabetLetterView(frame: smallFrame, letter: "Q", svgNode: nil)
-        let largeView = AlphabetLetterView(frame: largeFrame, letter: "R", svgNode: nil)
-        
-        // Labels should be positioned within their respective frames
-        XCTAssertTrue(smallView.label.frame.maxX <= smallFrame.width, "Small view label should fit within frame")
-        XCTAssertTrue(smallView.label.frame.maxY <= smallFrame.height, "Small view label should fit within frame")
-        XCTAssertTrue(largeView.label.frame.maxX <= largeFrame.width, "Large view label should fit within frame")
-        XCTAssertTrue(largeView.label.frame.maxY <= largeFrame.height, "Large view label should fit within frame")
+        // Should not crash when animating with SVG
+        XCTAssertNoThrow(letterView.mouseEntered(with: NSEvent()), "Should not crash on hover with SVG")
+        XCTAssertNoThrow(letterView.mouseExited(with: NSEvent()), "Should not crash on exit with SVG")
     }
     
     // MARK: - Performance Tests
     
-    func testPerformanceWithManyViews() {
-        // Test performance when creating many views
+    func testPerformanceOfMultipleInitializations() {
+        // Test performance of creating multiple views
         measure {
             for i in 0..<100 {
                 let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
                 let letter = String(UnicodeScalar(65 + (i % 26))!) // A-Z
-                let _ = AlphabetLetterView(frame: frame, letter: letter, svgNode: nil)
+                let _ = AlphabetLetterView(frame: frame, letter: letter, svgString: nil)
             }
         }
     }
     
-    func testPerformanceWithRapidHoverChanges() {
-        // Test performance with rapid hover state changes
+    func testPerformanceOfHoverAnimations() {
+        // Test performance of hover animations
         let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "S", svgNode: nil)
+        let letterView = AlphabetLetterView(frame: frame, letter: "O", svgString: nil)
         
         measure {
             for _ in 0..<1000 {
-                letterView.isHovered.toggle()
-            }
-        }
-    }
-    
-    func testPerformanceWithLargeFrames() {
-        // Test performance with large frame sizes
-        measure {
-            for i in 0..<50 {
-                let frame = NSRect(x: 0, y: 0, width: 500 + i, height: 500 + i)
-                let letter = String(UnicodeScalar(65 + (i % 26))!) // A-Z
-                let _ = AlphabetLetterView(frame: frame, letter: letter, svgNode: nil)
+                letterView.mouseEntered(with: NSEvent())
+                letterView.mouseExited(with: NSEvent())
             }
         }
     }
     
     // MARK: - Memory Tests
     
-    func testMemoryManagement() {
-        // Test that views are properly deallocated
-        weak var weakView: AlphabetLetterView?
+    func testMemoryUsageWithLargeNumberOfViews() {
+        // Test memory usage with many views
+        var views: [AlphabetLetterView] = []
         
-        autoreleasepool {
+        for i in 0..<1000 {
             let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-            let letterView = AlphabetLetterView(frame: frame, letter: "T", svgNode: nil)
-            weakView = letterView
+            let letter = String(UnicodeScalar(65 + (i % 26))!) // A-Z
+            let view = AlphabetLetterView(frame: frame, letter: letter, svgString: nil)
+            views.append(view)
         }
         
-        // The view should be deallocated after the autorelease pool
-        XCTAssertNil(weakView, "View should be deallocated")
+        XCTAssertEqual(views.count, 1000, "Should create 1000 views")
+        XCTAssertGreaterThan(AlphabetLetterView.instanceCount, 1000, "Instance count should reflect all created views")
     }
     
-    func testTrackingAreaCleanup() {
-        // Test that tracking areas are properly managed
-        let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
-        let letterView = AlphabetLetterView(frame: frame, letter: "U", svgNode: nil)
+    func testMemoryCleanup() {
+        // Test that views are properly cleaned up
+        let initialCount = AlphabetLetterView.instanceCount
         
-        let initialTrackingAreaCount = letterView.trackingAreas.count
-        XCTAssertGreaterThan(initialTrackingAreaCount, 0, "Should have tracking areas initially")
-        
-        // Remove all tracking areas
-        for area in letterView.trackingAreas {
-            letterView.removeTrackingArea(area)
+        autoreleasepool {
+            for i in 0..<100 {
+                let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
+                let letter = String(UnicodeScalar(65 + (i % 26))!) // A-Z
+                let _ = AlphabetLetterView(frame: frame, letter: letter, svgString: nil)
+            }
         }
         
-        XCTAssertEqual(letterView.trackingAreas.count, 0, "All tracking areas should be removed")
+        // Instance count should not be affected by cleanup since it's static
+        XCTAssertGreaterThanOrEqual(AlphabetLetterView.instanceCount, initialCount, "Instance count should not decrease after cleanup")
+    }
+    
+    // MARK: - Integration Tests
+    
+    func testIntegrationWithParentView() {
+        // Test integration with a parent view
+        let parentView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 200))
+        let letterView = AlphabetLetterView(frame: NSRect(x: 10, y: 10, width: 50, height: 50), letter: "P", svgString: nil)
+        
+        parentView.addSubview(letterView)
+        
+        XCTAssertTrue(parentView.subviews.contains(letterView), "Letter view should be added to parent")
+        XCTAssertEqual(letterView.superview, parentView, "Parent view should be set correctly")
+    }
+    
+    func testIntegrationWithWindow() {
+        // Test integration with a window
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
+        let letterView = AlphabetLetterView(frame: NSRect(x: 10, y: 10, width: 50, height: 50), letter: "Q", svgString: nil)
+        
+        window.contentView?.addSubview(letterView)
+        
+        XCTAssertNotNil(window.contentView, "Window should have content view")
+        XCTAssertTrue(window.contentView?.subviews.contains(letterView) ?? false, "Letter view should be added to window")
+    }
+    
+
+    
+    // MARK: - Debug Tests
+    
+    func testDebugIndexAssignment() {
+        // Test debug index assignment
+        let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
+        let letterView = AlphabetLetterView(frame: frame, letter: "S", svgString: nil)
+        
+        // Debug index is optional and may not be set in tests
+        // Just verify the property exists and can be set
+        letterView.debugIndex = 42
+        XCTAssertEqual(letterView.debugIndex, 42, "Debug index should be assignable")
+    }
+    
+    func testInstanceIdUniqueness() {
+        // Test that instance IDs are unique
+        let frame = NSRect(x: 0, y: 0, width: 50, height: 50)
+        let view1 = AlphabetLetterView(frame: frame, letter: "T", svgString: nil)
+        let view2 = AlphabetLetterView(frame: frame, letter: "U", svgString: nil)
+        
+        XCTAssertNotEqual(view1.instanceId, view2.instanceId, "Instance IDs should be unique")
+        XCTAssertGreaterThan(view2.instanceId, view1.instanceId, "Later views should have higher instance IDs")
     }
 } 

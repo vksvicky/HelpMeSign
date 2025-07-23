@@ -141,6 +141,12 @@ class AlphabetBarView: NSView {
         
         print("Setting up letters with \(allItems.count) items: \(allItems)")
         
+        // Handle empty character list
+        guard !allItems.isEmpty else {
+            print("No items to display, skipping setup")
+            return
+        }
+        
         // Dynamic grid layout: maximize tile size by choosing optimal columns/rows
         let count = allItems.count
         let spacing: CGFloat = 8
@@ -152,18 +158,37 @@ class AlphabetBarView: NSView {
         var bestRows = count
         
         // Try all possible column counts to find the configuration with the largest tile size
+        // Prioritize single-row layouts when items can fit
+        var canFitInOneRow = false
+        if count > 0 {
+            let singleRowTileWidth = (availableWidth - CGFloat(count - 1) * spacing) / CGFloat(count)
+            let singleRowTileHeight = availableHeight
+            let singleRowTileSize = min(singleRowTileWidth, singleRowTileHeight)
+            canFitInOneRow = singleRowTileSize >= 20 // Minimum viable tile size
+        }
+        
         for columns in 1...count {
             let rows = Int(ceil(Double(count) / Double(columns)))
             let tileWidth = (availableWidth - CGFloat(columns - 1) * spacing) / CGFloat(columns)
             let tileHeight = (availableHeight - CGFloat(rows - 1) * spacing) / CGFloat(rows)
             let tileSize = min(tileWidth, tileHeight)
-            if tileSize > bestTileSize {
-                bestTileSize = tileSize
+            
+            // Apply constraints: minimum 20px, maximum 80px
+            let constrainedTileSize = max(20, min(80, tileSize))
+            
+            // Prioritize single-row layout if it can fit all items
+            if canFitInOneRow && rows == 1 && constrainedTileSize >= bestTileSize {
+                bestTileSize = constrainedTileSize
+                bestColumns = columns
+                bestRows = rows
+                break // Found optimal single-row layout
+            } else if !canFitInOneRow && constrainedTileSize > bestTileSize {
+                bestTileSize = constrainedTileSize
                 bestColumns = columns
                 bestRows = rows
             }
         }
-        let tileSize = bestTileSize
+        let tileSize = max(20, bestTileSize) // Ensure minimum tile size
         let columns = bestColumns
         let rows = bestRows
         
@@ -312,6 +337,12 @@ class AlphabetLetterView: NSView {
     }
     
     private func createImageFromSVG(_ svgString: String, size: NSSize) -> NSImage? {
+        // Guard against zero or negative sizes
+        guard size.width > 0 && size.height > 0 else {
+            print("Cannot create image with zero or negative size: \(size)")
+            return nil
+        }
+        
         // For now, create a simple placeholder image
         // In a real implementation, you would use WebKit or a proper SVG renderer
         let image = NSImage(size: size)

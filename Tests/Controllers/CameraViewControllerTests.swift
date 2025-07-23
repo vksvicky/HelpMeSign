@@ -3,7 +3,6 @@ import Cocoa
 import MetalKit
 import AVFoundation
 import Vision
-import Macaw
 @testable import HelpMeSign
 
 class CameraViewControllerTests: XCTestCase {
