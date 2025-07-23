@@ -10,7 +10,6 @@ import Cocoa
 import MetalKit
 import AVFoundation
 import Vision
-import Macaw
 
 class HoverOverlayView: NSView {
     var onHoverChanged: ((Bool) -> Void)?

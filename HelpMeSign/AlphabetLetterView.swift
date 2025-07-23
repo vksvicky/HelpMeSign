@@ -6,14 +6,12 @@
 //
 
 import Cocoa
-import Macaw
 
 class AlphabetBarView: NSView {
     // Language-agnostic design - reads character list from SVG file
     var currentLanguage = "ASL" // Default language
     var allItems: [String] = [] // Will be populated from SVG file
     var svgFileName: String = "asl_alphabet_numbers" // Will change based on language
-    var svgNode: Node?
     var letterViews: [AlphabetLetterView] = []
 
     override init(frame frameRect: NSRect) {
@@ -43,17 +41,10 @@ class AlphabetBarView: NSView {
             if let svgString = String(data: dataAsset.data, encoding: .utf8) {
                 print("Found data asset, size: \(dataAsset.data.count) bytes")
                 print("Successfully decoded SVG string, size: \(svgString.count) characters")
-                do {
-                    let svg = try SVGParser.parse(text: svgString)
-                    self.svgNode = svg
-                    
-                    allItems = extractCharacterList(from: svgString)
-                    print("Loaded \(allItems.count) characters for \(language): \(allItems)")
-                    
-                } catch {
-                    print("Failed to parse SVG for \(language): \(error)")
-                    allItems = []
-                }
+                
+                allItems = extractCharacterList(from: svgString)
+                print("Loaded \(allItems.count) characters for \(language): \(allItems)")
+                
             } else {
                 print("Failed to get data for key 'asl' or decode SVG string")
                 allItems = []
@@ -191,7 +182,7 @@ class AlphabetBarView: NSView {
             let y = startY + CGFloat(rows - 1 - row) * (tileSize + spacing)
             let itemFrame = NSRect(x: x, y: y, width: tileSize, height: tileSize)
             let item = allItems[i]
-            let lv = AlphabetLetterView(frame: itemFrame, letter: item, svgNode: svgNode)
+            let lv = AlphabetLetterView(frame: itemFrame, letter: item)
             lv.label.stringValue = item
             lv.label.needsDisplay = true
             self.addSubview(lv)
@@ -232,9 +223,6 @@ class AlphabetBarView: NSView {
 
 class AlphabetLetterView: NSView {
     let letter: String
-    let svgNode: Node?
-    var macawView: MacawView?
-    var macawNode: Node? // Store the node for animation
     let label: NSTextField
     var isHovered = false {
         didSet { animateZoom() }
@@ -246,11 +234,10 @@ class AlphabetLetterView: NSView {
     // Add debugIndex for debugging view order
     var debugIndex: Int?
     
-    init(frame: NSRect, letter: String, svgNode: Node?) {
+    init(frame: NSRect, letter: String) {
         AlphabetLetterView.instanceCount += 1
         self.instanceId = AlphabetLetterView.instanceCount
         self.letter = letter
-        self.svgNode = svgNode
         self.label = NSTextField(labelWithString: letter)
         super.init(frame: frame)
         
@@ -269,27 +256,18 @@ class AlphabetLetterView: NSView {
         self.layer?.shadowRadius = 1.5
         self.layer?.shadowOffset = CGSize(width: 0, height: 1)
         
-        // Try to extract the symbol for this letter from the SVG
-        if let svgNode = svgNode, let symbol = svgNode.nodeBy(tag: letter) {
-            let macaw = MacawView(node: symbol, frame: self.bounds)
-            macaw.backgroundColor = .clear
-            self.addSubview(macaw)
-            self.macawView = macaw
-            self.macawNode = symbol
-        } else {
-            // Professional placeholder with better typography
-            self.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-            
-            // Use system font with appropriate weight
-            let fontSize = frame.width < 50 ? 16 : 20
-            label.font = NSFont.systemFont(ofSize: CGFloat(fontSize), weight: .medium)
-            label.alignment = .center
-            label.textColor = NSColor.labelColor
-            label.frame = NSRect(x: 0, y: (frame.height-CGFloat(fontSize+4))/2, width: frame.width, height: CGFloat(fontSize+4))
-            self.addSubview(label)
-            
-            print("Added label for '\(letter)' with text: '\(label.stringValue)'")
-        }
+        // Professional placeholder with better typography
+        self.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        
+        // Use system font with appropriate weight
+        let fontSize = frame.width < 50 ? 16 : 20
+        label.font = NSFont.systemFont(ofSize: CGFloat(fontSize), weight: .medium)
+        label.alignment = .center
+        label.textColor = NSColor.labelColor
+        label.frame = NSRect(x: 0, y: (frame.height-CGFloat(fontSize+4))/2, width: frame.width, height: CGFloat(fontSize+4))
+        self.addSubview(label)
+        
+        print("Added label for '\(letter)' with text: '\(label.stringValue)'")
         
         // Mouse tracking for hover
         let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect]
@@ -308,17 +286,11 @@ class AlphabetLetterView: NSView {
     }
     
     func animateZoom() {
-        if let node = macawNode {
-            // Animate the SVG node directly - more subtle scale for professional look
-            let scale = isHovered ? 1.3 : 1.0
-            node.placeVar.animation(to: Transform.scale(sx: scale, sy: scale), during: 0.2).play()
-        } else {
-            // Animate the placeholder view - more subtle scale for professional lookCleanShot 2025-07-22 at 12.09.13@2x.png
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.2
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                self.animator().layer?.setAffineTransform(isHovered ? .init(scaleX: 1.15, y: 1.15) : .identity)
-            }
+        // Animate the placeholder view - more subtle scale for professional look
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            self.animator().layer?.setAffineTransform(isHovered ? .init(scaleX: 1.15, y: 1.15) : .identity)
         }
         
         // Add subtle background color change on hover
