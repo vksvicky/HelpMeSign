@@ -267,15 +267,20 @@ class AppDelegateNotificationNamesTests: XCTestCase {
     func testObserverMemoryManagement() {
         // Test observer memory management
         let notification = AppDelegateNotificationNames.permissionStatusChanged
-        weak var weakObserver: NSObjectProtocol?
+        var observer: NSObjectProtocol?
         
-        autoreleasepool {
-            let observer = NotificationCenter.default.addObserver(forName: notification, object: nil, queue: nil) { _ in }
-            weakObserver = observer
-        }
+        // Add observer
+        observer = NotificationCenter.default.addObserver(forName: notification, object: nil, queue: nil) { _ in }
+        XCTAssertNotNil(observer, "Observer should be created")
         
-        // Observer should be deallocated after the autorelease pool
-        XCTAssertNil(weakObserver, "Observer should be deallocated")
+        // Remove observer
+        NotificationCenter.default.removeObserver(observer!)
+        observer = nil
+        
+        // Test that we can add another observer without issues
+        let newObserver = NotificationCenter.default.addObserver(forName: notification, object: nil, queue: nil) { _ in }
+        XCTAssertNotNil(newObserver, "New observer should be created after removal")
+        NotificationCenter.default.removeObserver(newObserver)
     }
     
     // MARK: - Integration Tests

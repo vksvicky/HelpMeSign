@@ -49,8 +49,16 @@ class HoverOverlayView: NSView {
     var pulseLayer: CALayer?
     var languageLabel: NSTextField!
     var flagLabel: NSTextField!
+    
+    // Private property to track if view has been loaded
+    private var viewHasBeenLoaded = false
 
     override func loadView() {
+        // Only create the view if it hasn't already been loaded
+        if viewHasBeenLoaded {
+            return
+        }
+        
         let width: CGFloat = 1024
         let height: CGFloat = 1024
         let topHeight = height * 0.5
@@ -199,6 +207,7 @@ class HoverOverlayView: NSView {
         container.addSubview(botSection)
 
         self.view = container
+        viewHasBeenLoaded = true
     }
 
     // --- Start/Stop Recognition Handler ---
