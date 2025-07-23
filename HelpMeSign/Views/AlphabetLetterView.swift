@@ -12,6 +12,7 @@ class AlphabetBarView: NSView {
     var currentLanguage = "ASL" // Default language
     var allItems: [String] = [] // Will be populated from SVG file
     var svgFileName: String = "asl_alphabet_numbers" // Will change based on language
+    var svgString: String?
     var letterViews: [AlphabetLetterView] = []
 
     override init(frame frameRect: NSRect) {
@@ -41,6 +42,9 @@ class AlphabetBarView: NSView {
             if let svgString = String(data: dataAsset.data, encoding: .utf8) {
                 print("Found data asset, size: \(dataAsset.data.count) bytes")
                 print("Successfully decoded SVG string, size: \(svgString.count) characters")
+                
+                self.svgString = svgString
+                print("Successfully stored SVG string")
                 
                 allItems = extractCharacterList(from: svgString)
                 print("Loaded \(allItems.count) characters for \(language): \(allItems)")
@@ -182,7 +186,7 @@ class AlphabetBarView: NSView {
             let y = startY + CGFloat(rows - 1 - row) * (tileSize + spacing)
             let itemFrame = NSRect(x: x, y: y, width: tileSize, height: tileSize)
             let item = allItems[i]
-            let lv = AlphabetLetterView(frame: itemFrame, letter: item)
+            let lv = AlphabetLetterView(frame: itemFrame, letter: item, svgString: svgString)
             lv.label.stringValue = item
             lv.label.needsDisplay = true
             self.addSubview(lv)
@@ -223,6 +227,8 @@ class AlphabetBarView: NSView {
 
 class AlphabetLetterView: NSView {
     let letter: String
+    let svgString: String?
+    var svgImageView: NSImageView?
     let label: NSTextField
     var isHovered = false {
         didSet { animateZoom() }
@@ -234,10 +240,11 @@ class AlphabetLetterView: NSView {
     // Add debugIndex for debugging view order
     var debugIndex: Int?
     
-    init(frame: NSRect, letter: String) {
+    init(frame: NSRect, letter: String, svgString: String?) {
         AlphabetLetterView.instanceCount += 1
         self.instanceId = AlphabetLetterView.instanceCount
         self.letter = letter
+        self.svgString = svgString
         self.label = NSTextField(labelWithString: letter)
         super.init(frame: frame)
         
@@ -256,6 +263,83 @@ class AlphabetLetterView: NSView {
         self.layer?.shadowRadius = 1.5
         self.layer?.shadowOffset = CGSize(width: 0, height: 1)
         
+        // Try to extract the symbol for this letter from the SVG
+        if let svgString = svgString {
+            // Look for a symbol with the letter as ID
+            if let symbolSVG = extractSymbol(from: svgString, withId: letter) {
+                // Create a simple SVG view using WebKit or convert to image
+                if let image = createImageFromSVG(symbolSVG, size: frame.size) {
+                    let imageView = NSImageView(frame: self.bounds)
+                    imageView.image = image
+                    imageView.autoresizingMask = [.width, .height]
+                    self.addSubview(imageView)
+                    self.svgImageView = imageView
+                    
+                    print("Added SVG symbol for '\(letter)'")
+                } else {
+                    setupLabel()
+                }
+            } else {
+                setupLabel()
+            }
+        } else {
+            setupLabel()
+        }
+        
+        // Mouse tracking for hover
+        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect]
+        let area = NSTrackingArea(rect: self.bounds, options: options, owner: self, userInfo: nil)
+        self.addTrackingArea(area)
+    }
+    
+    private func extractSymbol(from svgString: String, withId id: String) -> String? {
+        // Simple regex to extract symbol content
+        let pattern = #"<symbol id="\#(id)"[^>]*>(.*?)</symbol>"#
+        let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators])
+        
+        if let match = regex?.firstMatch(in: svgString, options: [], range: NSRange(location: 0, length: svgString.count)) {
+            if let range = Range(match.range(at: 1), in: svgString) {
+                let symbolContent = String(svgString[range])
+                // Create a complete SVG with the symbol content
+                return """
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                \(symbolContent)
+                </svg>
+                """
+            }
+        }
+        return nil
+    }
+    
+    private func createImageFromSVG(_ svgString: String, size: NSSize) -> NSImage? {
+        // For now, create a simple placeholder image
+        // In a real implementation, you would use WebKit or a proper SVG renderer
+        let image = NSImage(size: size)
+        image.lockFocus()
+        
+        // Draw a simple placeholder
+        NSColor.systemBlue.setFill()
+        NSBezierPath(ovalIn: NSRect(x: size.width * 0.2, y: size.height * 0.2, 
+                                   width: size.width * 0.6, height: size.height * 0.6)).fill()
+        
+        // Draw the letter
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: size.width * 0.3, weight: .bold),
+            .foregroundColor: NSColor.white
+        ]
+        let letterString = NSAttributedString(string: letter, attributes: attributes)
+        let letterSize = letterString.size()
+        let letterRect = NSRect(x: (size.width - letterSize.width) / 2,
+                               y: (size.height - letterSize.height) / 2,
+                               width: letterSize.width,
+                               height: letterSize.height)
+        letterString.draw(in: letterRect)
+        
+        image.unlockFocus()
+        return image
+    }
+    
+    private func setupLabel() {
         // Professional placeholder with better typography
         self.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         
@@ -268,11 +352,6 @@ class AlphabetLetterView: NSView {
         self.addSubview(label)
         
         print("Added label for '\(letter)' with text: '\(label.stringValue)'")
-        
-        // Mouse tracking for hover
-        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect]
-        let area = NSTrackingArea(rect: self.bounds, options: options, owner: self, userInfo: nil)
-        self.addTrackingArea(area)
     }
     
     required init?(coder: NSCoder) { fatalError() }
@@ -286,7 +365,7 @@ class AlphabetLetterView: NSView {
     }
     
     func animateZoom() {
-        // Animate the placeholder view - more subtle scale for professional look
+        // Animate the SVG view or placeholder view
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.2
             ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)

@@ -40,9 +40,9 @@
 			path = HelpMeSign;
 			sourceTree = "<group>";
 		};
-		E2495BE32E2E6195008E499F /* HelpMeSignTests */ = {
+		E2495BE32E2E6195008E499F /* Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = HelpMeSignTests;
+			path = Tests;
 			sourceTree = "<group>";
 		};
 		E2495BED2E2E6195008E499F /* HelpMeSignUITests */ = {
@@ -82,7 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				E2495BD12E2E6194008E499F /* HelpMeSign */,
-				E2495BE32E2E6195008E499F /* HelpMeSignTests */,
+				E2495BE32E2E6195008E499F /* Tests */,
 				E2495BED2E2E6195008E499F /* HelpMeSignUITests */,
 				E2495C112E2E63F5008E499F /* Frameworks */,
 				E2495BD02E2E6194008E499F /* Products */,
@@ -146,7 +146,7 @@
 				E2495BE22E2E6195008E499F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				E2495BE32E2E6195008E499F /* HelpMeSignTests */,
+				E2495BE32E2E6195008E499F /* Tests */,
 			);
 			name = HelpMeSignTests;
 			packageProductDependencies = (
@@ -416,7 +416,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = HelpMeSign/Assets.xcassets;
+				DEVELOPMENT_ASSET_PATHS = HelpMeSign/Resources/Assets.xcassets;
 				DEVELOPMENT_TEAM = 3V7GDR4KDD;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
@@ -450,7 +450,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = HelpMeSign/Assets.xcassets;
+				DEVELOPMENT_ASSET_PATHS = HelpMeSign/Resources/Assets.xcassets;
 				DEVELOPMENT_TEAM = 3V7GDR4KDD;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
