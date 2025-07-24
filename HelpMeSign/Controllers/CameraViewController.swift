@@ -286,26 +286,49 @@ import CoreML
         
         midSection.addSubview(headerView)
         
-        // Create main text view
-        let mainTextView = NSTextView(frame: NSRect(x: width * 0.1, y: midHeight * 0.1, width: width * 0.8, height: midHeight * 0.7))
-        mainTextView.string = ""
+        // Create scroll view for main text view
+        let scrollView = NSScrollView(frame: NSRect(x: width * 0.1, y: midHeight * 0.1, width: width * 0.8, height: midHeight * 0.7))
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .lineBorder
+        scrollView.wantsLayer = true
+        scrollView.layer?.borderWidth = 1
+        scrollView.layer?.borderColor = NSColor.systemGray.withAlphaComponent(0.3).cgColor
+        scrollView.layer?.cornerRadius = 8
+        
+        // Create main text view inside scroll view with proper size
+        let textViewWidth = scrollView.frame.width - 20
+        let textViewHeight = scrollView.frame.height - 20
+        let mainTextView = NSTextView(frame: NSRect(x: 0, y: 0, width: textViewWidth, height: textViewHeight))
+        mainTextView.string = "Ready for translations..." // Add initial text to verify visibility
         mainTextView.isEditable = false
         mainTextView.backgroundColor = NSColor.white
         mainTextView.font = NSFont.systemFont(ofSize: 16)
-        mainTextView.textColor = NSColor.labelColor
+        mainTextView.textColor = NSColor.black // Force black text for visibility
         mainTextView.isSelectable = true
+        mainTextView.isVerticallyResizable = true
+        mainTextView.isHorizontallyResizable = false
+        mainTextView.textContainer?.containerSize = NSSize(width: textViewWidth, height: CGFloat.greatestFiniteMagnitude)
+        mainTextView.textContainer?.widthTracksTextView = true
         
-        // Add border
+        // Add subtle border for visual clarity
         mainTextView.wantsLayer = true
         mainTextView.layer?.borderWidth = 1
         mainTextView.layer?.borderColor = NSColor.systemGray.withAlphaComponent(0.3).cgColor
-        mainTextView.layer?.cornerRadius = 8
         
-        midSection.addSubview(mainTextView)
+        scrollView.documentView = mainTextView
+        midSection.addSubview(scrollView)
+        
+        print("🔧 Text view frame: \(mainTextView.frame)")
+        print("🔧 Scroll view frame: \(scrollView.frame)")
+        print("🔧 Text view is hidden: \(mainTextView.isHidden)")
+        print("🔧 Text view alpha: \(mainTextView.alphaValue)")
         
         // Store reference for updates
         self.fallbackTextView = mainTextView
         print("🔧 Created simple translation view successfully")
+        print("🔧 fallbackTextView reference set: \(fallbackTextView != nil)")
         
         container.addSubview(midSection)
 
@@ -402,8 +425,18 @@ import CoreML
             let newEntry = "[\(timestamp)] \(result.sign) (\(confidencePercentage)%)\n"
             
             DispatchQueue.main.async {
-                fallbackView.string += newEntry
+                let currentText = fallbackView.string
+                fallbackView.string = currentText + newEntry
                 fallbackView.scrollToEndOfDocument(nil)
+                
+                // Force refresh the text view
+                fallbackView.needsDisplay = true
+                fallbackView.needsLayout = true
+                
+                print("📝 Updated fallback view, new content length: \(fallbackView.string.count)")
+                print("📝 Current text preview: \(String(fallbackView.string.suffix(100)))")
+                print("📝 Text view frame: \(fallbackView.frame)")
+                print("📝 Text view is hidden: \(fallbackView.isHidden)")
             }
         } else {
             print("❌ Both translationDisplayView and fallbackTextView are nil!")
