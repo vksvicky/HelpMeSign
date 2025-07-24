@@ -52,6 +52,22 @@ class AIUserExperienceSystem: NSObject {
     private var recognitionConfidence: Float = 0.0
     private var lastRecognizedSign: String = ""
     private var recognitionHistory: [AIRecognitionResult] = []
+    private var lastRecognitionTime: Date = Date()
+    private var recognitionDebounceInterval: TimeInterval = 3.0 // 3 second debounce for more stability
+    private var lastSignCandidate: String = ""
+    private var signCandidateCount: Int = 0
+    private var requiredCandidateCount: Int = 5 // Must see same sign 5 times before recognizing
+    
+    // Frame processing control
+    private var lastFrameProcessTime: Date = Date()
+    private var frameProcessingInterval: TimeInterval = 0.1 // Process max 10 frames per second
+    private var isProcessingFrame = false
+    
+    // Feature smoothing for stable recognition
+    private var lastFeatures: [Float] = []
+    private var featureSmoothingFactor: Float = 0.3 // 30% new, 70% old - more stable
+    private var featureHistory: [[Float]] = []
+    private var maxFeatureHistory: Int = 10
     
     // Callbacks
     var onSignRecognized: ((AIRecognitionResult) -> Void)?
@@ -67,21 +83,21 @@ class AIUserExperienceSystem: NSObject {
     
     // MARK: - Setup Methods
     private func setupVisionRequests() {
-        // Hand pose detection
+        // Hand pose detection only - disable face and body to prevent crashes
         handPoseRequest = VNDetectHumanHandPoseRequest { [weak self] request, error in
             self?.handleHandPoseDetection(request: request, error: error)
         }
         handPoseRequest?.maximumHandCount = 2
         
-        // Body pose detection
-        bodyPoseRequest = VNDetectHumanBodyPoseRequest { [weak self] request, error in
-            self?.handleBodyPoseDetection(request: request, error: error)
-        }
+        // Disable body pose detection to prevent crashes
+        // bodyPoseRequest = VNDetectHumanBodyPoseRequest { [weak self] request, error in
+        //     self?.handleBodyPoseDetection(request: request, error: error)
+        // }
         
-        // Face landmarks detection
-        faceLandmarksRequest = VNDetectFaceLandmarksRequest { [weak self] request, error in
-            self?.handleFaceLandmarksDetection(request: request, error: error)
-        }
+        // Disable face landmarks detection to prevent crashes
+        // faceLandmarksRequest = VNDetectFaceLandmarksRequest { [weak self] request, error in
+        //     self?.handleFaceLandmarksDetection(request: request, error: error)
+        // }
     }
     
     private func loadMLModels() {
@@ -131,6 +147,9 @@ class AIUserExperienceSystem: NSObject {
         
         isRecognizing = true
         recognitionHistory.removeAll()
+        featureHistory.removeAll()
+        lastSignCandidate = ""
+        signCandidateCount = 0
         onRecognitionStateChanged?(true)
         
         print("Started sign language recognition for \(currentLanguage.name)")
@@ -141,6 +160,9 @@ class AIUserExperienceSystem: NSObject {
         guard isRecognizing else { return }
         
         isRecognizing = false
+        featureHistory.removeAll()
+        lastSignCandidate = ""
+        signCandidateCount = 0
         onRecognitionStateChanged?(false)
         
         print("Stopped sign language recognition")
@@ -150,19 +172,50 @@ class AIUserExperienceSystem: NSObject {
     func processFrame(_ sampleBuffer: CMSampleBuffer) {
         guard isRecognizing else { return }
         
+        // Frame rate limiting to prevent Vision framework overload
+        let now = Date()
+        let timeSinceLastFrame = now.timeIntervalSince(lastFrameProcessTime)
+        
+        if timeSinceLastFrame < frameProcessingInterval || isProcessingFrame {
+            return // Skip this frame
+        }
+        
+        isProcessingFrame = true
+        lastFrameProcessTime = now
+        
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             print("Failed to get pixel buffer from sample buffer")
+            isProcessingFrame = false
+            return
+        }
+        
+        // Check if the pixel buffer is valid
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        
+        guard width > 0 && height > 0 else {
+            print("Invalid pixel buffer dimensions: \(width)x\(height)")
+            isProcessingFrame = false
             return
         }
         
         // Create image request handler
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
         
-        // Perform vision requests
-        do {
-            try handler.perform([handPoseRequest!, bodyPoseRequest!, faceLandmarksRequest!])
-        } catch {
-            print("Failed to perform vision requests: \(error)")
+        // Perform vision requests with proper error handling and reduced load
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                // Only perform hand pose detection to reduce load and prevent crashes
+                if let handPoseRequest = self?.handPoseRequest {
+                    try handler.perform([handPoseRequest])
+                }
+            } catch {
+                print("Failed to perform vision requests: \(error)")
+            }
+            
+            DispatchQueue.main.async {
+                self?.isProcessingFrame = false
+            }
         }
     }
     
@@ -202,6 +255,11 @@ class AIUserExperienceSystem: NSObject {
     // MARK: - Vision Handlers
     
     private func handleHandPoseDetection(request: VNRequest, error: Error?) {
+        if let error = error {
+            print("Hand pose detection error: \(error)")
+            return
+        }
+        
         guard let observations = request.results as? [VNHumanHandPoseObservation] else {
             return
         }
@@ -240,10 +298,30 @@ class AIUserExperienceSystem: NSObject {
         }
         
         // Convert landmarks to feature vector
-        let features = extractHandFeatures(from: landmarks)
+        let rawFeatures = extractHandFeatures(from: landmarks)
+        
+        // Apply feature smoothing for stable recognition
+        let smoothedFeatures = smoothFeatures(rawFeatures)
         
         // Classify the sign
-        classifySign(features: features)
+        classifySign(features: smoothedFeatures)
+    }
+    
+    private func smoothFeatures(_ newFeatures: [Float]) -> [Float] {
+        guard !newFeatures.isEmpty else { return newFeatures }
+        
+        if lastFeatures.isEmpty {
+            lastFeatures = newFeatures
+            return newFeatures
+        }
+        
+        // Apply exponential smoothing
+        let smoothedFeatures = zip(newFeatures, lastFeatures).map { new, old in
+            new * featureSmoothingFactor + old * (1 - featureSmoothingFactor)
+        }
+        
+        lastFeatures = smoothedFeatures
+        return smoothedFeatures
     }
     
     private func processBodyPose(_ observation: VNHumanBodyPoseObservation) {
@@ -277,16 +355,26 @@ class AIUserExperienceSystem: NSObject {
     private func extractHandFeatures(from landmarks: [VNHumanHandPoseObservation.JointName: VNRecognizedPoint]) -> [Float] {
         var features: [Float] = []
         
-        // Extract joint positions
+        // Extract joint positions with confidence filtering
         for joint in VNHumanHandPoseObservation.JointName.allCases {
-            if let point = landmarks[joint] {
+            if let point = landmarks[joint], point.confidence > 0.3 {
+                // Only include high-confidence landmarks
                 features.append(Float(point.location.x))
                 features.append(Float(point.location.y))
                 features.append(Float(point.confidence))
             } else {
+                // Use zeros for low-confidence or missing landmarks
                 features.append(0.0)
                 features.append(0.0)
                 features.append(0.0)
+            }
+        }
+        
+        // Normalize features to reduce noise
+        if !features.isEmpty {
+            let maxValue = features.max() ?? 1.0
+            if maxValue > 0 {
+                features = features.map { $0 / maxValue }
             }
         }
         
@@ -340,19 +428,100 @@ class AIUserExperienceSystem: NSObject {
     
     private func classifySign(features: [Float]) {
         // In a real implementation, you would use the loaded ML models
-        // For now, we'll simulate classification
+        // For now, we'll implement a more realistic feature-based classification
         
         // Simulate classification delay
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            // Simulate random sign recognition
-            let signs = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
-            let randomSign = signs.randomElement() ?? "A"
-            let confidence = Float.random(in: 0.7...0.95)
+            // Use feature vector to determine sign (more consistent)
+            let sign = self?.determineSignFromFeatures(features) ?? "A"
+            let confidence = self?.calculateConfidence(features) ?? 0.8
             
             DispatchQueue.main.async {
-                self?.handleSignRecognition(sign: randomSign, confidence: confidence, features: features)
+                self?.handleSignCandidate(sign: sign, confidence: confidence, features: features)
             }
         }
+    }
+    
+    private func handleSignCandidate(sign: String, confidence: Float, features: [Float]) {
+        // Only process high-confidence candidates
+        guard confidence > 0.8 else {
+            print("Sign candidate confidence too low: \(confidence)")
+            return
+        }
+        
+        // Check if this is the same sign as the last candidate
+        if sign == lastSignCandidate {
+            signCandidateCount += 1
+            print("Sign candidate '\(sign)' count: \(signCandidateCount)/\(requiredCandidateCount)")
+        } else {
+            // Reset for new sign
+            lastSignCandidate = sign
+            signCandidateCount = 1
+            print("New sign candidate: '\(sign)'")
+        }
+        
+        // Only recognize if we've seen the same sign multiple times
+        if signCandidateCount >= requiredCandidateCount {
+            handleSignRecognition(sign: sign, confidence: confidence, features: features)
+            // Reset after recognition
+            signCandidateCount = 0
+        }
+    }
+    
+    private func determineSignFromFeatures(_ features: [Float]) -> String {
+        // Use feature vector to determine sign consistently
+        // This simulates how a real ML model would work
+        
+        guard !features.isEmpty else { return "A" }
+        
+        // Add current features to history
+        featureHistory.append(features)
+        if featureHistory.count > maxFeatureHistory {
+            featureHistory.removeFirst()
+        }
+        
+        // Use average of recent features for more stability
+        let averageFeatures = averageFeatureHistory()
+        
+        // Create a more stable feature signature by rounding and binning
+        let roundedFeatures = averageFeatures.map { round($0 * 5) / 5 } // Round to 0.2 decimal place
+        let featureSignature = roundedFeatures.map { Int($0 * 5) }.reduce(0, +)
+        
+        // Use modulo to get consistent sign index
+        let signIndex = abs(featureSignature) % 26
+        
+        let signs = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+        return signs[signIndex]
+    }
+    
+    private func averageFeatureHistory() -> [Float] {
+        guard !featureHistory.isEmpty else { return [] }
+        
+        let featureCount = featureHistory[0].count
+        var averagedFeatures: [Float] = Array(repeating: 0.0, count: featureCount)
+        
+        for features in featureHistory {
+            for (index, value) in features.enumerated() {
+                if index < featureCount {
+                    averagedFeatures[index] += value
+                }
+            }
+        }
+        
+        return averagedFeatures.map { $0 / Float(featureHistory.count) }
+    }
+    
+    private func calculateConfidence(_ features: [Float]) -> Float {
+        // Calculate confidence based on feature quality
+        guard !features.isEmpty else { return 0.5 }
+        
+        // Higher confidence for more stable features
+        let averageFeature = features.reduce(0, +) / Float(features.count)
+        let variance = features.map { pow($0 - averageFeature, 2) }.reduce(0, +) / Float(features.count)
+        
+        // Lower variance = higher confidence (more stable hand position)
+        let stabilityScore = max(0, 1 - variance)
+        return min(0.95, max(0.6, stabilityScore))
     }
     
     private func enhanceRecognitionWithBodyPose(_ features: [Float]) {
@@ -366,21 +535,56 @@ class AIUserExperienceSystem: NSObject {
     }
     
     private func handleSignRecognition(sign: String, confidence: Float, features: [Float]) {
+        let now = Date()
+        
+        // Debounce: only recognize if enough time has passed or if it's a different sign
+        let timeSinceLastRecognition = now.timeIntervalSince(lastRecognitionTime)
+        let isSameSign = sign == lastRecognizedSign
+        
+        if timeSinceLastRecognition < recognitionDebounceInterval && isSameSign {
+            // Skip recognition - too soon and same sign
+            return
+        }
+        
+        // Only recognize if confidence is high enough
+        guard confidence > 0.8 else {
+            print("Sign recognition confidence too low: \(confidence)")
+            return
+        }
+        
+        // Check if features have changed significantly
+        if !lastFeatures.isEmpty && isSameSign {
+            let featureChange = calculateFeatureChange(features, comparedTo: lastFeatures)
+            if featureChange < 0.1 { // Less than 10% change
+                print("Features too similar, skipping recognition")
+                return
+            }
+        }
+        
         let result = AIRecognitionResult(
             sign: sign,
             confidence: confidence,
             language: currentLanguage,
-            timestamp: Date(),
+            timestamp: now,
             features: features
         )
         
         recognitionHistory.append(result)
         lastRecognizedSign = sign
         recognitionConfidence = confidence
+        lastRecognitionTime = now
         
         onSignRecognized?(result)
         
         print("Recognized sign: \(sign) with confidence: \(confidence)")
+    }
+    
+    private func calculateFeatureChange(_ newFeatures: [Float], comparedTo oldFeatures: [Float]) -> Float {
+        guard newFeatures.count == oldFeatures.count else { return 1.0 }
+        
+        let differences = zip(newFeatures, oldFeatures).map { abs($0 - $1) }
+        let averageDifference = differences.reduce(0, +) / Float(differences.count)
+        return averageDifference
     }
 }
 

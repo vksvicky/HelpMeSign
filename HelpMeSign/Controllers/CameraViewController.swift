@@ -125,52 +125,112 @@ import CoreML
                 self?.overlay.animator().alphaValue = hovering ? 1.0 : 0.0
             }
         }
-        // Feature button (left)
-        let featureSize: CGFloat = 56
+        // Feature button (left) - Innovative Mini Design
+        let featureSize: CGFloat = 40
         blurButton = NSButton(title: "", target: self, action: #selector(toggleBlur))
         blurButton.bezelStyle = .regularSquare
         blurButton.setFrameSize(NSSize(width: featureSize, height: featureSize))
-        blurButton.frame.origin = CGPoint(x: 0, y: (overlayHeight - featureSize)/2)
+        blurButton.frame.origin = CGPoint(x: 20, y: (overlayHeight - featureSize)/2)
         blurButton.wantsLayer = true
         blurButton.layer?.cornerRadius = featureSize/2
-        blurButton.layer?.backgroundColor = NSColor.clear.cgColor
+        blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.8).cgColor
         blurButton.layer?.borderWidth = 0
+        
+        // Add floating shadow effect
+        blurButton.layer?.shadowColor = NSColor.black.cgColor
+        blurButton.layer?.shadowOffset = CGSize(width: 0, height: 4)
+        blurButton.layer?.shadowOpacity = 0.2
+        blurButton.layer?.shadowRadius = 6
+        
         let blurIcon = NSTextField(labelWithString: "💧")
-        blurIcon.font = NSFont.systemFont(ofSize: 28)
+        blurIcon.font = NSFont.systemFont(ofSize: 18)
         blurIcon.backgroundColor = .clear
         blurIcon.isBordered = false
         blurIcon.isEditable = false
         blurIcon.textColor = .systemGray // Start with gray to show it's off
+        blurIcon.alignment = .center
         blurIcon.sizeToFit()
-        blurIcon.frame.origin = CGPoint(x: (featureSize - blurIcon.frame.width)/2, y: (featureSize - blurIcon.frame.height)/2)
+        
+        // Center the icon properly
+        let blurIconX = (featureSize - blurIcon.frame.width) / 2
+        let blurIconY = (featureSize - blurIcon.frame.height) / 2
+        blurIcon.frame = NSRect(x: blurIconX, y: blurIconY, width: blurIcon.frame.width, height: blurIcon.frame.height)
         blurButton.addSubview(blurIcon)
         blurButton.contentTintColor = .systemBlue
         blurButton.toolTip = "Blur Background (Click to toggle)"
+        
+        // Add hover effect
+        blurButton.addTrackingArea(NSTrackingArea(rect: blurButton.bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self, userInfo: nil))
+        
         overlay.addSubview(blurButton)
-        // Start/Stop button (center)
-        let buttonWidth: CGFloat = 120
-        let buttonHeight: CGFloat = 56
+        // Start/Stop button (center) - Innovative Floating Design
+        let buttonSize: CGFloat = 64
         startStopButton = NSButton(title: "", target: self, action: #selector(toggleRecognition))
         startStopButton.bezelStyle = .regularSquare
-        startStopButton.setFrameSize(NSSize(width: buttonWidth, height: buttonHeight))
-        startStopButton.frame.origin = CGPoint(x: (overlayWidth - buttonWidth)/2, y: (overlayHeight - buttonHeight)/2)
+        startStopButton.setFrameSize(NSSize(width: buttonSize, height: buttonSize))
+        startStopButton.frame.origin = CGPoint(x: (overlayWidth - buttonSize)/2, y: (overlayHeight - buttonSize)/2)
         startStopButton.wantsLayer = true
-        startStopButton.layer?.backgroundColor = NSColor.clear.cgColor
-        startStopButton.layer?.cornerRadius = buttonHeight/2
+        
+        // Force remove any default styling
+        startStopButton.isBordered = false
+        startStopButton.title = ""
+        startStopButton.alternateTitle = ""
+        
+        // Innovative floating button design
+        startStopButton.layer?.backgroundColor = NSColor.systemGreen.withAlphaComponent(0.9).cgColor
+        startStopButton.layer?.cornerRadius = buttonSize/2
         startStopButton.layer?.borderWidth = 0
+        
+        // Create floating shadow effect
+        startStopButton.layer?.shadowColor = NSColor.black.cgColor
+        startStopButton.layer?.shadowOffset = CGSize(width: 0, height: 8)
+        startStopButton.layer?.shadowOpacity = 0.3
+        startStopButton.layer?.shadowRadius = 12
+        
+        // Add inner glow effect
+        startStopButton.layer?.masksToBounds = false
+        startStopButton.layer?.shadowPath = CGPath(ellipseIn: CGRect(x: 0, y: 0, width: buttonSize, height: buttonSize), transform: nil)
+        
+        // Create icon container
+        let iconContainer = NSView(frame: NSRect(x: 0, y: 0, width: buttonSize, height: buttonSize))
+        iconContainer.wantsLayer = true
+        iconContainer.layer?.backgroundColor = NSColor.clear.cgColor
+        
+        // Icon with innovative styling
         let icon = NSTextField(labelWithString: "▶")
-        icon.font = NSFont.systemFont(ofSize: 32, weight: .bold)
-        icon.textColor = .systemGreen
+        icon.font = NSFont.systemFont(ofSize: 28, weight: .bold)
+        icon.textColor = .white
         icon.backgroundColor = .clear
         icon.isBordered = false
         icon.isEditable = false
+        icon.alignment = .center
         icon.sizeToFit()
-        icon.frame.origin = CGPoint(x: (buttonWidth - icon.frame.width)/2, y: (buttonHeight - icon.frame.height)/2)
-        startStopButton.addSubview(icon)
+        
+        // Center the icon with slight offset for visual balance
+        let iconX = (buttonSize - icon.frame.width) / 2 + 1
+        let iconY = (buttonSize - icon.frame.height) / 2
+        icon.frame = NSRect(x: iconX, y: iconY, width: icon.frame.width, height: icon.frame.height)
+        iconContainer.addSubview(icon)
+        
+        startStopButton.addSubview(iconContainer)
         startStopButton.alignment = .center
-        startStopButton.contentTintColor = .systemGreen
-        startStopButton.toolTip = "Start/Stop Recognition"
+        startStopButton.contentTintColor = .white
+        startStopButton.toolTip = "Start Sign Language Recognition"
+        
+        // Add innovative hover effect
+        startStopButton.addTrackingArea(NSTrackingArea(rect: startStopButton.bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self, userInfo: nil))
+        
         overlay.addSubview(startStopButton)
+        
+        // Debug: Print button properties
+        print("=== Button Creation Debug ===")
+        print("Button size: \(startStopButton.frame.size)")
+        print("Button corner radius: \(startStopButton.layer?.cornerRadius ?? 0)")
+        print("Button background color: \(startStopButton.layer?.backgroundColor != nil ? "set" : "nil")")
+        print("Button title: '\(startStopButton.title)'")
+        print("Button isBordered: \(startStopButton.isBordered)")
+        print("Button subviews count: \(startStopButton.subviews.count)")
+        
         camView.addSubview(overlay)
         container.addSubview(topSection)
 
@@ -312,15 +372,104 @@ import CoreML
     }
     
     private func updateStartStopButton() {
-        // Update button appearance based on recognition state
-        if let icon = startStopButton.subviews.first as? NSTextField {
-            if isRecognizing {
-                icon.stringValue = "⏸"
-                icon.textColor = .systemOrange
-            } else {
-                icon.stringValue = "▶"
-                icon.textColor = .systemGreen
+        print("=== Button Update Debug ===")
+        print("isRecognizing: \(isRecognizing)")
+        print("Start/Stop button subviews count: \(startStopButton.subviews.count)")
+        
+        // Based on debug output, the structure is:
+        // startStopButton.subviews[1] = NSView with 2 subviews
+        // startStopButton.subviews[1].subviews[1] = NSTextField (the icon)
+        
+        var icon: NSTextField?
+        
+        if startStopButton.subviews.count >= 2,
+           let containerView = startStopButton.subviews[1] as? NSView,
+           containerView.subviews.count >= 2,
+           let textField = containerView.subviews[1] as? NSTextField {
+            icon = textField
+            print("Found icon using direct path: '\(textField.stringValue)'")
+        }
+        
+        // Fallback: Search recursively if direct path fails
+        if icon == nil {
+            func findAllTextFields(in view: NSView) -> [NSTextField] {
+                var textFields: [NSTextField] = []
+                for subview in view.subviews {
+                    if let textField = subview as? NSTextField {
+                        textFields.append(textField)
+                    } else if subview is NSView {
+                        textFields.append(contentsOf: findAllTextFields(in: subview))
+                    }
+                }
+                return textFields
             }
+            
+            let allTextFieldsRecursive = findAllTextFields(in: startStopButton)
+            print("Found \(allTextFieldsRecursive.count) text fields recursively")
+            
+            for textField in allTextFieldsRecursive {
+                print("Recursive text field: '\(textField.stringValue)'")
+            }
+            
+            icon = allTextFieldsRecursive.first
+        }
+        
+        // Update the icon if found
+        if let icon = icon {
+            print("Updating icon from '\(icon.stringValue)' to \(isRecognizing ? "⏹" : "▶")")
+            
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.3
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                
+                if isRecognizing {
+                    // Stop state - Red floating button
+                    icon.stringValue = "⏹"
+                    icon.textColor = .white
+                    startStopButton.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.9).cgColor
+                    startStopButton.layer?.shadowColor = NSColor.systemRed.withAlphaComponent(0.4).cgColor
+                    startStopButton.layer?.shadowOffset = CGSize(width: 0, height: 12)
+                    startStopButton.layer?.shadowOpacity = 0.4
+                    startStopButton.layer?.shadowRadius = 16
+                    
+                    // Add innovative pulsing animation
+                    let pulseAnimation = CABasicAnimation(keyPath: "transform.scale")
+                    pulseAnimation.duration = 1.2
+                    pulseAnimation.fromValue = 1.0
+                    pulseAnimation.toValue = 1.08
+                    pulseAnimation.autoreverses = true
+                    pulseAnimation.repeatCount = .infinity
+                    startStopButton.layer?.add(pulseAnimation, forKey: "pulse")
+                    
+                    // Add glow animation
+                    let glowAnimation = CABasicAnimation(keyPath: "shadowOpacity")
+                    glowAnimation.duration = 1.2
+                    glowAnimation.fromValue = 0.4
+                    glowAnimation.toValue = 0.7
+                    glowAnimation.autoreverses = true
+                    glowAnimation.repeatCount = .infinity
+                    startStopButton.layer?.add(glowAnimation, forKey: "glow")
+                    
+                    print("Updated button to STOP state (red floating)")
+                } else {
+                    // Start state - Green floating button
+                    icon.stringValue = "▶"
+                    icon.textColor = .white
+                    startStopButton.layer?.backgroundColor = NSColor.systemGreen.withAlphaComponent(0.9).cgColor
+                    startStopButton.layer?.shadowColor = NSColor.black.cgColor
+                    startStopButton.layer?.shadowOffset = CGSize(width: 0, height: 8)
+                    startStopButton.layer?.shadowOpacity = 0.3
+                    startStopButton.layer?.shadowRadius = 12
+                    
+                    // Remove animations
+                    startStopButton.layer?.removeAnimation(forKey: "pulse")
+                    startStopButton.layer?.removeAnimation(forKey: "glow")
+                    
+                    print("Updated button to START state (green floating)")
+                }
+            }
+        } else {
+            print("No text fields found to update!")
         }
     }
 
@@ -333,12 +482,10 @@ import CoreML
             // Start recognition
             aiSystem.startRecognition()
         }
-        if isRecognizing {
-            if let icon = startStopButton.subviews.first as? NSTextField { icon.stringValue = "⏹" }
-            startStopButton.contentTintColor = .systemRed
-        } else {
-            if let icon = startStopButton.subviews.first as? NSTextField { icon.stringValue = "▶" }
-            startStopButton.contentTintColor = .systemGreen
+        
+        // Update button immediately for better responsiveness
+        DispatchQueue.main.async { [weak self] in
+            self?.updateStartStopButton()
         }
     }
 
@@ -346,20 +493,36 @@ import CoreML
     @objc func toggleBlur() {
         blurBackground.toggle()
         
-        // Update button visual state
+        // Update button visual state with animation
         if let blurIcon = blurButton.subviews.first as? NSTextField {
-            blurIcon.stringValue = blurBackground ? "💧" : "💧"
-            blurIcon.textColor = blurBackground ? .systemBlue : .systemGray
-        }
-        
-        // Update button background and border
-        if blurBackground {
-            blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.2).cgColor
-            blurButton.layer?.borderWidth = 2
-            blurButton.layer?.borderColor = NSColor.systemBlue.cgColor
-        } else {
-            blurButton.layer?.backgroundColor = NSColor.clear.cgColor
-            blurButton.layer?.borderWidth = 0
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.2
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                
+                if blurBackground {
+                    // Active state
+                    blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.25).cgColor
+                    blurButton.layer?.borderColor = NSColor.systemBlue.cgColor
+                    blurButton.layer?.borderWidth = 2
+                    blurIcon.textColor = .systemBlue
+                    
+                    // Add subtle glow effect
+                    blurButton.layer?.shadowColor = NSColor.systemBlue.cgColor
+                    blurButton.layer?.shadowOpacity = 0.3
+                    blurButton.layer?.shadowRadius = 4
+                } else {
+                    // Inactive state
+                    blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.1).cgColor
+                    blurButton.layer?.borderColor = NSColor.systemBlue.withAlphaComponent(0.4).cgColor
+                    blurButton.layer?.borderWidth = 1.5
+                    blurIcon.textColor = .systemGray
+                    
+                    // Remove glow effect
+                    blurButton.layer?.shadowColor = NSColor.black.cgColor
+                    blurButton.layer?.shadowOpacity = 0.15
+                    blurButton.layer?.shadowRadius = 2
+                }
+            }
         }
         
         // Force Metal view to redraw with new blur setting
