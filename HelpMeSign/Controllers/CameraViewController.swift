@@ -10,6 +10,7 @@ import Cocoa
 import MetalKit
 import AVFoundation
 import Vision
+import CoreML
 
 
 
@@ -25,6 +26,11 @@ import Vision
     var isRecognizing = false
     var blurBackground = false
     var centerFrame = false
+    
+    // MARK: - AI & ML Components
+    private var aiSystem: AIUserExperienceSystem!
+    private var languageEngine: LanguageEngine!
+    private var translationDisplayView: TranslationDisplayView!
 
     // MARK: - UI Elements
     var camView: NSView!
@@ -168,10 +174,15 @@ import Vision
         camView.addSubview(overlay)
         container.addSubview(topSection)
 
-        // --- Middle Section: Empty, visually distinct ---
+        // --- Middle Section: Translation Display ---
         let midSection = NSView(frame: NSRect(x: 0, y: botHeight, width: width, height: midHeight))
         midSection.wantsLayer = true
         midSection.layer?.backgroundColor = NSColor(calibratedWhite: 0.99, alpha: 1.0).cgColor
+        
+        // Add translation display view
+        translationDisplayView = TranslationDisplayView(frame: NSRect(x: width * 0.1, y: midHeight * 0.1, width: width * 0.8, height: midHeight * 0.8))
+        midSection.addSubview(translationDisplayView)
+        
         container.addSubview(midSection)
 
         // --- Bottom Section: Alphabet Bar ---
@@ -193,11 +204,135 @@ import Vision
 
         self.view = container
         viewHasBeenLoaded = true
+        
+        // Initialize AI & ML components
+        setupAIComponents()
+    }
+    
+    // MARK: - AI & ML Setup
+    
+    private func setupAIComponents() {
+        // Initialize AI system
+        aiSystem = AIUserExperienceSystem.shared
+        
+        // Initialize language engine
+        languageEngine = LanguageEngine.shared
+        
+        // Setup callbacks
+        setupAICallbacks()
+        
+        // Start language discovery
+        Task {
+            await languageEngine.discoverLanguages()
+        }
+    }
+    
+    private func setupAICallbacks() {
+        // AI system callbacks
+        aiSystem.onSignRecognized = { [weak self] (result: AIRecognitionResult) in
+            DispatchQueue.main.async {
+                self?.handleSignRecognition(result)
+            }
+        }
+        
+        aiSystem.onLanguageChanged = { [weak self] language in
+            DispatchQueue.main.async {
+                self?.handleLanguageChange(language)
+            }
+        }
+        
+        aiSystem.onRecognitionStateChanged = { [weak self] isActive in
+            DispatchQueue.main.async {
+                self?.handleRecognitionStateChange(isActive)
+            }
+        }
+        
+        // Language engine callbacks
+        languageEngine.onRecognitionComplete = { [weak self] (result: RecognitionResult) in
+            DispatchQueue.main.async {
+                self?.handleLanguageEngineRecognition(result)
+            }
+        }
+        
+        languageEngine.onTranslationComplete = { [weak self] result in
+            DispatchQueue.main.async {
+                self?.handleTranslation(result)
+            }
+        }
+    }
+    
+    // MARK: - AI & ML Handlers
+    
+    private func handleSignRecognition(_ result: AIRecognitionResult) {
+        // Update translation display
+        translationDisplayView?.updateTranslation(
+            sign: result.sign,
+            confidence: result.confidence,
+            language: result.language.code
+        )
+        
+        // Update language display
+        languageLabel.stringValue = result.language.code
+        flagLabel.stringValue = result.language.flag
+    }
+    
+    private func handleLanguageChange(_ language: SignLanguage) {
+        // Update UI for new language
+        languageLabel.stringValue = language.code
+        flagLabel.stringValue = language.flag
+        
+        translationDisplayView?.updateLanguageDisplay(language.code)
+    }
+    
+    private func handleRecognitionStateChange(_ isActive: Bool) {
+        // Update recognition state
+        isRecognizing = isActive
+        translationDisplayView?.setRecognitionStatus(isActive)
+        
+        // Update button state
+        updateStartStopButton()
+    }
+    
+    private func handleLanguageEngineRecognition(_ result: RecognitionResult) {
+        // Handle recognition from language engine
+        translationDisplayView?.updateTranslation(
+            sign: result.sign,
+            confidence: result.confidence,
+            language: result.language
+        )
+    }
+    
+    private func handleTranslation(_ result: TranslationResult) {
+        // Handle translation result
+        translationDisplayView?.updateTranslation(
+            sign: result.targetSign,
+            confidence: result.confidence,
+            language: result.targetLanguage
+        )
+    }
+    
+    private func updateStartStopButton() {
+        // Update button appearance based on recognition state
+        if let icon = startStopButton.subviews.first as? NSTextField {
+            if isRecognizing {
+                icon.stringValue = "⏸"
+                icon.textColor = .systemOrange
+            } else {
+                icon.stringValue = "▶"
+                icon.textColor = .systemGreen
+            }
+        }
     }
 
     // --- Start/Stop Recognition Handler ---
     @objc func toggleRecognition() {
-        isRecognizing.toggle()
+        if isRecognizing {
+            // Stop recognition
+            aiSystem.stopRecognition()
+        } else {
+            // Start recognition
+            aiSystem.startRecognition()
+        }
         if isRecognizing {
             if let icon = startStopButton.subviews.first as? NSTextField { icon.stringValue = "⏹" }
             startStopButton.contentTintColor = .systemRed
@@ -287,6 +422,17 @@ import Vision
             nil, textureCache, pixelBuffer, nil, .bgra8Unorm, width, height, 0, &texture)
         if status == kCVReturnSuccess, let texture = texture {
             self.currentTexture = CVMetalTextureGetTexture(texture)
+        }
+        
+        // Process frame for AI recognition
+        if isRecognizing {
+            aiSystem?.processFrame(sampleBuffer)
+            
+            // Also process for language engine if languages are loaded
+            let loadedLanguages = languageEngine?.getLoadedLanguages() ?? []
+            if !loadedLanguages.isEmpty {
+                languageEngine?.processFrame(sampleBuffer, for: loadedLanguages)
+            }
         }
     }
     // --- Metal Draw Delegate ---
