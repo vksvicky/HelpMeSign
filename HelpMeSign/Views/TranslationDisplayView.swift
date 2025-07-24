@@ -4,14 +4,13 @@ import Cocoa
 class TranslationDisplayView: NSView {
     
     // MARK: - UI Elements
-    private var translationLabel: NSTextField!
-    private var confidenceLabel: NSTextField!
+    private var translationScrollView: NSScrollView!
+    private var translationTextView: NSTextView!
     private var languageLabel: NSTextField!
-    private var statusLabel: NSTextField!
+    private var clearButton: NSButton!
     
     // MARK: - Data
-    private var currentSign: String = ""
-    private var currentConfidence: Float = 0.0
+    private var translationHistory: [String] = []
     private var currentLanguage: String = "ASL"
     
     // MARK: - Callbacks
@@ -41,116 +40,121 @@ class TranslationDisplayView: NSView {
     }
     
     private func setupTranslationDisplay() {
-        // Status label
-        statusLabel = NSTextField(labelWithString: "AI Sign Language Recognition")
-        statusLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
-        statusLabel.textColor = NSColor.secondaryLabelColor
-        statusLabel.alignment = .center
-        statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(statusLabel)
-        
-        // Main translation label
-        translationLabel = NSTextField(labelWithString: "Ready for sign recognition")
-        translationLabel.font = NSFont.systemFont(ofSize: 24, weight: .medium)
-        translationLabel.textColor = NSColor.labelColor
-        translationLabel.alignment = .center
-        translationLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(translationLabel)
-        
-        // Confidence indicator
-        confidenceLabel = NSTextField(labelWithString: "")
-        confidenceLabel.font = NSFont.systemFont(ofSize: 12, weight: .regular)
-        confidenceLabel.textColor = NSColor.secondaryLabelColor
-        confidenceLabel.alignment = .center
-        confidenceLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(confidenceLabel)
-        
-        // Language indicator
-        languageLabel = NSTextField(labelWithString: "🇺🇸 ASL")
-        languageLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        // Header with language indicator
+        languageLabel = NSTextField(labelWithString: "🇺🇸 ASL - Sign Language Translations")
+        languageLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
         languageLabel.textColor = NSColor.systemBlue
         languageLabel.alignment = .center
         languageLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(languageLabel)
         
+        // Clear button
+        clearButton = NSButton(title: "Clear", target: self, action: #selector(clearHistoryAction))
+        clearButton.bezelStyle = .rounded
+        clearButton.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        clearButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(clearButton)
+        
+        // Translation text view in scroll view
+        translationTextView = NSTextView()
+        translationTextView.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+        translationTextView.textColor = NSColor.labelColor
+        translationTextView.backgroundColor = NSColor.clear
+        translationTextView.isEditable = false
+        translationTextView.isSelectable = true
+        translationTextView.string = "Ready for sign recognition...\n\nTranslations will appear here as you sign."
+        
+        // Scroll view
+        translationScrollView = NSScrollView()
+        translationScrollView.hasVerticalScroller = true
+        translationScrollView.hasHorizontalScroller = false
+        translationScrollView.autohidesScrollers = true
+        translationScrollView.borderType = .lineBorder
+        translationScrollView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Set the text view as the document view
+        translationScrollView.documentView = translationTextView
+        
+        addSubview(translationScrollView)
+        
         // Constraints
         NSLayoutConstraint.activate([
-            statusLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            statusLabel.topAnchor.constraint(equalTo: topAnchor, constant: 20),
-            statusLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 20),
-            statusLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -20),
+            languageLabel.topAnchor.constraint(equalTo: topAnchor, constant: 16),
+            languageLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            languageLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             
-            translationLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            translationLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            translationLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 20),
-            translationLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -20),
+            clearButton.topAnchor.constraint(equalTo: topAnchor, constant: 16),
+            clearButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            clearButton.widthAnchor.constraint(equalToConstant: 60),
+            clearButton.heightAnchor.constraint(equalToConstant: 24),
             
-            confidenceLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            confidenceLabel.topAnchor.constraint(equalTo: translationLabel.bottomAnchor, constant: 8),
-            confidenceLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 20),
-            confidenceLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -20),
-            
-            languageLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            languageLabel.topAnchor.constraint(equalTo: confidenceLabel.bottomAnchor, constant: 8),
-            languageLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 20),
-            languageLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -20)
+            translationScrollView.topAnchor.constraint(equalTo: languageLabel.bottomAnchor, constant: 12),
+            translationScrollView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            translationScrollView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            translationScrollView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16)
         ])
     }
     
     // MARK: - Public Methods
     
-    /// Update the current translation display
-    func updateTranslation(sign: String, confidence: Float, language: String) {
-        currentSign = sign
-        currentConfidence = confidence
-        currentLanguage = language
+    /// Add a new translation to the history
+    func addTranslation(_ translation: String, confidence: Float = 1.0) {
+        print("📝 TranslationDisplayView.addTranslation called with: \(translation)")
         
-        // Update main translation label
-        translationLabel.stringValue = sign
-        translationLabel.textColor = NSColor.labelColor
-        
-        // Update confidence indicator
+        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
         let confidencePercentage = Int(confidence * 100)
-        confidenceLabel.stringValue = "Confidence: \(confidencePercentage)%"
+        let entry = "[\(timestamp)] \(translation) (\(confidencePercentage)%)"
         
-        // Update confidence color based on level
-        if confidence >= 0.9 {
-            confidenceLabel.textColor = NSColor.systemGreen
-        } else if confidence >= 0.7 {
-            confidenceLabel.textColor = NSColor.systemOrange
-        } else {
-            confidenceLabel.textColor = NSColor.systemRed
+        translationHistory.append(entry)
+        print("📝 Added entry: \(entry)")
+        print("📝 Total entries: \(translationHistory.count)")
+        
+        // Update the text view
+        updateTranslationDisplay()
+        
+        // Scroll to bottom
+        DispatchQueue.main.async {
+            self.translationTextView.scrollToEndOfDocument(nil)
         }
-        
-        // Update language label
-        updateLanguageDisplay(language)
     }
     
     /// Update the language display
     func updateLanguageDisplay(_ languageCode: String) {
+        currentLanguage = languageCode
         let flag = getFlagForLanguage(languageCode)
-        languageLabel.stringValue = "\(flag) \(languageCode)"
+        languageLabel.stringValue = "\(flag) \(languageCode) - Sign Language Translations"
     }
     
-    /// Clear the current translation
-    func clearTranslation() {
-        currentSign = ""
-        currentConfidence = 0.0
-        translationLabel.stringValue = "Ready for sign recognition"
-        translationLabel.textColor = NSColor.secondaryLabelColor
-        confidenceLabel.stringValue = ""
-        languageLabel.stringValue = "🇺🇸 ASL"
+    /// Clear all translations
+    func clearTranslations() {
+        translationHistory.removeAll()
+        updateTranslationDisplay()
     }
     
-    /// Set recognition status
+    /// Set recognition status (this will be moved to camera view)
     func setRecognitionStatus(_ isActive: Bool) {
-        if isActive {
-            statusLabel.stringValue = "AI Recognition Active"
-            statusLabel.textColor = NSColor.systemGreen
+        // This method is deprecated - status will be shown in camera view
+    }
+    
+    // MARK: - Private Methods
+    
+    private func updateTranslationDisplay() {
+        print("📝 updateTranslationDisplay called, history count: \(translationHistory.count)")
+        
+        if translationHistory.isEmpty {
+            translationTextView.string = "Ready for sign recognition...\n\nTranslations will appear here as you sign."
+            print("📝 Set empty state text")
         } else {
-            statusLabel.stringValue = "AI Recognition Inactive"
-            statusLabel.textColor = NSColor.systemGray
+            let displayText = translationHistory.joined(separator: "\n")
+            translationTextView.string = displayText
+            print("📝 Set display text with \(translationHistory.count) entries")
+            print("📝 Display text: \(displayText)")
         }
+    }
+    
+    @objc private func clearHistoryAction() {
+        clearTranslations()
+        onClearHistory?()
     }
     
     // MARK: - Helper Methods

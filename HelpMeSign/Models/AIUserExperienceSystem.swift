@@ -56,7 +56,7 @@ class AIUserExperienceSystem: NSObject {
     private var recognitionDebounceInterval: TimeInterval = 3.0 // 3 second debounce for more stability
     private var lastSignCandidate: String = ""
     private var signCandidateCount: Int = 0
-    private var requiredCandidateCount: Int = 5 // Must see same sign 5 times before recognizing
+    private var requiredCandidateCount: Int = 3 // Must see same sign 3 times before recognizing
     
     // Frame processing control
     private var lastFrameProcessTime: Date = Date()
@@ -67,7 +67,7 @@ class AIUserExperienceSystem: NSObject {
     private var lastFeatures: [Float] = []
     private var featureSmoothingFactor: Float = 0.3 // 30% new, 70% old - more stable
     private var featureHistory: [[Float]] = []
-    private var maxFeatureHistory: Int = 10
+    private var maxFeatureHistory: Int = 60 // Keep last 60 frames (2 seconds at 30fps)
     
     // Callbacks
     var onSignRecognized: ((AIRecognitionResult) -> Void)?
@@ -436,6 +436,8 @@ class AIUserExperienceSystem: NSObject {
             let sign = self?.determineSignFromFeatures(features) ?? "A"
             let confidence = self?.calculateConfidence(features) ?? 0.8
             
+            print("🎯 Processing sign: \(sign) with confidence: \(confidence)")
+            
             DispatchQueue.main.async {
                 self?.handleSignCandidate(sign: sign, confidence: confidence, features: features)
             }
@@ -444,7 +446,7 @@ class AIUserExperienceSystem: NSObject {
     
     private func handleSignCandidate(sign: String, confidence: Float, features: [Float]) {
         // Only process high-confidence candidates
-        guard confidence > 0.8 else {
+        guard confidence > 0.6 else {
             print("Sign candidate confidence too low: \(confidence)")
             return
         }
@@ -462,32 +464,34 @@ class AIUserExperienceSystem: NSObject {
         
         // Only recognize if we've seen the same sign multiple times
         if signCandidateCount >= requiredCandidateCount {
+            print("🎯 FINAL RECOGNITION: \(sign) with \(signCandidateCount) consistent detections!")
             handleSignRecognition(sign: sign, confidence: confidence, features: features)
-            // Reset after recognition
+            // Reset after recognition to prevent repeated recognition
             signCandidateCount = 0
+            lastSignCandidate = "" // Clear the last candidate to force new sign detection
         }
     }
     
     private func determineSignFromFeatures(_ features: [Float]) -> String {
-        // Use feature vector to determine sign consistently
+        // Use feature vector to determine sign consistently (SIGNSlate approach)
         // This simulates how a real ML model would work
         
         guard !features.isEmpty else { return "A" }
         
-        // Add current features to history
+        // Add current features to history (SIGNSlate's 2-second window approach)
         featureHistory.append(features)
         if featureHistory.count > maxFeatureHistory {
             featureHistory.removeFirst()
         }
         
-        // Use average of recent features for more stability
+        // Use average of recent features for more stability (SIGNSlate's dominant average)
         let averageFeatures = averageFeatureHistory()
         
-        // Create a more stable feature signature by rounding and binning
-        let roundedFeatures = averageFeatures.map { round($0 * 5) / 5 } // Round to 0.2 decimal place
-        let featureSignature = roundedFeatures.map { Int($0 * 5) }.reduce(0, +)
+        // Create a more stable feature signature (SIGNSlate's SVM approach simulation)
+        let roundedFeatures = averageFeatures.map { round($0 * 2) / 2 } // Round to 0.5 decimal place (more stable)
+        let featureSignature = roundedFeatures.map { Int($0 * 2) }.reduce(0, +)
         
-        // Use modulo to get consistent sign index
+        // Use modulo to get consistent sign index (like SIGNSlate's classification)
         let signIndex = abs(featureSignature) % 26
         
         let signs = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
@@ -543,11 +547,12 @@ class AIUserExperienceSystem: NSObject {
         
         if timeSinceLastRecognition < recognitionDebounceInterval && isSameSign {
             // Skip recognition - too soon and same sign
+            print("⏸️ Skipping recognition: \(sign) (debounced)")
             return
         }
         
         // Only recognize if confidence is high enough
-        guard confidence > 0.8 else {
+        guard confidence > 0.6 else {
             print("Sign recognition confidence too low: \(confidence)")
             return
         }

@@ -40,6 +40,8 @@ import CoreML
     var pulseLayer: CALayer?
     var languageLabel: NSTextField!
     var flagLabel: NSTextField!
+    var aiStatusLabel: NSTextField!
+    var fallbackTextView: NSTextView!
     
     // Private property to track if view has been loaded
     private var viewHasBeenLoaded = false
@@ -95,6 +97,28 @@ import CoreML
         metalView.layer?.cornerRadius = 28
         metalView.layer?.masksToBounds = true
         camView.addSubview(metalView)
+        
+        // AI Status Display (below camera view)
+        let aiStatusContainer = NSView(frame: NSRect(x: 0, y: -60, width: camWidth, height: 50))
+        aiStatusContainer.wantsLayer = true
+        aiStatusContainer.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.95).cgColor
+        aiStatusContainer.layer?.cornerRadius = 12
+        aiStatusContainer.layer?.borderWidth = 1
+        aiStatusContainer.layer?.borderColor = NSColor.systemGray.withAlphaComponent(0.2).cgColor
+        
+        // AI Status Label
+        let aiStatusLabel = NSTextField(labelWithString: "AI Recognition Inactive")
+        aiStatusLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        aiStatusLabel.textColor = NSColor.systemGray
+        aiStatusLabel.alignment = .center
+        aiStatusLabel.frame = NSRect(x: 0, y: 0, width: camWidth, height: 50)
+        aiStatusContainer.addSubview(aiStatusLabel)
+        
+        // Store reference for later updates
+        self.aiStatusLabel = aiStatusLabel
+        
+        camView.addSubview(aiStatusContainer)
+        
         // Language/flag overlay (top-right inside camera)
         let langContainer = NSView(frame: NSRect(x: camWidth - 110, y: camHeight - 46, width: 100, height: 40))
         langContainer.wantsLayer = true
@@ -239,9 +263,49 @@ import CoreML
         midSection.wantsLayer = true
         midSection.layer?.backgroundColor = NSColor(calibratedWhite: 0.99, alpha: 1.0).cgColor
         
-        // Add translation display view
-        translationDisplayView = TranslationDisplayView(frame: NSRect(x: width * 0.1, y: midHeight * 0.1, width: width * 0.8, height: midHeight * 0.8))
-        midSection.addSubview(translationDisplayView)
+        // Create a simple translation display view (no external file dependency)
+        print("🔧 Creating simple translation display view")
+        
+        // Create header view
+        let headerView = NSView(frame: NSRect(x: width * 0.1, y: midHeight * 0.8, width: width * 0.8, height: 40))
+        headerView.wantsLayer = true
+        headerView.layer?.backgroundColor = NSColor.white.cgColor
+        
+        // Header label
+        let headerLabel = NSTextField(labelWithString: "🇺🇸 ASL - Sign Language Translations")
+        headerLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        headerLabel.textColor = NSColor.systemBlue
+        headerLabel.frame = NSRect(x: 10, y: 10, width: 300, height: 20)
+        headerView.addSubview(headerLabel)
+        
+        // Clear button
+        let clearButton = NSButton(title: "Clear", target: self, action: #selector(clearTranslationsAction))
+        clearButton.bezelStyle = NSButton.BezelStyle.rounded
+        clearButton.frame = NSRect(x: width * 0.8 - 70, y: 8, width: 60, height: 24)
+        headerView.addSubview(clearButton)
+        
+        midSection.addSubview(headerView)
+        
+        // Create main text view
+        let mainTextView = NSTextView(frame: NSRect(x: width * 0.1, y: midHeight * 0.1, width: width * 0.8, height: midHeight * 0.7))
+        mainTextView.string = ""
+        mainTextView.isEditable = false
+        mainTextView.backgroundColor = NSColor.white
+        mainTextView.font = NSFont.systemFont(ofSize: 16)
+        mainTextView.textColor = NSColor.labelColor
+        mainTextView.isSelectable = true
+        
+        // Add border
+        mainTextView.wantsLayer = true
+        mainTextView.layer?.borderWidth = 1
+        mainTextView.layer?.borderColor = NSColor.systemGray.withAlphaComponent(0.3).cgColor
+        mainTextView.layer?.cornerRadius = 8
+        
+        midSection.addSubview(mainTextView)
+        
+        // Store reference for updates
+        self.fallbackTextView = mainTextView
+        print("🔧 Created simple translation view successfully")
         
         container.addSubview(midSection)
 
@@ -290,6 +354,7 @@ import CoreML
     private func setupAICallbacks() {
         // AI system callbacks
         aiSystem.onSignRecognized = { [weak self] (result: AIRecognitionResult) in
+            print("🎯 AI System callback triggered: \(result.sign)")
             DispatchQueue.main.async {
                 self?.handleSignRecognition(result)
             }
@@ -324,12 +389,25 @@ import CoreML
     // MARK: - AI & ML Handlers
     
     private func handleSignRecognition(_ result: AIRecognitionResult) {
-        // Update translation display
-        translationDisplayView?.updateTranslation(
-            sign: result.sign,
-            confidence: result.confidence,
-            language: result.language.code
-        )
+        print("🎯 handleSignRecognition called: \(result.sign) with confidence: \(result.confidence)")
+        
+        // Add translation to the history
+        if let translationView = translationDisplayView {
+            print("📝 Adding translation to display: \(result.sign)")
+            translationView.addTranslation(result.sign, confidence: result.confidence)
+        } else if let fallbackView = fallbackTextView {
+            print("📝 Adding translation to fallback view: \(result.sign)")
+            let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
+            let confidencePercentage = Int(result.confidence * 100)
+            let newEntry = "[\(timestamp)] \(result.sign) (\(confidencePercentage)%)\n"
+            
+            DispatchQueue.main.async {
+                fallbackView.string += newEntry
+                fallbackView.scrollToEndOfDocument(nil)
+            }
+        } else {
+            print("❌ Both translationDisplayView and fallbackTextView are nil!")
+        }
         
         // Update language display
         languageLabel.stringValue = result.language.code
@@ -355,20 +433,19 @@ import CoreML
     
     private func handleLanguageEngineRecognition(_ result: RecognitionResult) {
         // Handle recognition from language engine
-        translationDisplayView?.updateTranslation(
-            sign: result.sign,
-            confidence: result.confidence,
-            language: result.language
-        )
+        translationDisplayView?.addTranslation(result.sign, confidence: result.confidence)
     }
     
     private func handleTranslation(_ result: TranslationResult) {
         // Handle translation result
-        translationDisplayView?.updateTranslation(
-            sign: result.targetSign,
-            confidence: result.confidence,
-            language: result.targetLanguage
-        )
+        translationDisplayView?.addTranslation(result.targetSign, confidence: result.confidence)
+    }
+    
+    @objc private func clearTranslationsAction() {
+        print("🧹 Clearing translations")
+        if let fallbackView = fallbackTextView {
+            fallbackView.string = ""
+        }
     }
     
     private func updateStartStopButton() {
@@ -475,12 +552,20 @@ import CoreML
 
     // --- Start/Stop Recognition Handler ---
     @objc func toggleRecognition() {
+        isRecognizing.toggle()
+        
         if isRecognizing {
-            // Stop recognition
-            aiSystem.stopRecognition()
-        } else {
             // Start recognition
-            aiSystem.startRecognition()
+            aiSystem?.startRecognition()
+            aiStatusLabel.stringValue = "AI Recognition Active"
+            aiStatusLabel.textColor = NSColor.systemGreen
+            print("Started sign language recognition")
+        } else {
+            // Stop recognition
+            aiSystem?.stopRecognition()
+            aiStatusLabel.stringValue = "AI Recognition Inactive"
+            aiStatusLabel.textColor = NSColor.systemGray
+            print("Stopped sign language recognition")
         }
         
         // Update button immediately for better responsiveness
