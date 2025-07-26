@@ -79,6 +79,9 @@ class AIUserExperienceSystem: NSObject {
     private var maxFeatureHistory: Int = 60 // Keep last 60 frames (2 seconds at 30fps)
     private let featureQueue = DispatchQueue(label: "com.helpmesign.feature-processing", qos: .userInitiated)
     
+    // Hand preference
+    private var handPreference: String = "Right" // Default to right hand
+    
     // Callbacks
     var onSignRecognized: ((AIRecognitionResult) -> Void)?
     var onLanguageChanged: ((SignLanguage) -> Void)?
@@ -150,6 +153,16 @@ class AIUserExperienceSystem: NSObject {
     }
     
     // MARK: - Public Methods
+    
+    /// Update hand preference for recognition
+    func updateHandPreference(_ preference: String) {
+        handPreference = preference
+        print("AIUserExperienceSystem: Hand preference updated to \(preference)")
+        
+        // Store the preference for use in hand pose processing
+        // The Vision framework will detect both hands, but we can prioritize processing
+        // based on the user's preference in the feature extraction
+    }
     
     /// Start sign language recognition
     func startRecognition() {

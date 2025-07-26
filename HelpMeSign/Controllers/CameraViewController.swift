@@ -689,6 +689,13 @@ import CoreML
             name: NSNotification.Name("LanguageChanged"),
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleHandPreferenceChangeNotification),
+            name: NSNotification.Name("HandPreferenceChanged"),
+            object: nil
+        )
     }
     
     @objc private func handleLanguageChangeNotification(_ notification: Notification) {
@@ -785,6 +792,32 @@ import CoreML
             }
         }
         return nil
+    }
+    
+    @objc private func handleHandPreferenceChangeNotification(_ notification: Notification) {
+        guard let handPreference = notification.userInfo?["handPreference"] as? String else { 
+            print("CameraViewController: No handPreference found in notification")
+            return 
+        }
+        
+        print("CameraViewController: Hand preference changed to \(handPreference)")
+        
+        // Update AI system with new hand preference
+        aiSystem?.updateHandPreference(handPreference)
+        
+        // Update language engine with new hand preference
+        languageEngine?.updateHandPreference(handPreference)
+        
+        // Update UI to reflect hand preference
+        updateHandPreferenceDisplay(handPreference)
+    }
+    
+    private func updateHandPreferenceDisplay(_ handPreference: String) {
+        DispatchQueue.main.async {
+            // Update any UI elements that show hand preference
+            // For example, you could add a small indicator in the camera view
+            print("CameraViewController: Updated hand preference display to \(handPreference)")
+        }
     }
     
     private func reloadAlphabetForLanguage(_ languageCode: String) {

@@ -34,6 +34,9 @@ class LanguageEngine: NSObject {
     private var recognitionPipeline: RecognitionPipeline?
     private var translationEngine: TranslationEngine?
     
+    // Hand preference
+    private var handPreference: String = "Right" // Default to right hand
+    
     // Callbacks
     var onLanguageLoaded: ((SignLanguageConfig) -> Void)?
     var onTranslationComplete: ((TranslationResult) -> Void)?
@@ -93,6 +96,16 @@ class LanguageEngine: NSObject {
     }
     
     // MARK: - Public Methods
+    
+    /// Update hand preference for language processing
+    func updateHandPreference(_ preference: String) {
+        handPreference = preference
+        print("LanguageEngine: Hand preference updated to \(preference)")
+        
+        // Store the preference for use in language processing
+        // The recognition and translation engines can access this preference
+        // when processing sign language data
+    }
     
     /// Discover and load available sign languages dynamically
     func discoverLanguages() async {

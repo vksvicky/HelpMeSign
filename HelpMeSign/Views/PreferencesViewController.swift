@@ -8,11 +8,13 @@ class PreferencesViewController: NSViewController {
     private var searchField: NSSearchField!
     private var languageTableView: NSTableView!
     private var languageArrayController: NSArrayController!
+    private var handPreferenceSegmentedControl: NSSegmentedControl!
     
     // MARK: - Data
     private var allLanguages: [LanguageInfo] = []
     private var filteredLanguages: [LanguageInfo] = []
     private var selectedLanguage: String = "ASL"
+    private var selectedHand: String = "Right" // Default to right hand
     
     // MARK: - Struct for language data
     struct LanguageInfo {
@@ -114,6 +116,19 @@ class PreferencesViewController: NSViewController {
         searchField.action = #selector(searchFieldChanged)
         containerView.addSubview(searchField)
         
+        // Hand preference section
+        let handPreferenceLabel = NSTextField(labelWithString: "Hand Preference")
+        handPreferenceLabel.font = NSFont.systemFont(ofSize: 16, weight: .medium)
+        handPreferenceLabel.textColor = NSColor.labelColor
+        handPreferenceLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(handPreferenceLabel)
+        
+        // Hand preference segmented control
+        handPreferenceSegmentedControl = NSSegmentedControl(labels: ["Left Hand", "Right Hand"], trackingMode: .selectOne, target: self, action: #selector(handPreferenceChanged))
+        handPreferenceSegmentedControl.translatesAutoresizingMaskIntoConstraints = false
+        handPreferenceSegmentedControl.selectedSegment = 1 // Default to right hand
+        containerView.addSubview(handPreferenceSegmentedControl)
+        
         // Scroll view for table
         scrollView = NSScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -137,7 +152,14 @@ class PreferencesViewController: NSViewController {
             searchField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             searchField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             
-            scrollView.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 15),
+            handPreferenceLabel.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 20),
+            handPreferenceLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            
+            handPreferenceSegmentedControl.topAnchor.constraint(equalTo: handPreferenceLabel.bottomAnchor, constant: 8),
+            handPreferenceSegmentedControl.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            handPreferenceSegmentedControl.widthAnchor.constraint(equalToConstant: 200),
+            
+            scrollView.topAnchor.constraint(equalTo: handPreferenceSegmentedControl.bottomAnchor, constant: 15),
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
@@ -219,6 +241,20 @@ class PreferencesViewController: NSViewController {
         
         languageTableView.reloadData()
         loadCurrentSelection()
+    }
+    
+    @objc private func handPreferenceChanged() {
+        let selectedSegment = handPreferenceSegmentedControl.selectedSegment
+        selectedHand = selectedSegment == 0 ? "Left" : "Right"
+        
+        print("Hand preference changed to: \(selectedHand)")
+        
+        // Post notification for hand preference change
+        NotificationCenter.default.post(
+            name: NSNotification.Name("HandPreferenceChanged"),
+            object: nil,
+            userInfo: ["handPreference": selectedHand]
+        )
     }
     
     private func selectLanguage(_ languageCode: String) {
