@@ -22,7 +22,6 @@ import CoreML
 
     // MARK: - UI State
     var isRecognizing = false
-    var blurBackground = false
     var centerFrame = false
     
     // MARK: - AI & ML Components
@@ -34,11 +33,9 @@ import CoreML
     var camView: NSView!
     var overlay: HoverOverlayView!
     var startStopButton: NSButton!
-    var blurButton: NSButton!
     var pulseLayer: CALayer?
     var languageLabel: NSTextField!
     var flagLabel: NSTextField!
-    var aiStatusLabel: NSTextField!
     var fallbackTextView: NSTextView!
 
     override func loadView() {
@@ -90,26 +87,7 @@ import CoreML
         metalView.layer?.masksToBounds = true
         camView.addSubview(metalView)
         
-        // AI Status Display (below camera view)
-        let aiStatusContainer = NSView(frame: NSRect(x: 0, y: -60, width: camWidth, height: 50))
-        aiStatusContainer.wantsLayer = true
-        aiStatusContainer.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.95).cgColor
-        aiStatusContainer.layer?.cornerRadius = 12
-        aiStatusContainer.layer?.borderWidth = 1
-        aiStatusContainer.layer?.borderColor = NSColor.systemGray.withAlphaComponent(0.2).cgColor
-        
-        // AI Status Label
-        let aiStatusLabel = NSTextField(labelWithString: "AI Recognition Inactive")
-        aiStatusLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
-        aiStatusLabel.textColor = NSColor.systemGray
-        aiStatusLabel.alignment = .center
-        aiStatusLabel.frame = NSRect(x: 0, y: 0, width: camWidth, height: 50)
-        aiStatusContainer.addSubview(aiStatusLabel)
-        
-        // Store reference for later updates
-        self.aiStatusLabel = aiStatusLabel
-        
-        camView.addSubview(aiStatusContainer)
+
         
         // Language/flag overlay (top-right inside camera)
         let langContainer = NSView(frame: NSRect(x: camWidth - 110, y: camHeight - 46, width: 100, height: 40))
@@ -143,44 +121,7 @@ import CoreML
             }
         }
         
-        // Feature button (left) - Innovative Mini Design
-        let featureSize: CGFloat = 40
-        blurButton = NSButton(title: "", target: self, action: #selector(toggleBlur))
-        blurButton.bezelStyle = .regularSquare
-        blurButton.setFrameSize(NSSize(width: featureSize, height: featureSize))
-        blurButton.frame.origin = CGPoint(x: 20, y: (overlayHeight - featureSize)/2)
-        blurButton.wantsLayer = true
-        blurButton.layer?.cornerRadius = featureSize/2
-        blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.8).cgColor
-        blurButton.layer?.borderWidth = 0
-        
-        // Add floating shadow effect
-        blurButton.layer?.shadowColor = NSColor.black.cgColor
-        blurButton.layer?.shadowOffset = CGSize(width: 0, height: 4)
-        blurButton.layer?.shadowOpacity = 0.2
-        blurButton.layer?.shadowRadius = 6
-        
-        let blurIcon = NSTextField(labelWithString: "💧")
-        blurIcon.font = NSFont.systemFont(ofSize: 18)
-        blurIcon.backgroundColor = .clear
-        blurIcon.isBordered = false
-        blurIcon.isEditable = false
-        blurIcon.textColor = .systemGray // Start with gray to show it's off
-        blurIcon.alignment = .center
-        blurIcon.sizeToFit()
-        
-        // Center the icon properly
-        let blurIconX = (featureSize - blurIcon.frame.width) / 2
-        let blurIconY = (featureSize - blurIcon.frame.height) / 2
-        blurIcon.frame = NSRect(x: blurIconX, y: blurIconY, width: blurIcon.frame.width, height: blurIcon.frame.height)
-        blurButton.addSubview(blurIcon)
-        blurButton.contentTintColor = .systemBlue
-        blurButton.toolTip = "Blur Background (Click to toggle)"
-        
-        // Add hover effect
-        blurButton.addTrackingArea(NSTrackingArea(rect: blurButton.bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self, userInfo: nil))
-        
-        overlay.addSubview(blurButton)
+
         
         // Start/Stop button (center) - Innovative Floating Design
         let buttonSize: CGFloat = 64
@@ -633,14 +574,10 @@ import CoreML
         if isRecognizing {
             // Start recognition
             aiSystem?.startRecognition()
-            aiStatusLabel?.stringValue = "AI Recognition Active"
-            aiStatusLabel?.textColor = NSColor.systemGreen
             print("Started sign language recognition")
         } else {
             // Stop recognition
             aiSystem?.stopRecognition()
-            aiStatusLabel?.stringValue = "AI Recognition Inactive"
-            aiStatusLabel?.textColor = NSColor.systemGray
             print("Stopped sign language recognition")
         }
         
@@ -650,48 +587,7 @@ import CoreML
         }
     }
 
-    // --- Feature Button Handlers ---
-    @objc func toggleBlur() {
-        blurBackground.toggle()
-        
-        // Update button visual state with animation (only if button exists)
-        if let blurButton = blurButton, let blurIcon = blurButton.subviews.first as? NSTextField {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.2
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                
-                if blurBackground {
-                    // Active state
-                    blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.25).cgColor
-                    blurButton.layer?.borderColor = NSColor.systemBlue.cgColor
-                    blurButton.layer?.borderWidth = 2
-                    blurIcon.textColor = .systemBlue
-                    
-                    // Add subtle glow effect
-                    blurButton.layer?.shadowColor = NSColor.systemBlue.cgColor
-                    blurButton.layer?.shadowOpacity = 0.3
-                    blurButton.layer?.shadowRadius = 4
-                } else {
-                    // Inactive state
-                    blurButton.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.1).cgColor
-                    blurButton.layer?.borderColor = NSColor.systemBlue.withAlphaComponent(0.4).cgColor
-                    blurButton.layer?.borderWidth = 1.5
-                    blurIcon.textColor = .systemGray
-                    
-                    // Remove glow effect
-                    blurButton.layer?.shadowColor = NSColor.black.cgColor
-                    blurButton.layer?.shadowOpacity = 0.15
-                    blurButton.layer?.shadowRadius = 2
-                }
-            }
-        }
-        
-        // Force Metal view to redraw with new blur setting
-        metalView?.setNeedsDisplay(metalView?.bounds ?? .zero)
-        
-        // Print debug info
-        print("Blur background: \(blurBackground)")
-    }
+
 
     // --- Camera & Metal Setup ---
     override func viewDidLoad() {
@@ -774,8 +670,6 @@ import CoreML
         let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)!
         encoder.setRenderPipelineState(pipelineState)
         encoder.setFragmentTexture(texture, index: 0)
-        var blurFlag = blurBackground
-        encoder.setFragmentBytes(&blurFlag, length: MemoryLayout<Bool>.size, index: 0)
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
         encoder.endEncoding()
         commandBuffer.present(drawable)

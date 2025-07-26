@@ -38,13 +38,7 @@ float4 blur_sample(texture2d<float> tex, sampler s, float2 uv, float2 texel) {
 }
 
 fragment float4 camera_fragment(VertexOut in [[stage_in]],
-                               texture2d<float> cameraTexture [[texture(0)]],
-                               constant bool &blurEnabled [[buffer(0)]]) {
+                               texture2d<float> cameraTexture [[texture(0)]]) {
     constexpr sampler s(address::clamp_to_edge);
-    float2 texel = 1.0 / float2(cameraTexture.get_width(), cameraTexture.get_height());
-    if (blurEnabled) {
-        return blur_sample(cameraTexture, s, in.texCoord, texel);
-    } else {
-        return cameraTexture.sample(s, in.texCoord);
-    }
+    return cameraTexture.sample(s, in.texCoord);
 }

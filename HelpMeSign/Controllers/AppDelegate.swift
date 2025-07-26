@@ -47,6 +47,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         window.contentViewController = cameraVC
         
+        // Set fixed window size - not resizable
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.setFrame(NSRect(x: 0, y: 0, width: 1024, height: 1024), display: true)
+        
         print("AppDelegate: Full CameraViewController loaded with camera, AI, and translation functionality")
         window.makeKeyAndOrderFront(nil)
         
