@@ -12,8 +12,6 @@ import AVFoundation
 import Vision
 import CoreML
 
-
-
 @objc class CameraViewController: NSViewController, AVCaptureVideoDataOutputSampleBufferDelegate, MTKViewDelegate {
     // MARK: - Camera & Metal Properties
     var captureSession: AVCaptureSession?
@@ -42,36 +40,8 @@ import CoreML
     var flagLabel: NSTextField!
     var aiStatusLabel: NSTextField!
     var fallbackTextView: NSTextView!
-    
-    // Private property to track if view has been loaded
-    private var viewHasBeenLoaded = false
-    private let viewLoadQueue = DispatchQueue(label: "com.helpmesign.view-loading", qos: .userInitiated)
 
     override func loadView() {
-        // Make view loading thread-safe to handle concurrent calls
-        viewLoadQueue.sync {
-            // Only create the view if it hasn't already been loaded
-            guard !viewHasBeenLoaded else {
-                return
-            }
-            
-            // Set flag immediately to prevent race conditions
-            viewHasBeenLoaded = true
-            
-            // If we're already on the main thread, perform view loading synchronously
-            // Otherwise, dispatch to main thread asynchronously
-            if Thread.isMainThread {
-                self.performViewLoading()
-            } else {
-                DispatchQueue.main.async {
-                    self.performViewLoading()
-                }
-            }
-        }
-    }
-    
-    private func performViewLoading() {
-        
         let width: CGFloat = 1024
         let height: CGFloat = 1024
         let topHeight = height * 0.5
@@ -85,6 +55,7 @@ import CoreML
         let topSection = NSView(frame: NSRect(x: 0, y: height - topHeight, width: width, height: topHeight))
         topSection.wantsLayer = true
         topSection.layer?.backgroundColor = NSColor.white.cgColor
+        
         // Camera view: 16:9, centered in top band
         let camMaxWidth: CGFloat = width * 0.8
         let camMaxHeight: CGFloat = topHeight * 0.9
@@ -106,6 +77,7 @@ import CoreML
         camView.layer?.shadowOffset = CGSize(width: 0, height: 8)
         camView.layer?.masksToBounds = false
         topSection.addSubview(camView)
+        
         // Metal camera view (fills camView)
         metalView = MTKView(frame: NSRect(x: 0, y: 0, width: camWidth, height: camHeight))
         metalView.device = MTLCreateSystemDefaultDevice()
@@ -156,6 +128,7 @@ import CoreML
         flagLabel.frame.origin = CGPoint(x: 60, y: 8)
         langContainer.addSubview(flagLabel)
         camView.addSubview(langContainer)
+        
         // --- Overlay Controls (icon-only, floating, visible on hover) ---
         let overlayHeight: CGFloat = 64
         let overlayWidth: CGFloat = camWidth * 0.7
@@ -169,6 +142,7 @@ import CoreML
                 self?.overlay.animator().alphaValue = hovering ? 1.0 : 0.0
             }
         }
+        
         // Feature button (left) - Innovative Mini Design
         let featureSize: CGFloat = 40
         blurButton = NSButton(title: "", target: self, action: #selector(toggleBlur))
@@ -207,6 +181,7 @@ import CoreML
         blurButton.addTrackingArea(NSTrackingArea(rect: blurButton.bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self, userInfo: nil))
         
         overlay.addSubview(blurButton)
+        
         // Start/Stop button (center) - Innovative Floating Design
         let buttonSize: CGFloat = 64
         startStopButton = NSButton(title: "", target: self, action: #selector(toggleRecognition))
@@ -265,15 +240,6 @@ import CoreML
         startStopButton.addTrackingArea(NSTrackingArea(rect: startStopButton.bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self, userInfo: nil))
         
         overlay.addSubview(startStopButton)
-        
-        // Debug: Print button properties
-        print("=== Button Creation Debug ===")
-        print("Button size: \(startStopButton.frame.size)")
-        print("Button corner radius: \(startStopButton.layer?.cornerRadius ?? 0)")
-        print("Button background color: \(startStopButton.layer?.backgroundColor != nil ? "set" : "nil")")
-        print("Button title: '\(startStopButton.title)'")
-        print("Button isBordered: \(startStopButton.isBordered)")
-        print("Button subviews count: \(startStopButton.subviews.count)")
         
         camView.addSubview(overlay)
         container.addSubview(topSection)
@@ -656,7 +622,7 @@ import CoreML
         } else {
             print("No text fields found to update!")
         }
-        }
+    }
     
     // MARK: - Button Handlers (must be at class level for @objc)
     
@@ -739,6 +705,7 @@ import CoreML
         setupCamera()
         setupPipeline()
     }
+    
     func setupCamera() {
         let session = AVCaptureSession()
         session.sessionPreset = .high
@@ -759,6 +726,7 @@ import CoreML
         print("Camera session started")
         self.captureSession = session
     }
+    
     func setupPipeline() {
         guard let device = metalView.device else { return }
         let library = device.makeDefaultLibrary()
@@ -768,6 +736,7 @@ import CoreML
         pipelineDescriptor.colorAttachments[0].pixelFormat = metalView.colorPixelFormat
         pipelineState = try? device.makeRenderPipelineState(descriptor: pipelineDescriptor)
     }
+    
     // --- Camera Output Delegate ---
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
@@ -793,6 +762,7 @@ import CoreML
             }
         }
     }
+    
     // --- Metal Draw Delegate ---
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
@@ -811,5 +781,6 @@ import CoreML
         commandBuffer.present(drawable)
         commandBuffer.commit()
     }
+    
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 }
