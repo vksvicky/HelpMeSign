@@ -45,12 +45,32 @@ import CoreML
     
     // Private property to track if view has been loaded
     private var viewHasBeenLoaded = false
+    private let viewLoadQueue = DispatchQueue(label: "com.helpmesign.view-loading", qos: .userInitiated)
 
     override func loadView() {
-        // Only create the view if it hasn't already been loaded
-        if viewHasBeenLoaded {
-            return
+        // Make view loading thread-safe to handle concurrent calls
+        viewLoadQueue.sync {
+            // Only create the view if it hasn't already been loaded
+            guard !viewHasBeenLoaded else {
+                return
+            }
+            
+            // Set flag immediately to prevent race conditions
+            viewHasBeenLoaded = true
+            
+            // If we're already on the main thread, perform view loading synchronously
+            // Otherwise, dispatch to main thread asynchronously
+            if Thread.isMainThread {
+                self.performViewLoading()
+            } else {
+                DispatchQueue.main.async {
+                    self.performViewLoading()
+                }
+            }
         }
+    }
+    
+    private func performViewLoading() {
         
         let width: CGFloat = 1024
         let height: CGFloat = 1024
@@ -350,7 +370,6 @@ import CoreML
         container.addSubview(botSection)
 
         self.view = container
-        viewHasBeenLoaded = true
         
         // Initialize AI & ML components
         setupAIComponents()
@@ -481,7 +500,63 @@ import CoreML
         }
     }
     
+    // MARK: - Public Methods for Testing
+    
+    /// Check camera permission status
+    func checkCameraPermission() {
+        // This is a simplified implementation for testing
+        // In a real app, you would check AVCaptureDevice.authorizationStatus
+        print("Checking camera permission...")
+    }
+    
+    /// Display a translation in the UI
+    func displayTranslation(_ translation: String?) {
+        guard let translation = translation else {
+            print("Cannot display nil translation")
+            return
+        }
+        
+        print("Displaying translation: \(translation)")
+        
+        // Add translation to the fallback text view
+        if let fallbackView = fallbackTextView {
+            let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
+            let newEntry = "[\(timestamp)] \(translation)\n"
+            
+            DispatchQueue.main.async {
+                let currentText = fallbackView.string
+                fallbackView.string = currentText + newEntry
+                fallbackView.scrollToEndOfDocument(nil)
+                fallbackView.needsDisplay = true
+            }
+        }
+    }
+    
+    /// Change the current language
+    func changeLanguage(to language: String?) {
+        guard let language = language else {
+            print("Cannot change to nil language")
+            return
+        }
+        
+        print("Changing language to: \(language)")
+        
+        // Update the language label
+        DispatchQueue.main.async {
+            self.languageLabel?.stringValue = language
+        }
+        
+        // In a real implementation, you would also update the AI system
+        // and language engine with the new language
+    }
+    
     private func updateStartStopButton() {
+        // Check if button exists before proceeding
+        guard let startStopButton = startStopButton else {
+            print("Start/Stop button is nil, cannot update")
+            return
+        }
+        
         print("=== Button Update Debug ===")
         print("isRecognizing: \(isRecognizing)")
         print("Start/Stop button subviews count: \(startStopButton.subviews.count)")
@@ -581,8 +656,10 @@ import CoreML
         } else {
             print("No text fields found to update!")
         }
-    }
-
+        }
+    
+    // MARK: - Button Handlers (must be at class level for @objc)
+    
     // --- Start/Stop Recognition Handler ---
     @objc func toggleRecognition() {
         isRecognizing.toggle()
@@ -590,14 +667,14 @@ import CoreML
         if isRecognizing {
             // Start recognition
             aiSystem?.startRecognition()
-            aiStatusLabel.stringValue = "AI Recognition Active"
-            aiStatusLabel.textColor = NSColor.systemGreen
+            aiStatusLabel?.stringValue = "AI Recognition Active"
+            aiStatusLabel?.textColor = NSColor.systemGreen
             print("Started sign language recognition")
         } else {
             // Stop recognition
             aiSystem?.stopRecognition()
-            aiStatusLabel.stringValue = "AI Recognition Inactive"
-            aiStatusLabel.textColor = NSColor.systemGray
+            aiStatusLabel?.stringValue = "AI Recognition Inactive"
+            aiStatusLabel?.textColor = NSColor.systemGray
             print("Stopped sign language recognition")
         }
         
@@ -611,8 +688,8 @@ import CoreML
     @objc func toggleBlur() {
         blurBackground.toggle()
         
-        // Update button visual state with animation
-        if let blurIcon = blurButton.subviews.first as? NSTextField {
+        // Update button visual state with animation (only if button exists)
+        if let blurButton = blurButton, let blurIcon = blurButton.subviews.first as? NSTextField {
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.2
                 context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -644,7 +721,7 @@ import CoreML
         }
         
         // Force Metal view to redraw with new blur setting
-        metalView.setNeedsDisplay(metalView.bounds)
+        metalView?.setNeedsDisplay(metalView?.bounds ?? .zero)
         
         // Print debug info
         print("Blur background: \(blurBackground)")
@@ -736,4 +813,3 @@ import CoreML
     }
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 }
-

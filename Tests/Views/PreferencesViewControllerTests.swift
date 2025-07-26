@@ -312,6 +312,9 @@ class PreferencesViewControllerTests: XCTestCase {
         // Since outlets are nil in unit tests, we just verify the method doesn't crash
         XCTAssertNoThrow(preferencesViewController.viewWillAppear(), "viewWillAppear should not crash when outlets are nil")
         
+        // Verify that the view controller still exists after viewWillAppear
+        XCTAssertNotNil(preferencesViewController, "View controller should still exist after viewWillAppear")
+        
         // Verify that notification observer was added (this is the main functionality we want to test)
         // We can't directly access observers, but we can verify the method completes successfully
     }

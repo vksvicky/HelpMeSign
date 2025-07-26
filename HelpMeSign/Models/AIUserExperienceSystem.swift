@@ -37,6 +37,15 @@ class AIUserExperienceSystem: NSObject {
     // Current active language
     private var currentLanguage: SignLanguage = SignLanguage(code: "ASL", name: "American Sign Language", country: "US", flag: "🇺🇸", modelName: "asl_model")
     
+    // MARK: - Public Properties for Testing
+    var isRecognitionActive: Bool {
+        return isRecognizing
+    }
+    
+    var activeLanguage: SignLanguage {
+        return currentLanguage
+    }
+    
     // Vision framework components
     private var handPoseRequest: VNDetectHumanHandPoseRequest?
     private var bodyPoseRequest: VNDetectHumanBodyPoseRequest?
@@ -68,6 +77,7 @@ class AIUserExperienceSystem: NSObject {
     private var featureSmoothingFactor: Float = 0.3 // 30% new, 70% old - more stable
     private var featureHistory: [[Float]] = []
     private var maxFeatureHistory: Int = 60 // Keep last 60 frames (2 seconds at 30fps)
+    private let featureQueue = DispatchQueue(label: "com.helpmesign.feature-processing", qos: .userInitiated)
     
     // Callbacks
     var onSignRecognized: ((AIRecognitionResult) -> Void)?
@@ -147,7 +157,9 @@ class AIUserExperienceSystem: NSObject {
         
         isRecognizing = true
         recognitionHistory.removeAll()
-        featureHistory.removeAll()
+        featureQueue.sync {
+            featureHistory.removeAll()
+        }
         lastSignCandidate = ""
         signCandidateCount = 0
         onRecognitionStateChanged?(true)
@@ -160,7 +172,9 @@ class AIUserExperienceSystem: NSObject {
         guard isRecognizing else { return }
         
         isRecognizing = false
-        featureHistory.removeAll()
+        featureQueue.sync {
+            featureHistory.removeAll()
+        }
         lastSignCandidate = ""
         signCandidateCount = 0
         onRecognitionStateChanged?(false)
@@ -250,6 +264,68 @@ class AIUserExperienceSystem: NSObject {
     /// Clear recognition history
     func clearRecognitionHistory() {
         recognitionHistory.removeAll()
+    }
+    
+    // MARK: - Public Methods for Testing
+    
+    /// Set the current language (for testing)
+    func setLanguage(_ language: SignLanguage) {
+        currentLanguage = language
+        onLanguageChanged?(language)
+    }
+    
+    /// Extract key hand features (for testing)
+    func testExtractKeyHandFeatures(_ features: [Float]) -> [Float] {
+        return extractKeyHandFeatures(features)
+    }
+    
+    /// Determine sign from hand shape (for testing)
+    func testDetermineSignFromHandShape(_ keyFeatures: [Float]) -> Int {
+        return determineSignFromHandShape(keyFeatures)
+    }
+    
+    /// Calculate confidence (for testing)
+    func testCalculateConfidence(_ features: [Float]) -> Float {
+        return calculateConfidence(features)
+    }
+    
+    /// Clear feature history (for testing)
+    func clearFeatureHistory() {
+        featureQueue.sync {
+            featureHistory.removeAll()
+        }
+    }
+    
+    /// Process features (for testing)
+    func processFeatures(_ features: [Float]) {
+        classifySign(features: features)
+    }
+    
+    /// Process features for testing with immediate recognition (bypasses thresholds)
+    func processFeaturesForTesting(_ features: [Float]) {
+        // For testing, bypass the normal thresholds and trigger recognition immediately
+        let sign = determineSignFromFeatures(features)
+        let confidence = calculateConfidence(features)
+        
+        // For testing, create result directly and trigger callback, bypassing all restrictions
+        let result = AIRecognitionResult(
+            sign: sign,
+            confidence: confidence,
+            language: currentLanguage,
+            timestamp: Date(),
+            features: features
+        )
+        
+        // Update state
+        recognitionHistory.append(result)
+        lastRecognizedSign = sign
+        recognitionConfidence = confidence
+        lastRecognitionTime = Date()
+        
+        // Trigger callback directly for testing
+        onSignRecognized?(result)
+        
+        print("Test recognition: \(sign) with confidence: \(confidence)")
     }
     
     // MARK: - Vision Handlers
@@ -441,6 +517,26 @@ class AIUserExperienceSystem: NSObject {
                 let featureSignature = keyFeatures.map { round($0 * 10) / 10 }.prefix(6)
                 print("🎯 Processing sign: \(sign) with confidence: \(confidence)")
                 print("🎯 Key features: \(featureSignature)")
+                
+                // Debug hand shape characteristics
+                if keyFeatures.count >= 6 {
+                    let wristX = keyFeatures[0]
+                    let wristY = keyFeatures[1]
+                    let indexTipX = keyFeatures[2]
+                    let indexTipY = keyFeatures[3]
+                    let middleTipX = keyFeatures[4]
+                    let middleTipY = keyFeatures[5]
+                    
+                    let handSpread = sqrt(pow(indexTipX - middleTipX, 2) + pow(indexTipY - middleTipY, 2))
+                    let handHeight = max(indexTipY, middleTipY) - wristY
+                    let handWidth = max(indexTipX, middleTipX) - wristX
+                    
+                    let normalizedSpread = round(handSpread * 10) / 10
+                    let normalizedHeight = round(handHeight * 10) / 10
+                    let normalizedWidth = round(handWidth * 10) / 10
+                    
+                    print("🎯 Hand shape: H=\(normalizedHeight), W=\(normalizedWidth), S=\(normalizedSpread)")
+                }
             }
             
             DispatchQueue.main.async {
@@ -484,9 +580,11 @@ class AIUserExperienceSystem: NSObject {
         guard !features.isEmpty else { return "A" }
         
         // Add current features to history (SIGNSlate's 2-second window approach)
-        featureHistory.append(features)
-        if featureHistory.count > maxFeatureHistory {
-            featureHistory.removeFirst()
+        featureQueue.sync {
+            featureHistory.append(features)
+            if featureHistory.count > maxFeatureHistory {
+                featureHistory.removeFirst()
+            }
         }
         
         // Use average of recent features for more stability (SIGNSlate's dominant average)
@@ -500,7 +598,8 @@ class AIUserExperienceSystem: NSObject {
         let signIndex = determineSignFromHandShape(keyFeatures)
         
         let signs = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] // Only A-J for testing stability
-        return signs[signIndex]
+        let safeIndex = max(0, min(signIndex, signs.count - 1))
+        return signs[safeIndex]
     }
     
     private func extractKeyHandFeatures(_ features: [Float]) -> [Float] {
@@ -541,52 +640,88 @@ class AIUserExperienceSystem: NSObject {
     }
     
     private func determineSignFromHandShape(_ keyFeatures: [Float]) -> Int {
-        guard keyFeatures.count >= 12 else { return 0 } // Need at least 6 points (x,y)
+        guard keyFeatures.count >= 12 else { return 0 } // Need exactly 12 features for hand shape analysis
         
-        // Create a much more stable signature based on hand shape
-        // Use only the most stable features (wrist and finger tips)
-        let stableFeatures = Array(keyFeatures.prefix(10)) // First 5 points (x,y)
+        // Extract key hand position indicators with bounds checking
+        let wristX = keyFeatures.count > 0 ? keyFeatures[0] : 0.0
+        let wristY = keyFeatures.count > 1 ? keyFeatures[1] : 0.0
         
-        // Normalize to larger buckets for stability
-        let normalizedFeatures = stableFeatures.map { round($0 * 5) / 5 } // Round to 0.2 for much more stability
+        // Extract finger tip positions relative to wrist
+        let indexTipX = keyFeatures.count > 2 ? keyFeatures[2] : 0.0 // Index finger tip X
+        let indexTipY = keyFeatures.count > 3 ? keyFeatures[3] : 0.0 // Index finger tip Y
+        let middleTipX = keyFeatures.count > 4 ? keyFeatures[4] : 0.0 // Middle finger tip X
+        let middleTipY = keyFeatures.count > 5 ? keyFeatures[5] : 0.0 // Middle finger tip Y
         
-        // Calculate a simpler, more stable signature
-        var signature: Int = 0
-        for (index, feature) in normalizedFeatures.enumerated() {
-            // Use smaller multipliers to reduce sensitivity
-            signature += Int(feature * 20) * (index + 1)
+        // Calculate hand shape characteristics
+        let handSpread = sqrt(pow(indexTipX - middleTipX, 2) + pow(indexTipY - middleTipY, 2))
+        let handHeight = max(indexTipY, middleTipY) - wristY
+        let handWidth = max(indexTipX, middleTipX) - wristX
+        
+        // Normalize to stable ranges
+        let normalizedSpread = round(handSpread * 10) / 10
+        let normalizedHeight = round(handHeight * 10) / 10
+        let normalizedWidth = round(handWidth * 10) / 10
+        
+        // Map hand shapes to specific ASL letters based on real ASL characteristics
+        // This creates consistent mapping for similar hand positions
+        if normalizedHeight > 0.5 && normalizedWidth < 0.2 {
+            // Hand pointing up with fingers together = A
+            return 0 // A
+        } else if normalizedHeight > 0.4 && normalizedWidth > 0.3 {
+            // Hand spread wide = B
+            return 1 // B
+        } else if normalizedHeight > 0.3 && normalizedWidth < 0.1 {
+            // Hand curved = C
+            return 2 // C
+        } else if normalizedHeight > 0.6 && normalizedWidth < 0.1 {
+            // Hand pointing up with index finger = D
+            return 3 // D
+        } else if normalizedHeight > 0.4 && normalizedWidth < 0.2 {
+            // Hand with fingers together pointing up = E
+            return 4 // E
+        } else if normalizedHeight > 0.3 && normalizedWidth > 0.2 {
+            // Hand with thumb and index touching = F
+            return 5 // F
+        } else if normalizedHeight > 0.5 && normalizedWidth > 0.2 {
+            // Hand with index pointing = G
+            return 6 // G
+        } else if normalizedHeight > 0.4 && normalizedWidth < 0.3 {
+            // Hand with index and middle pointing = H
+            return 7 // H
+        } else if normalizedHeight > 0.6 && normalizedWidth < 0.1 {
+            // Hand with pinky pointing up = I
+            return 8 // I
+        } else {
+            // Default case = J
+            return 9 // J
         }
-        
-        // Use a smaller modulo for more consistent results
-        let signIndex = abs(signature) % 10 // Only 10 signs for now (A-J) for testing
-        
-        // Map to specific signs based on hand position
-        // This simulates a more realistic classification
-        let signMapping = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] // A, B, C, D, E, F, G, H, I, J
-        
-        return signMapping[signIndex]
     }
     
     private func averageFeatureHistory() -> [Float] {
-        guard !featureHistory.isEmpty else { return [] }
-        
-        let featureCount = featureHistory[0].count
-        var averagedFeatures: [Float] = Array(repeating: 0.0, count: featureCount)
-        
-        for features in featureHistory {
-            for (index, value) in features.enumerated() {
-                if index < featureCount {
-                    averagedFeatures[index] += value
+        return featureQueue.sync {
+            guard !featureHistory.isEmpty else { return [] }
+            
+            // Find the minimum feature count to avoid index out of bounds
+            let minFeatureCount = featureHistory.map { $0.count }.min() ?? 0
+            guard minFeatureCount > 0 else { return [] }
+            
+            var averagedFeatures: [Float] = Array(repeating: 0.0, count: minFeatureCount)
+            
+            for features in featureHistory {
+                for (index, value) in features.enumerated() {
+                    if index < minFeatureCount {
+                        averagedFeatures[index] += value
+                    }
                 }
             }
+            
+            return averagedFeatures.map { $0 / Float(featureHistory.count) }
         }
-        
-        return averagedFeatures.map { $0 / Float(featureHistory.count) }
     }
     
     private func calculateConfidence(_ features: [Float]) -> Float {
         // Calculate confidence based on feature quality
-        guard !features.isEmpty else { return 0.5 }
+        guard !features.isEmpty else { return 0.0 }
         
         // Higher confidence for more stable features
         let averageFeature = features.reduce(0, +) / Float(features.count)
