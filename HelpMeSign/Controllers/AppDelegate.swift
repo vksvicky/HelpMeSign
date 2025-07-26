@@ -64,5 +64,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.hasLaunched = false
         }
     }
+    
+    @IBAction func showPreferences(_ sender: Any?) {
+        print("AppDelegate: Showing preferences")
+        
+        // Create preferences window programmatically
+        let preferencesWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+
+                preferencesWindow.title = "Preferences"
+        preferencesWindow.center()
+        preferencesWindow.setContentSize(NSSize(width: 600, height: 600))
+        
+        // Create and set the preferences view controller
+        let preferencesVC = PreferencesViewController()
+        preferencesWindow.contentViewController = preferencesVC
+        
+                           // Force window to resize to the new dimensions
+        preferencesWindow.setFrame(NSRect(x: 0, y: 0, width: 600, height: 600), display: true)
+        
+        // Show the preferences window
+        preferencesWindow.makeKeyAndOrderFront(nil)
+    }
 }
 

@@ -600,6 +600,7 @@ import CoreML
         CVMetalTextureCacheCreate(nil, nil, metalView.device!, nil, &textureCache)
         setupCamera()
         setupPipeline()
+        setupLanguageChangeObserver()
     }
     
     func setupCamera() {
@@ -676,5 +677,307 @@ import CoreML
         commandBuffer.commit()
     }
     
+    
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+    
+    // MARK: - Language Change Handling
+    
+    private func setupLanguageChangeObserver() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLanguageChangeNotification),
+            name: NSNotification.Name("LanguageChanged"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleLanguageChangeNotification(_ notification: Notification) {
+        guard let languageCode = notification.userInfo?["languageCode"] as? String else { 
+            print("CameraViewController: No languageCode found in notification")
+            return 
+        }
+        
+        print("CameraViewController: Language changed to \(languageCode)")
+        
+        // Check if this is a real language change or just window opening
+        if let currentLanguage = getCurrentLanguageFromUI(), currentLanguage == languageCode {
+            print("CameraViewController: Language is already \(languageCode), skipping UI updates")
+            return
+        }
+        
+        // Update all three sections
+        updateLanguageDisplay(languageCode)
+        updateTranslationHeader(languageCode)
+        updateAlphabetBar(languageCode)
+    }
+    
+    private func updateLanguageDisplay(_ languageCode: String) {
+        // Update language label and flag in camera view
+        DispatchQueue.main.async {
+            print("CameraViewController: Updating language display to \(languageCode)")
+            self.languageLabel?.stringValue = languageCode
+            
+            // Update flag based on language
+            let flag = self.getFlagForLanguage(languageCode)
+            self.flagLabel?.stringValue = flag
+            print("CameraViewController: Updated flag to \(flag)")
+        }
+    }
+    
+    private func updateTranslationHeader(_ languageCode: String) {
+        // Update translation area header
+        DispatchQueue.main.async {
+            print("CameraViewController: Updating translation header to \(languageCode)")
+            let flag = self.getFlagForLanguage(languageCode)
+            let languageName = self.getLanguageName(languageCode)
+            
+            // Find and update the header label in the translation area
+            if let translationSection = self.view.subviews.first(where: { $0.frame.origin.y == 256 }) {
+                print("CameraViewController: Found translation section")
+                for subview in translationSection.subviews {
+                    if let headerView = subview.subviews.first(where: { $0.frame.origin.y > 200 }) {
+                        print("CameraViewController: Found header view")
+                        for headerSubview in headerView.subviews {
+                            if let headerLabel = headerSubview as? NSTextField {
+                                headerLabel.stringValue = "\(flag) \(languageCode) - Sign Language Translations"
+                                print("CameraViewController: Updated header to \(headerLabel.stringValue)")
+                                break
+                            }
+                        }
+                    }
+                }
+            } else {
+                print("CameraViewController: Could not find translation section")
+            }
+        }
+    }
+    
+    private func updateAlphabetBar(_ languageCode: String) {
+        // Reload alphabet from JSON for the new language
+        DispatchQueue.main.async {
+            print("CameraViewController: Updating alphabet bar to \(languageCode)")
+            
+            // Only reload if the language actually changed
+            if let currentLanguage = self.getCurrentLanguageFromUI(), currentLanguage != languageCode {
+                print("CameraViewController: Language changed from \(currentLanguage) to \(languageCode), reloading alphabet")
+                self.reloadAlphabetForLanguage(languageCode)
+            } else {
+                print("CameraViewController: No language change detected, skipping alphabet reload")
+            }
+        }
+    }
+    
+    private func getCurrentLanguageFromUI() -> String? {
+        // Try to get current language from the header
+        if let translationSection = self.view.subviews.first(where: { $0.frame.origin.y == 256 }) {
+            for subview in translationSection.subviews {
+                if let headerView = subview.subviews.first(where: { $0.frame.origin.y > 200 }) {
+                    for headerSubview in headerView.subviews {
+                        if let headerLabel = headerSubview as? NSTextField {
+                            let headerText = headerLabel.stringValue
+                            // Extract language code from header text like "🇺🇸 ASL - Sign Language Translations"
+                            if let range = headerText.range(of: "\\b[A-Z]{3}\\b", options: .regularExpression) {
+                                return String(headerText[range])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    
+    private func reloadAlphabetForLanguage(_ languageCode: String) {
+        // Load languages.json and find the new language
+        guard let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let languages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            print("Failed to load languages.json")
+            return
+        }
+        
+        // Find the selected language
+        guard let selectedLanguage = languages.first(where: { ($0["code"] as? String) == languageCode }),
+              let handshapes = selectedLanguage["handshapes"] as? [String] else {
+            print("Failed to find handshapes for language: \(languageCode)")
+            return
+        }
+        
+        print("Reloading alphabet for \(languageCode): \(handshapes)")
+        
+        // Find the alphabet bar section and update it
+        if let bottomSection = self.view.subviews.first(where: { $0.frame.origin.y == 0 }) {
+            print("Found bottom section, starting cleanup...")
+            
+            // COMPLETE cleanup - remove ALL subviews except the divider
+            let allSubviews = bottomSection.subviews
+            print("Found \(allSubviews.count) subviews to process")
+            
+            for subview in allSubviews {
+                // Keep only the divider (usually at the bottom)
+                if subview.frame.origin.y < 10 && subview.frame.height < 10 {
+                    print("Keeping divider at position: \(subview.frame)")
+                    continue
+                }
+                
+                print("Removing subview: \(type(of: subview)) at position: \(subview.frame)")
+                subview.removeFromSuperview()
+            }
+            
+            // Force immediate layout and display updates
+            bottomSection.needsLayout = true
+            bottomSection.needsDisplay = true
+            
+            // Force the view to redraw immediately
+            bottomSection.layer?.setNeedsDisplay()
+            
+            // Ensure we're on the main thread and add a small delay for cleanup
+            DispatchQueue.main.async {
+                // Force another layout pass
+                bottomSection.layoutSubtreeIfNeeded()
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    print("Cleanup complete, creating new alphabet grid...")
+                    // Create new alphabet grid
+                    self.createAlphabetGrid(in: bottomSection, handshapes: handshapes)
+                }
+            }
+        } else {
+            print("ERROR: Could not find bottom section for alphabet update")
+        }
+    }
+    
+    private func createAlphabetGrid(in section: NSView, handshapes: [String]) {
+        let width = section.frame.width
+        let height = section.frame.height
+        
+        // Fixed 12-column grid layout for consistency
+        let letterSize: CGFloat = 35
+        let letterSpacing: CGFloat = 8
+        let columnsPerRow = 12  // Fixed 12 columns
+        let rows = Int(ceil(Double(handshapes.count) / Double(columnsPerRow)))
+        
+        // Calculate spacing to center the grid horizontally
+        let totalGridWidth = CGFloat(columnsPerRow) * letterSize + CGFloat(columnsPerRow - 1) * letterSpacing
+        let startX = (width - totalGridWidth) / 2
+        
+        // Calculate total grid height and center it vertically
+        let totalGridHeight = CGFloat(rows) * (letterSize + letterSpacing) - letterSpacing
+        let startY = (height - totalGridHeight) / 2
+        
+        print("Creating alphabet grid: \(handshapes.count) letters, \(columnsPerRow) columns, \(rows) rows")
+        print("Grid dimensions: \(totalGridWidth) x \(totalGridHeight), starting at (\(startX), \(startY))")
+        
+        // Create letter buttons in grid layout
+        for (index, letter) in handshapes.enumerated() {
+            let row = index / columnsPerRow
+            let column = index % columnsPerRow
+            
+            let x = startX + CGFloat(column) * (letterSize + letterSpacing)
+            let y = startY + CGFloat(row) * (letterSize + letterSpacing)
+            
+            let letterButton = createAlphabetButton(
+                letter: letter,
+                position: CGPoint(x: x, y: y),
+                size: CGSize(width: letterSize, height: letterSize)
+            )
+            
+            // Ensure the button is properly added and positioned
+            section.addSubview(letterButton)
+            letterButton.needsDisplay = true
+        }
+        
+        // Force the section to redraw
+        section.needsLayout = true
+        section.needsDisplay = true
+        
+        print("Alphabet grid created with \(handshapes.count) buttons")
+    }
+    
+    private func createAlphabetButton(letter: String, position: CGPoint, size: CGSize) -> NSButton {
+        let button = NSButton(title: letter, target: self, action: #selector(letterButtonClicked(_:)))
+        button.frame = NSRect(origin: position, size: size)
+        button.wantsLayer = true
+        button.isBordered = false
+        
+        // Style the button
+        button.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.1).cgColor
+        button.layer?.cornerRadius = 8
+        button.layer?.borderWidth = 1.5
+        button.layer?.borderColor = NSColor.systemBlue.withAlphaComponent(0.3).cgColor
+        
+        // Add shadow
+        button.layer?.shadowColor = NSColor.black.cgColor
+        button.layer?.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer?.shadowOpacity = 0.1
+        button.layer?.shadowRadius = 4
+        
+        // Style the title
+        button.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        button.contentTintColor = NSColor.systemBlue
+        
+        // Add tracking area for hover effects
+        let trackingArea = NSTrackingArea(
+            rect: button.bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp],
+            owner: self,
+            userInfo: ["button": button]
+        )
+        button.addTrackingArea(trackingArea)
+        
+        return button
+    }
+    
+    @objc private func letterButtonClicked(_ sender: NSButton) {
+        print("Letter clicked: \(sender.title)")
+        // You can add translation display logic here
+    }
+    
+    override func mouseEntered(with event: NSEvent) {
+        if let trackingArea = event.trackingArea,
+           let button = trackingArea.userInfo?["button"] as? NSButton {
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.2
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                
+                button.animator().layer?.transform = CATransform3DMakeScale(1.1, 1.1, 1.0)
+                button.animator().layer?.shadowOpacity = 0.3
+                button.animator().layer?.shadowRadius = 8
+                button.animator().layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.2).cgColor
+            })
+        }
+    }
+    
+    override func mouseExited(with event: NSEvent) {
+        if let trackingArea = event.trackingArea,
+           let button = trackingArea.userInfo?["button"] as? NSButton {
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.2
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                
+                button.animator().layer?.transform = CATransform3DIdentity
+                button.animator().layer?.shadowOpacity = 0.1
+                button.animator().layer?.shadowRadius = 4
+                button.animator().layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.1).cgColor
+            })
+        }
+    }
+    
+    private func getFlagForLanguage(_ languageCode: String) -> String {
+        let flags: [String: String] = [
+            "ASL": "🇺🇸", "BSL": "🇬🇧", "ISL": "🇮🇳", "JSL": "🇯🇵", "KSL": "🇰🇷",
+            "CSL": "🇨🇳", "FSL": "🇫🇷", "DSL": "🇩🇪"
+        ]
+        return flags[languageCode] ?? "🌐"
+    }
+    
+    private func getLanguageName(_ languageCode: String) -> String {
+        let names: [String: String] = [
+            "ASL": "American Sign Language", "BSL": "British Sign Language",
+            "ISL": "Indian Sign Language", "JSL": "Japanese Sign Language",
+            "KSL": "Korean Sign Language", "CSL": "Chinese Sign Language",
+            "FSL": "French Sign Language", "DSL": "German Sign Language"
+        ]
+        return names[languageCode] ?? languageCode
+    }
 }

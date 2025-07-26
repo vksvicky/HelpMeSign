@@ -22,7 +22,11 @@
                                             </connections>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="VOq-y0-SEH"/>
-                                        <menuItem title="Preferences…" keyEquivalent="," id="BOF-NM-1cW"/>
+                                        <menuItem title="Preferences…" keyEquivalent="," id="BOF-NM-1cW">
+                                            <connections>
+                                                <action selector="showPreferences:" target="Ady-hI-5gd" id="pref-action-1"/>
+                                            </connections>
+                                        </menuItem>
                                         <menuItem isSeparatorItem="YES" id="wFC-TO-SCJ"/>
                                         <menuItem title="Services" id="NMo-om-nkz">
                                             <modifierMask key="keyEquivalentModifierMask"/>
@@ -699,9 +703,8 @@
             </objects>
             <point key="canvasLocation" x="75" y="250"/>
         </scene>
-
         <!--Camera View Controller-->
-        <scene sceneID="CameraScene">
+        <scene sceneID="CameraViewControllerScene">
             <objects>
                 <viewController storyboardIdentifier="CameraViewControllerID" id="CameraViewControllerID" customClass="CameraViewController" sceneMemberID="viewController">
                     <view key="view" id="MainContainerView">
@@ -726,5 +729,6 @@
             </objects>
             <point key="canvasLocation" x="106" y="274"/>
         </scene>
+
     </scenes>
 </document>
