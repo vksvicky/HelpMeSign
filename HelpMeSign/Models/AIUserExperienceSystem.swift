@@ -82,6 +82,9 @@ class AIUserExperienceSystem: NSObject {
     private var maxFeatureHistory: Int = 60 // Keep last 60 frames (2 seconds at 30fps)
     private let featureQueue = DispatchQueue(label: "com.helpmesign.feature-processing", qos: .userInitiated)
     
+    // Recognition history synchronization
+    private let recognitionQueue = DispatchQueue(label: "com.helpmesign.recognition-processing", qos: .userInitiated)
+    
     // Hand preference
     private var handPreference: String = "Right" // Default to right hand
     
@@ -166,7 +169,9 @@ class AIUserExperienceSystem: NSObject {
         guard !isRecognizing else { return }
         
         isRecognizing = true
-        recognitionHistory.removeAll()
+        recognitionQueue.sync {
+            recognitionHistory.removeAll()
+        }
         featureQueue.sync {
             featureHistory.removeAll()
         }
@@ -181,6 +186,9 @@ class AIUserExperienceSystem: NSObject {
         guard isRecognizing else { return }
         
         isRecognizing = false
+        recognitionQueue.sync {
+            recognitionHistory.removeAll()
+        }
         featureQueue.sync {
             featureHistory.removeAll()
         }
@@ -281,12 +289,16 @@ class AIUserExperienceSystem: NSObject {
     
     /// Get recognition history
     func getRecognitionHistory() -> [AIRecognitionResult] {
-        return recognitionHistory
+        return recognitionQueue.sync {
+            return recognitionHistory
+        }
     }
     
     /// Clear recognition history
     func clearRecognitionHistory() {
-        recognitionHistory.removeAll()
+        recognitionQueue.sync {
+            recognitionHistory.removeAll()
+        }
     }
     
     // MARK: - Public Methods for Testing
@@ -340,7 +352,9 @@ class AIUserExperienceSystem: NSObject {
         )
         
         // Update state
-        recognitionHistory.append(result)
+        recognitionQueue.sync {
+            recognitionHistory.append(result)
+        }
         lastRecognizedSign = sign
         recognitionConfidence = confidence
         lastRecognitionTime = Date()
@@ -789,7 +803,9 @@ class AIUserExperienceSystem: NSObject {
             features: features
         )
         
-        recognitionHistory.append(result)
+        recognitionQueue.sync {
+            recognitionHistory.append(result)
+        }
         lastRecognizedSign = sign
         recognitionConfidence = confidence
         lastRecognitionTime = now

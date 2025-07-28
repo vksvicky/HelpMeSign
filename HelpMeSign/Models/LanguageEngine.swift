@@ -304,9 +304,6 @@ class LanguageEngine: NSObject {
         // For testing purposes, we'll simulate successful model loading
         // In a real implementation, this would load actual ML models
         
-        // Simulate a small delay to mimic model loading
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-        
         // For now, we'll just mark the language as loaded without an actual model
         // This allows the tests to pass while we develop the rest of the system
         languageQueue.sync {
@@ -321,9 +318,6 @@ class LanguageEngine: NSObject {
     private func downloadLanguageModel(for config: SignLanguageConfig) async -> Bool {
         // For testing purposes, we'll simulate successful model downloading
         // In a real implementation, this would download actual ML models
-        
-        // Simulate a small delay to mimic downloading
-        try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         
         return true
     }
@@ -340,7 +334,6 @@ struct SignLanguageConfig: Codable {
     let alphabetURL: String
     let vocabularyURL: String
     let grammarRules: [String]
-    let handshapes: [String]
     let grammar: GrammarConfig?
     let regionalVariants: [String]?
     let metadata: LanguageMetadata

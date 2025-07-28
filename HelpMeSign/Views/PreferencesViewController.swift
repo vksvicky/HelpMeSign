@@ -478,7 +478,7 @@ extension PreferencesViewController: NSTableViewDataSource {
 // MARK: - NSTableViewDelegate
 extension PreferencesViewController: NSTableViewDelegate {
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        guard row < filteredLanguages.count else { return nil }
+        guard !filteredLanguages.isEmpty && row >= 0 && row < filteredLanguages.count else { return nil }
         
         let language = filteredLanguages[row]
         let isSelected = language.code == selectedLanguage

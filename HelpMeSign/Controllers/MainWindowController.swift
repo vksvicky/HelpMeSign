@@ -182,7 +182,11 @@ import Foundation
             return
         }
         
-        translationSectionView.addTranslation(translation)
+        // Only update UI if views are loaded and on main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.isViewLoaded else { return }
+            self.translationSectionView?.addTranslation(translation)
+        }
     }
     
     /// Change the current language
@@ -191,11 +195,15 @@ import Foundation
             return
         }
         
-        // Update the language display
-        cameraSectionView.updateLanguageDisplay(language, flag: "🇺🇸")
-        
-        // Reload alphabet for the new language
-        alphabetSectionView.reloadAlphabetForLanguage(language)
+        // Only update UI if views are loaded and on main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.isViewLoaded else { return }
+            // Update the language display
+            self.cameraSectionView?.updateLanguageDisplay(language, flag: "🇺🇸")
+            
+            // Reload alphabet for the new language
+            self.alphabetSectionView?.reloadAlphabetForLanguage(language)
+        }
         
         // In a real implementation, you would also update the AI system
         // and language engine with the new language
@@ -216,12 +224,12 @@ import Foundation
         
         // Update button immediately for better responsiveness
         DispatchQueue.main.async { [weak self] in
-            self?.cameraSectionView.updateStartStopButton(isRecognizing: self?.isRecognizing ?? false)
+            self?.cameraSectionView?.updateStartStopButton(isRecognizing: self?.isRecognizing ?? false)
         }
     }
     
     private func clearTranslations() {
-        translationSectionView.clearTranslations()
+        translationSectionView?.clearTranslations()
     }
     
     private func handleLetterClicked(_ letter: String) {
