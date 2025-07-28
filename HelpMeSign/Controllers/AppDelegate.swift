@@ -116,13 +116,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     private func findSignLanguageForSystemLanguage(baseLanguage: String, region: String) -> String? {
-        print("AppDelegate: Looking for match - baseLanguage: '\(baseLanguage)', region: '\(region)'")
-        
         // Load available sign languages from JSON
         guard let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let jsonLanguages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            print("AppDelegate: Failed to load languages.json for locale detection")
             return nil
         }
         
@@ -131,15 +128,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             guard let country = languageDict["country"] as? String,
                   let signLanguageCode = languageDict["code"] as? String else { continue }
             
-            print("AppDelegate: Comparing with country: '\(country)', signLanguage: '\(signLanguageCode)'")
             // Check if the sign language's country code matches the region
             if country == region {
-                print("AppDelegate: Found exact region match: \(country) == \(region) -> \(signLanguageCode)")
                 return signLanguageCode
             }
         }
         
-        print("AppDelegate: No region match found")
         return nil
     }
     
@@ -148,32 +142,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let jsonLanguages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            print("AppDelegate: Failed to load languages.json for default language")
             return "BSL" // Minimal fallback if JSON loading fails
         }
         
         // Return the first language code from the JSON
         if let firstLanguage = jsonLanguages.first,
            let code = firstLanguage["code"] as? String {
-            print("AppDelegate: Using first language from JSON as default: \(code)")
             return code
         }
         
-        print("AppDelegate: No languages found in JSON, using BSL as fallback")
         return "BSL" // Minimal fallback if no languages in JSON
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         // Make this method thread-safe to handle concurrent calls
         launchQueue.sync {
-            print("AppDelegate: applicationWillTerminate(_:) called")
             self.hasLaunched = false
         }
     }
     
     @IBAction func showPreferences(_ sender: Any?) {
-        print("AppDelegate: Creating Preferences window with crash prevention")
-        
         // Create a proper Preferences window with fixed size
         let preferencesWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 600, height: 600),
@@ -201,15 +189,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Show the window
         preferencesWindow.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        
-        print("AppDelegate: Preferences window created and shown")
     }
     
 
     
     // MARK: - NSWindowDelegate
     func windowWillClose(_ notification: Notification) {
-        print("AppDelegate: Preferences window closing")
+        // Window closing - no action needed
     }
     
 

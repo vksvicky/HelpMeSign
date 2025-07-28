@@ -398,7 +398,6 @@ import Foundation
     }
     
     @objc private func clearTranslationsAction() {
-        print("🧹 Clearing translations")
         if let fallbackView = fallbackTextView {
             fallbackView.string = ""
         }
@@ -410,17 +409,13 @@ import Foundation
     func checkCameraPermission() {
         // This is a simplified implementation for testing
         // In a real app, you would check AVCaptureDevice.authorizationStatus
-        print("Checking camera permission...")
     }
     
     /// Display a translation in the UI
     func displayTranslation(_ translation: String?) {
         guard let translation = translation else {
-            print("Cannot display nil translation")
             return
         }
-        
-        print("Displaying translation: \(translation)")
         
         // Add translation to the fallback text view
         if let fallbackView = fallbackTextView {
@@ -439,11 +434,8 @@ import Foundation
     /// Change the current language
     func changeLanguage(to language: String?) {
         guard let language = language else {
-            print("Cannot change to nil language")
             return
         }
-        
-        print("Changing language to: \(language)")
         
         // Update the language label
         DispatchQueue.main.async {
@@ -457,13 +449,8 @@ import Foundation
     private func updateStartStopButton() {
         // Check if button exists before proceeding
         guard let startStopButton = startStopButton else {
-            print("Start/Stop button is nil, cannot update")
             return
         }
-        
-        print("=== Button Update Debug ===")
-        print("isRecognizing: \(isRecognizing)")
-        print("Start/Stop button subviews count: \(startStopButton.subviews.count)")
         
         // Based on debug output, the structure is:
         // startStopButton.subviews[1] = NSView with 2 subviews
@@ -475,7 +462,6 @@ import Foundation
            startStopButton.subviews[1].subviews.count >= 2,
            let textField = startStopButton.subviews[1].subviews[1] as? NSTextField {
             icon = textField
-            print("Found icon using direct path: '\(textField.stringValue)'")
         }
         
         // Fallback: Search recursively if direct path fails
@@ -493,18 +479,11 @@ import Foundation
             }
             
             let allTextFieldsRecursive = findAllTextFields(in: startStopButton)
-            print("Found \(allTextFieldsRecursive.count) text fields recursively")
-            
-            for textField in allTextFieldsRecursive {
-                print("Recursive text field: '\(textField.stringValue)'")
-            }
-            
             icon = allTextFieldsRecursive.first
         }
         
         // Update the icon if found
         if let icon = icon {
-            print("Updating icon from '\(icon.stringValue)' to \(isRecognizing ? "⏹" : "▶")")
             
             NSAnimationContext.runAnimationGroup { context in
                 context.duration = 0.3
@@ -538,7 +517,6 @@ import Foundation
                     glowAnimation.repeatCount = .infinity
                     startStopButton.layer?.add(glowAnimation, forKey: "glow")
                     
-                    print("Updated button to STOP state (red floating)")
                 } else {
                     // Start state - Green floating button
                     icon.stringValue = "▶"
@@ -552,12 +530,8 @@ import Foundation
                     // Remove animations
                     startStopButton.layer?.removeAnimation(forKey: "pulse")
                     startStopButton.layer?.removeAnimation(forKey: "glow")
-                    
-                    print("Updated button to START state (green floating)")
                 }
             }
-        } else {
-            print("No text fields found to update!")
         }
         }
     
@@ -570,11 +544,9 @@ import Foundation
         if isRecognizing {
             // Start recognition
             aiSystem?.startRecognition()
-            print("Started sign language recognition")
         } else {
             // Stop recognition
             aiSystem?.stopRecognition()
-            print("Stopped sign language recognition")
         }
         
         // Update button immediately for better responsiveness
@@ -588,9 +560,7 @@ import Foundation
     // --- Camera & Metal Setup ---
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("CameraViewController loaded")
         guard let metalView = self.metalView else {
-            print("MTKView not set up")
             return
         }
         CVMetalTextureCacheCreate(nil, nil, metalView.device!, nil, &textureCache)
@@ -609,10 +579,8 @@ import Foundation
         session.sessionPreset = .high
         guard let device = AVCaptureDevice.default(for: .video),
               let input = try? AVCaptureDeviceInput(device: device) else {
-            print("No camera device found or failed to create input")
             return
         }
-        print("Camera device found: \(device.localizedName)")
         session.addInput(input)
         let output = AVCaptureVideoDataOutput()
         output.videoSettings = [
@@ -621,7 +589,6 @@ import Foundation
         output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera.queue"))
         session.addOutput(output)
         session.startRunning()
-        print("Camera session started")
         self.captureSession = session
     }
     
@@ -686,14 +653,12 @@ import Foundation
     private func loadSavedLanguagePreference() {
         // Get saved language preference
         let savedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "ASL"
-        print("CameraViewController: Loading saved language preference: \(savedLanguage)")
         
         // Update the UI with the saved language
         DispatchQueue.main.async {
             self.updateLanguageDisplay(savedLanguage)
             self.updateTranslationHeader(savedLanguage)
             self.updateAlphabetBar(savedLanguage)
-            print("CameraViewController: Updated UI with saved language: \(savedLanguage)")
         }
     }
     
@@ -717,15 +682,11 @@ import Foundation
     
     @objc private func handleLanguageChangeNotification(_ notification: Notification) {
         guard let languageCode = notification.userInfo?["languageCode"] as? String else { 
-            print("CameraViewController: No languageCode found in notification")
             return 
         }
         
-        print("CameraViewController: Language changed to \(languageCode)")
-        
         // Check if this is a real language change or just window opening
         if let currentLanguage = getCurrentLanguageFromUI(), currentLanguage == languageCode {
-            print("CameraViewController: Language is already \(languageCode), skipping UI updates")
             return
         }
         
@@ -738,39 +699,31 @@ import Foundation
     private func updateLanguageDisplay(_ languageCode: String) {
         // Update language label and flag in camera view
         DispatchQueue.main.async {
-            print("CameraViewController: Updating language display to \(languageCode)")
             self.languageLabel?.stringValue = languageCode
             
             // Update flag based on language
             let flag = LanguageManager.shared.flag(for: languageCode)
             self.flagLabel?.stringValue = flag
-            print("CameraViewController: Updated flag to \(flag)")
         }
     }
     
     private func updateTranslationHeader(_ languageCode: String) {
         // Update translation area header
         DispatchQueue.main.async {
-            print("CameraViewController: Updating translation header to \(languageCode)")
             _ = LanguageManager.shared.name(for: languageCode) // Unused variable, but keeping for potential future use
             
             // Find and update the header label in the translation area
             if let translationSection = self.view.subviews.first(where: { $0.frame.origin.y == 256 }) {
-                print("CameraViewController: Found translation section")
                 for subview in translationSection.subviews {
                     if let headerView = subview.subviews.first(where: { $0.frame.origin.y > 200 }) {
-                        print("CameraViewController: Found header view")
                         for headerSubview in headerView.subviews {
                             if let headerLabel = headerSubview as? NSTextField {
                                 headerLabel.stringValue = ""
-                                print("CameraViewController: Updated header to \(headerLabel.stringValue)")
                                 break
                             }
                         }
                     }
                 }
-            } else {
-                print("CameraViewController: Could not find translation section")
             }
         }
     }
@@ -778,19 +731,13 @@ import Foundation
     private func updateAlphabetBar(_ languageCode: String) {
         // Reload alphabet from JSON for the new language
         DispatchQueue.main.async {
-            print("CameraViewController: Updating alphabet bar to \(languageCode)")
-            
             // Check if we need to reload the alphabet
             if let currentLanguage = self.getCurrentLanguageFromUI() {
                 if currentLanguage != languageCode {
-                    print("CameraViewController: Language changed from \(currentLanguage) to \(languageCode), reloading alphabet")
                     self.reloadAlphabetForLanguage(languageCode)
-                } else {
-                    print("CameraViewController: Same language detected, skipping alphabet reload")
                 }
             } else {
                 // No current language detected, this is likely the initial load
-                print("CameraViewController: Initial load detected, reloading alphabet for \(languageCode)")
                 self.reloadAlphabetForLanguage(languageCode)
             }
         }
@@ -818,11 +765,8 @@ import Foundation
     
     @objc private func handleHandPreferenceChangeNotification(_ notification: Notification) {
         guard let handPreference = notification.userInfo?["handPreference"] as? String else { 
-            print("CameraViewController: No handPreference found in notification")
             return 
         }
-        
-        print("CameraViewController: Hand preference changed to \(handPreference)")
         
         // Update AI system with new hand preference
         aiSystem?.updateHandPreference(handPreference)
@@ -838,14 +782,12 @@ import Foundation
         DispatchQueue.main.async {
             // Update any UI elements that show hand preference
             // For example, you could add a small indicator in the camera view
-            print("CameraViewController: Updated hand preference display to \(handPreference)")
         }
     }
     
     private func reloadAlphabetForLanguage(_ languageCode: String) {
         // Check if this language has multiple writing systems
         if let writingSystemsData = getWritingSystems(for: languageCode) {
-            print("CameraViewController: Language \(languageCode) has \(writingSystemsData.systems.count) writing systems")
             setupWritingSystemSelector(with: writingSystemsData.systems, order: writingSystemsData.order, languageCode: languageCode)
             return
         }
@@ -868,28 +810,14 @@ import Foundation
             resourceName = languageCode.lowercased()
         }
         
-        print("CameraViewController: Attempting to load config file: \(configFileName)")
-        print("CameraViewController: Resource name: \(resourceName)")
-        
         guard let configURL = Bundle.main.url(forResource: resourceName, withExtension: "json"),
               let data = try? Data(contentsOf: configURL),
               let config = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            print("Failed to load language config: \(configFileName)")
-            print("CameraViewController: Available resources in bundle:")
-            if let resources = Bundle.main.urls(forResourcesWithExtension: "json", subdirectory: nil) {
-                for resource in resources {
-                    print("  - \(resource.lastPathComponent)")
-                }
-            }
             return
         }
         
-        print("CameraViewController: Loaded language config for \(languageCode)\(writingSystem != nil ? " (\(writingSystem!))" : "")")
-        
         // Extract handshapes from the alphabet section
         guard let alphabet = config["alphabet"] as? [String: Any] else {
-            print("Failed to find alphabet section for language: \(languageCode)")
-            print("Available keys in config: \(config.keys)")
             return
         }
         
@@ -899,22 +827,17 @@ import Foundation
         if let letters = alphabet["letters"] as? [[String: Any]] {
             let letterSymbols = letters.compactMap { $0["symbol"] as? String }
             handshapes.append(contentsOf: letterSymbols)
-            print("CameraViewController: Found \(letterSymbols.count) letters for \(languageCode): \(letterSymbols)")
         }
         
         // Extract symbols from numbers second (0-9)
         if let numbers = alphabet["numbers"] as? [[String: Any]] {
             let numberSymbols = numbers.compactMap { $0["symbol"] as? String }
             handshapes.append(contentsOf: numberSymbols)
-            print("CameraViewController: Found \(numberSymbols.count) numbers for \(languageCode): \(numberSymbols)")
         }
         
         if handshapes.isEmpty {
-            print("No handshapes found for language: \(languageCode)")
             return
         }
-        
-        print("CameraViewController: Loaded \(handshapes.count) characters for \(languageCode)")
         
         // Continue with the existing alphabet display logic
         displayAlphabetGrid(handshapes: handshapes)
@@ -971,7 +894,6 @@ import Foundation
                 order: order,
                 selectedSystem: defaultSystem
             ) { [weak self] selectedSystem in
-                print("CameraViewController: Writing system selection changed to: \(selectedSystem)")
                 self?.currentWritingSystem = selectedSystem
                 self?.loadAlphabetFromConfig(languageCode: languageCode, writingSystem: selectedSystem)
             }
@@ -1019,13 +941,10 @@ import Foundation
                 bottomSection.layoutSubtreeIfNeeded()
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    print("Cleanup complete, creating new alphabet grid...")
                     // Create new alphabet grid
                     self.createAlphabetGrid(in: bottomSection, handshapes: handshapes)
                 }
             }
-        } else {
-            print("ERROR: Could not find bottom section for alphabet update")
         }
     }
     
@@ -1139,7 +1058,6 @@ import Foundation
     }
     
     @objc private func letterButtonClicked(_ sender: NSButton) {
-        print("Letter clicked: \(sender.title)")
         // You can add translation display logic here
     }
     

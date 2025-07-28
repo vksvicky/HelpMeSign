@@ -69,7 +69,6 @@ class SimplePreferencesViewController: NSViewController {
     @objc private func languageChanged() {
         let selectedLanguage = languagePopUp.selectedItem?.title ?? "ASL"
         UserDefaults.standard.set(selectedLanguage, forKey: "SelectedLanguage")
-        print("Language changed to: \(selectedLanguage)")
         
         // Update main window after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -83,6 +82,5 @@ class SimplePreferencesViewController: NSViewController {
     @objc private func handPreferenceChanged() {
         let selectedHand = handPreferenceSegmentedControl.selectedSegment == 0 ? "Left" : "Right"
         UserDefaults.standard.set(selectedHand, forKey: "SelectedHand")
-        print("Hand preference changed to: \(selectedHand)")
     }
 } 

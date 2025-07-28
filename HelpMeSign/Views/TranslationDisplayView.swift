@@ -99,15 +99,11 @@ class TranslationDisplayView: NSView {
     
     /// Add a new translation to the history
     func addTranslation(_ translation: String, confidence: Float = 1.0) {
-        print("📝 TranslationDisplayView.addTranslation called with: \(translation)")
-        
         let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
         let confidencePercentage = Int(confidence * 100)
         let entry = "[\(timestamp)] \(translation) (\(confidencePercentage)%)"
         
         translationHistory.append(entry)
-        print("📝 Added entry: \(entry)")
-        print("📝 Total entries: \(translationHistory.count)")
         
         // Update the text view
         updateTranslationDisplay()
@@ -138,16 +134,11 @@ class TranslationDisplayView: NSView {
     // MARK: - Private Methods
     
     private func updateTranslationDisplay() {
-        print("📝 updateTranslationDisplay called, history count: \(translationHistory.count)")
-        
         if translationHistory.isEmpty {
             translationTextView.string = "Ready for sign recognition...\n\nTranslations will appear here as you sign."
-            print("📝 Set empty state text")
         } else {
             let displayText = translationHistory.joined(separator: "\n")
             translationTextView.string = displayText
-            print("📝 Set display text with \(translationHistory.count) entries")
-            print("📝 Display text: \(displayText)")
         }
     }
     

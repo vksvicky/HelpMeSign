@@ -32,38 +32,23 @@ class AlphabetBarView: NSView {
         letterViews.removeAll()
         
         // Load SVG file from asset catalog (using imageset)
-        print("Attempting to load SVG asset: \(svgFileName)")
         
         // Try to load as data asset first (dataset approach)
         if let dataAsset = NSDataAsset(name: "sign_language_and_numbers") {
-            print("Found data asset")
-            
             // Try to get data - for data assets, we typically use the main data property
             if let svgString = String(data: dataAsset.data, encoding: .utf8) {
-                print("Found data asset, size: \(dataAsset.data.count) bytes")
-                print("Successfully decoded SVG string, size: \(svgString.count) characters")
-                
                 self.svgString = svgString
-                print("Successfully stored SVG string")
-                
                 allItems = extractCharacterList(from: svgString)
-                print("Loaded \(allItems.count) characters for \(language): \(allItems)")
-                
             } else {
-                print("Failed to get data for key 'asl' or decode SVG string")
                 allItems = []
             }
         } else {
-            print("Data asset not found, trying imageset approach")
-            
             // Try to load as image asset (imageset approach)
             if NSImage(named: svgFileName) != nil {
-                print("Found image asset")
                 // For now, we'll need to extract the SVG data from the image
                 // This is a fallback approach
                 allItems = []
             } else {
-                print("Failed to load SVG asset for \(language): \(svgFileName)")
                 allItems = []
             }
         }
@@ -75,27 +60,20 @@ class AlphabetBarView: NSView {
     func extractCharacterList(from svgString: String) -> [String] {
         var characters: [String] = []
         
-        print("SVG content length: \(svgString.count)")
-        print("SVG content preview: \(String(svgString.prefix(200)))")
-        
         // Simple regex to extract symbol IDs from SVG
         let pattern = #"<symbol id="([^"]+)"# 
         let regex = try? NSRegularExpression(pattern: pattern, options: [])
         
         if let matches = regex?.matches(in: svgString, options: [], range: NSRange(location: 0, length: svgString.count)) {
-            print("Found \(matches.count) symbol matches")
             for match in matches {
                 if let range = Range(match.range(at: 1), in: svgString) {
                     let character = String(svgString[range])
                     // Only add non-empty characters and avoid duplicates
                     if !character.isEmpty && !characters.contains(character) {
                         characters.append(character)
-                        print("Extracted character: \(character)")
                     }
                 }
             }
-        } else {
-            print("No symbol matches found in SVG")
         }
         
         // Sort characters in a language-agnostic way
@@ -127,7 +105,6 @@ class AlphabetBarView: NSView {
             }
         }
         
-        print("Language-agnostic sorted characters: \(sortedCharacters)")
         return sortedCharacters
     }
     
@@ -140,11 +117,8 @@ class AlphabetBarView: NSView {
         }
         letterViews.removeAll()
         
-        print("Setting up letters with \(allItems.count) items: \(allItems)")
-        
         // Handle empty character list
         guard !allItems.isEmpty else {
-            print("No items to display, skipping setup")
             return
         }
         
@@ -199,11 +173,6 @@ class AlphabetBarView: NSView {
         let startX = margin + (self.bounds.width - 2 * margin - totalGridWidth) / 2
         let startY = margin + (self.bounds.height - 2 * margin - totalGridHeight) / 2
         
-        print("=== DYNAMIC GRID LAYOUT DEBUG ===")
-        print("Columns: \(columns), Rows: \(rows), Tile size: \(tileSize)")
-        print("Start position: (\(startX), \(startY))")
-        print("=== CHARACTER ORDER DEBUG ===")
-        
         for i in 0..<count {
             let row = i / columns
             let col = i % columns
@@ -218,7 +187,6 @@ class AlphabetBarView: NSView {
             self.addSubview(lv)
             letterViews.append(lv)
             lv.debugIndex = i
-            print("Position \(i): Row \(row), Col \(col) = '\(item)' at frame: \(itemFrame), debugIndex: \(lv.debugIndex ?? -1)")
             // Modern tile style
             lv.layer?.cornerRadius = tileSize * 0.18
             lv.layer?.shadowOpacity = 0.10
@@ -226,27 +194,15 @@ class AlphabetBarView: NSView {
             lv.layer?.shadowOffset = CGSize(width: 0, height: 2)
         }
         
-        print("=== SUBVIEWS ORDER DEBUG ===")
-        for (index, subview) in self.subviews.enumerated() {
-            if let letterView = subview as? AlphabetLetterView {
-                print("Subview \(index): debugIndex=\(letterView.debugIndex ?? -1), letter='\(letterView.letter)', frame=\(letterView.frame)")
-            }
-        }
-        print("=== END SUBVIEWS DEBUG ===")
-        
         // Force correct z-order by setting layer zPosition
         for (index, letterView) in letterViews.enumerated() {
             letterView.layer?.zPosition = CGFloat(index)
         }
-        
-        print("=== END DEBUG ===")
         
         // Force layout and display updates
         self.needsLayout = true
         self.needsDisplay = true
         self.layout()
         self.display()
-        
-        print("UI refresh completed - \(letterViews.count) views created and displayed")
     }
 } 

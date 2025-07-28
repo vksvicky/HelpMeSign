@@ -29,8 +29,7 @@ class AlphabetLetterView: NSView {
         self.svgString = svgString
         self.label = NSTextField(labelWithString: letter)
         super.init(frame: frame)
-        
-        print("Creating letter view #\(instanceId) for: '\(letter)'")
+    
         self.wantsLayer = true
         
         // Professional design with subtle styling
@@ -57,7 +56,7 @@ class AlphabetLetterView: NSView {
                     self.addSubview(imageView)
                     self.svgImageView = imageView
                     
-                    print("Added SVG symbol for '\(letter)'")
+
                 } else {
                     setupLabel()
                 }
@@ -96,7 +95,6 @@ class AlphabetLetterView: NSView {
     private func createImageFromSVG(_ svgString: String, size: NSSize) -> NSImage? {
         // Guard against zero or negative sizes
         guard size.width > 0 && size.height > 0 else {
-            print("Cannot create image with zero or negative size: \(size)")
             return nil
         }
         
@@ -139,7 +137,7 @@ class AlphabetLetterView: NSView {
         label.frame = NSRect(x: 0, y: (frame.height-CGFloat(fontSize+4))/2, width: frame.width, height: CGFloat(fontSize+4))
         self.addSubview(label)
         
-        print("Added label for '\(letter)' with text: '\(label.stringValue)'")
+
     }
     
     required init?(coder: NSCoder) { fatalError() }

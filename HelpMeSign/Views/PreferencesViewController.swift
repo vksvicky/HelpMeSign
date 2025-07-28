@@ -142,8 +142,7 @@ class PreferencesViewController: NSViewController {
         let preferredLanguages = Locale.preferredLanguages
         let currentLocale = Locale.current
         
-        print("PreferencesViewController: System preferred languages: \(preferredLanguages)")
-        print("PreferencesViewController: Current locale: \(currentLocale.identifier)")
+
         
         // Try to find a matching sign language based on system language preferences
         var detectedSignLanguage: String?
@@ -153,12 +152,9 @@ class PreferencesViewController: NSViewController {
             let baseLanguage = language.language.languageCode?.identifier ?? ""
             let region = language.region?.identifier ?? ""
             
-            print("PreferencesViewController: Checking language: \(baseLanguage), region: \(region)")
-            
             // Check if we have a sign language that matches this language/region
             if let matchingLanguage = findSignLanguageForSystemLanguage(baseLanguage: baseLanguage, region: region) {
                 detectedSignLanguage = matchingLanguage
-                print("PreferencesViewController: Found matching sign language: \(matchingLanguage) for system language: \(languageCode)")
                 break
             }
         }
@@ -167,39 +163,29 @@ class PreferencesViewController: NSViewController {
         if let detected = detectedSignLanguage, 
            allLanguages.contains(where: { $0.code == detected && $0.isAvailable }) {
             selectedLanguage = detected
-            print("PreferencesViewController: Set default language to \(detected) based on system preferences")
         } else {
             // Find first available language as fallback
             if let firstAvailable = allLanguages.first(where: { $0.isAvailable }) {
                 selectedLanguage = firstAvailable.code
-                print("PreferencesViewController: No matching sign language found, defaulting to \(firstAvailable.code)")
             } else {
                 selectedLanguage = "ASL" // Ultimate fallback
-                print("PreferencesViewController: No available languages found, defaulting to ASL")
             }
         }
         
         // Save the default language to UserDefaults if no language is currently set
         if UserDefaults.standard.string(forKey: "SelectedLanguage") == nil {
             UserDefaults.standard.set(selectedLanguage, forKey: "SelectedLanguage")
-            print("PreferencesViewController: Saved default language \(selectedLanguage) to UserDefaults")
         } else {
             // Use the saved language preference
             selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "BSL"
-            print("PreferencesViewController: Using saved language preference: \(selectedLanguage)")
         }
     }
     
     private func findSignLanguageForSystemLanguage(baseLanguage: String, region: String) -> String? {
-        print("PreferencesViewController: Looking for match - baseLanguage: '\(baseLanguage)', region: '\(region)'")
-        
         // Check if any of our sign languages match the system language/region
         for language in allLanguages {
-            print("PreferencesViewController: Checking language: \(language.code) (\(language.name), country: \(language.country))")
-            
             // Check if the sign language's country code matches the region
             if language.country == region {
-                print("PreferencesViewController: Found exact region match: \(language.country) == \(region) -> \(language.code)")
                 return language.code
             }
             
@@ -209,17 +195,14 @@ class PreferencesViewController: NSViewController {
             
             // Only match if it's a clear language match, not just partial string match
             if baseLanguageName == "en" && signLanguageName.contains("english") {
-                print("PreferencesViewController: Found English language match: \(language.code)")
                 return language.code
             }
             
             if baseLanguageName == "kn" && signLanguageName.contains("kannada") {
-                print("PreferencesViewController: Found Kannada language match: \(language.code)")
                 return language.code
             }
         }
         
-        print("PreferencesViewController: No match found")
         return nil
     }
     
@@ -367,14 +350,8 @@ class PreferencesViewController: NSViewController {
         
         // Force layout update after view appears
         DispatchQueue.main.async {
-            // Print debug info to understand the sizing issue
-            print("Scroll view frame: \(self.scrollView.frame)")
-            print("Table view frame: \(self.languageTableView.frame)")
-            print("Table view content size: \(self.languageTableView.frame.size)")
-            
             // Calculate total column width
             let totalColumnWidth = self.languageTableView.tableColumns.reduce(0) { $0 + $1.width }
-            print("Total column width: \(totalColumnWidth)")
             
             // Force table to be exactly scroll view width
             let scrollViewWidth = self.scrollView.frame.width
@@ -394,8 +371,6 @@ class PreferencesViewController: NSViewController {
     }
     
     private func loadCurrentSelection() {
-        print("PreferencesViewController: Loading current selection")
-        
         // Load current language from UserDefaults
         let savedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "BSL"
         
@@ -408,11 +383,9 @@ class PreferencesViewController: NSViewController {
                 if let firstAvailable = allLanguages.first(where: { $0.isAvailable }) {
                     selectedLanguage = firstAvailable.code
                     UserDefaults.standard.set(firstAvailable.code, forKey: "SelectedLanguage")
-                    print("PreferencesViewController: Saved language \(savedLanguage) not available, switched to \(firstAvailable.code)")
                 } else {
                     selectedLanguage = "ASL" // Ultimate fallback
                     UserDefaults.standard.set("ASL", forKey: "SelectedLanguage")
-                    print("PreferencesViewController: No available languages found, defaulting to ASL")
                 }
             }
         } else {
@@ -420,11 +393,9 @@ class PreferencesViewController: NSViewController {
             if let firstAvailable = allLanguages.first(where: { $0.isAvailable }) {
                 selectedLanguage = firstAvailable.code
                 UserDefaults.standard.set(firstAvailable.code, forKey: "SelectedLanguage")
-                print("PreferencesViewController: Saved language \(savedLanguage) not found, switched to \(firstAvailable.code)")
             } else {
                 selectedLanguage = "ASL" // Ultimate fallback
                 UserDefaults.standard.set("ASL", forKey: "SelectedLanguage")
-                print("PreferencesViewController: No available languages found, defaulting to ASL")
             }
         }
         
@@ -434,13 +405,10 @@ class PreferencesViewController: NSViewController {
         // Update UI to reflect current selection
         if let index = filteredLanguages.firstIndex(where: { $0.code == selectedLanguage }) {
             languageTableView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
-            print("PreferencesViewController: Selected current language \(selectedLanguage) at index \(index)")
         }
         
         // Update hand preference control
         handPreferenceSegmentedControl.selectedSegment = selectedHand == "Left" ? 0 : 1
-        
-        print("PreferencesViewController: Current selection loaded - Language: \(selectedLanguage), Hand: \(selectedHand)")
     }
     
     // MARK: - Actions
@@ -465,8 +433,6 @@ class PreferencesViewController: NSViewController {
     @objc private func handPreferenceChanged() {
         let selectedSegment = handPreferenceSegmentedControl.selectedSegment
         selectedHand = selectedSegment == 0 ? "Left" : "Right"
-        
-        print("Hand preference changed to: \(selectedHand)")
         
         // Post notification for hand preference change
         NotificationCenter.default.post(
@@ -500,11 +466,7 @@ class PreferencesViewController: NSViewController {
                    let cameraVC = mainWindow.contentViewController as? CameraViewController {
                     cameraVC.changeLanguage(to: languageCode)
                 }
-            }
-            
-            print("Language selected: \(languageCode)")
-        } else {
-            print("Language already selected: \(languageCode), no update needed")
+                        }
         }
     }
 }

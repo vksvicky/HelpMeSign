@@ -132,7 +132,6 @@ class AIUserExperienceSystem: NSObject {
     private func loadModel(for language: SignLanguage) {
         // In a real implementation, you would load the actual ML models
         // For now, we'll create placeholder models
-        print("Loading model for \(language.name) (\(language.code))")
         
         // Simulate model loading
         DispatchQueue.global(qos: .background).async {
@@ -140,19 +139,16 @@ class AIUserExperienceSystem: NSObject {
             Thread.sleep(forTimeInterval: 0.1)
             
             DispatchQueue.main.async {
-                print("Model loaded for \(language.name)")
             }
         }
     }
     
     private func loadGestureClassifier() {
         // Load general gesture classification model
-        print("Loading gesture classifier")
     }
     
     private func loadPoseEstimator() {
         // Load pose estimation model
-        print("Loading pose estimator")
     }
     
     // MARK: - Public Methods
@@ -160,8 +156,6 @@ class AIUserExperienceSystem: NSObject {
     /// Update hand preference for recognition
     func updateHandPreference(_ preference: String) {
         handPreference = preference
-        print("AIUserExperienceSystem: Hand preference updated to \(preference)")
-        
         // Store the preference for use in hand pose processing
         // The Vision framework will detect both hands, but we can prioritize processing
         // based on the user's preference in the feature extraction
@@ -180,7 +174,6 @@ class AIUserExperienceSystem: NSObject {
         signCandidateCount = 0
         onRecognitionStateChanged?(true)
         
-        print("Started sign language recognition for \(currentLanguage.name)")
     }
     
     /// Stop sign language recognition
@@ -195,7 +188,6 @@ class AIUserExperienceSystem: NSObject {
         signCandidateCount = 0
         onRecognitionStateChanged?(false)
         
-        print("Stopped sign language recognition")
     }
     
     /// Process camera frame for sign recognition
@@ -214,7 +206,6 @@ class AIUserExperienceSystem: NSObject {
         lastFrameProcessTime = now
         
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            print("Failed to get pixel buffer from sample buffer")
             isProcessingFrame = false
             return
         }
@@ -224,7 +215,6 @@ class AIUserExperienceSystem: NSObject {
         let height = CVPixelBufferGetHeight(pixelBuffer)
         
         guard width > 0 && height > 0 else {
-            print("Invalid pixel buffer dimensions: \(width)x\(height)")
             isProcessingFrame = false
             return
         }
@@ -240,7 +230,6 @@ class AIUserExperienceSystem: NSObject {
                     try handler.perform([handPoseRequest])
                 }
             } catch {
-                print("Failed to perform vision requests: \(error)")
             }
             
             DispatchQueue.main.async {
@@ -252,14 +241,12 @@ class AIUserExperienceSystem: NSObject {
     /// Change the current sign language
     func changeLanguage(to languageCode: String) {
         guard let language = supportedLanguages.first(where: { $0.code == languageCode }) else {
-            print("Unsupported language: \(languageCode)")
             return
         }
         
         currentLanguage = language
         onLanguageChanged?(language)
         
-        print("Changed language to \(language.name) (\(language.code))")
     }
     
     /// Get all supported languages
@@ -361,14 +348,12 @@ class AIUserExperienceSystem: NSObject {
         // Trigger callback directly for testing
         onSignRecognized?(result)
         
-        print("Test recognition: \(sign) with confidence: \(confidence)")
     }
     
     // MARK: - Vision Handlers
     
     private func handleHandPoseDetection(request: VNRequest, error: Error?) {
         if let error = error {
-            print("Hand pose detection error: \(error)")
             return
         }
         
@@ -551,8 +536,6 @@ class AIUserExperienceSystem: NSObject {
             // Debug: Print feature stability
             if let keyFeatures = self?.extractKeyHandFeatures(features) {
                 let featureSignature = keyFeatures.map { round($0 * 10) / 10 }.prefix(6)
-                print("🎯 Processing sign: \(sign) with confidence: \(confidence)")
-                print("🎯 Key features: \(featureSignature)")
                 
                 // Debug hand shape characteristics
                 if keyFeatures.count >= 6 {
@@ -571,7 +554,6 @@ class AIUserExperienceSystem: NSObject {
                     let normalizedHeight = round(handHeight * 10) / 10
                     let normalizedWidth = round(handWidth * 10) / 10
                     
-                    print("🎯 Hand shape: H=\(normalizedHeight), W=\(normalizedWidth), S=\(normalizedSpread)")
                 }
             }
             
@@ -584,24 +566,20 @@ class AIUserExperienceSystem: NSObject {
     private func handleSignCandidate(sign: String, confidence: Float, features: [Float]) {
         // Only process high-confidence candidates
         guard confidence > 0.8 else { // Increased threshold for stability
-            print("Sign candidate confidence too low: \(confidence)")
             return
         }
         
         // Check if this is the same sign as the last candidate
         if sign == lastSignCandidate {
             signCandidateCount += 1
-            print("Sign candidate '\(sign)' count: \(signCandidateCount)/\(requiredCandidateCount)")
         } else {
             // Reset for new sign
             lastSignCandidate = sign
             signCandidateCount = 1
-            print("New sign candidate: '\(sign)'")
         }
         
         // Only recognize if we've seen the same sign multiple times
         if signCandidateCount >= requiredCandidateCount {
-            print("🎯 FINAL RECOGNITION: \(sign) with \(signCandidateCount) consistent detections!")
             handleSignRecognition(sign: sign, confidence: confidence, features: features)
             // Reset after recognition to prevent repeated recognition
             signCandidateCount = 0
@@ -787,13 +765,11 @@ class AIUserExperienceSystem: NSObject {
         
         if timeSinceLastRecognition < recognitionDebounceInterval && isSameSign {
             // Skip recognition - too soon and same sign
-            print("⏸️ Skipping recognition: \(sign) (debounced)")
             return
         }
         
         // Only recognize if confidence is high enough
         guard confidence > 0.8 else { // Increased threshold for stability
-            print("Sign recognition confidence too low: \(confidence)")
             return
         }
         
@@ -801,7 +777,6 @@ class AIUserExperienceSystem: NSObject {
         if !lastFeatures.isEmpty && isSameSign {
             let featureChange = calculateFeatureChange(features, comparedTo: lastFeatures)
             if featureChange < 0.1 { // Less than 10% change
-                print("Features too similar, skipping recognition")
                 return
             }
         }
@@ -821,7 +796,6 @@ class AIUserExperienceSystem: NSObject {
         
         onSignRecognized?(result)
         
-        print("Recognized sign: \(sign) with confidence: \(confidence)")
     }
     
     private func calculateFeatureChange(_ newFeatures: [Float], comparedTo oldFeatures: [Float]) -> Float {

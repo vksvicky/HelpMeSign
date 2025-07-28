@@ -76,7 +76,6 @@ class LanguageEngine: NSObject {
                 languageQueue.sync {
                     languageRegistry[config.code] = config
                 }
-                print("Loaded cached config for \(config.name) (\(config.code))")
             }
         }
     }
@@ -100,7 +99,6 @@ class LanguageEngine: NSObject {
     /// Update hand preference for language processing
     func updateHandPreference(_ preference: String) {
         handPreference = preference
-        print("LanguageEngine: Hand preference updated to \(preference)")
         
         // Store the preference for use in language processing
         // The recognition and translation engines can access this preference
@@ -109,16 +107,12 @@ class LanguageEngine: NSObject {
     
     /// Discover and load available sign languages dynamically
     func discoverLanguages() async {
-        print("Starting language discovery...")
-        
         for source in configSources {
             await loadLanguagesFromSource(source)
         }
         
         // Also load from local resources
         await loadLocalLanguages()
-        
-        print("Language discovery completed. Found \(languageRegistry.count) languages")
     }
     
     /// Load a specific language
@@ -132,13 +126,11 @@ class LanguageEngine: NSObject {
         }
         
         guard let config = config else {
-            print("Language \(languageCode) not found in registry")
             return false
         }
         
         // Check if already loaded
         if isAlreadyLoaded {
-            print("Language \(languageCode) already loaded")
             return true
         }
         
@@ -149,7 +141,6 @@ class LanguageEngine: NSObject {
             activeLanguages.insert(languageCode)
         }
             onLanguageLoaded?(config)
-            print("Successfully loaded language: \(config.name) (\(config.code))")
             return true
         }
         
@@ -170,8 +161,6 @@ class LanguageEngine: NSObject {
             loadedModels.removeValue(forKey: languageCode)
             activeLanguages.remove(languageCode)
         }
-        
-        print("Unloaded language: \(languageCode)")
     }
     
     /// Get all available languages
@@ -219,7 +208,6 @@ class LanguageEngine: NSObject {
         }
         
         guard isActive else {
-            print("Language \(language) is not active")
             return nil
         }
         
@@ -246,8 +234,7 @@ class LanguageEngine: NSObject {
         }
     }
     
-    // MARK: - Private Methods
-    
+    // MARK: - Private Methods 
     private func loadLanguagesFromSource(_ source: String) async {
         guard let url = URL(string: source) else { return }
         
@@ -260,16 +247,14 @@ class LanguageEngine: NSObject {
                 await cacheLanguageConfig(language)
             }
             
-            print("Loaded \(languages.count) languages from \(source)")
         } catch {
-            print("Failed to load languages from \(source): \(error)")
+            NSLog("Failed to load languages from \(source): \(error)")
         }
     }
     
     private func loadLocalLanguages() async {
         // Load from local JSON files in the app bundle
         guard let bundlePath = Bundle.main.path(forResource: "languages", ofType: "json") else {
-            print("No local languages.json found")
             return
         }
         
@@ -284,22 +269,21 @@ class LanguageEngine: NSObject {
                 await cacheLanguageConfig(language)
             }
             
-            print("Loaded \(languages.count) local languages")
         } catch {
-            print("Failed to load local languages: \(error)")
+            NSLog("Failed to load local languages: \(error)")
             // Try to provide more detailed error information
             if let decodingError = error as? DecodingError {
                 switch decodingError {
                 case .keyNotFound(let key, let context):
-                    print("Missing key: \(key.stringValue) at path: \(context.codingPath)")
+                    NSLog("Missing key: \(key.stringValue) at path: \(context.codingPath)")
                 case .typeMismatch(let type, let context):
-                    print("Type mismatch: expected \(type) at path: \(context.codingPath)")
+                    NSLog("Type mismatch: expected \(type) at path: \(context.codingPath)")
                 case .valueNotFound(let type, let context):
-                    print("Value not found: expected \(type) at path: \(context.codingPath)")
+                    NSLog("Value not found: expected \(type) at path: \(context.codingPath)")
                 case .dataCorrupted(let context):
-                    print("Data corrupted at path: \(context.codingPath)")
+                    NSLog("Data corrupted at path: \(context.codingPath)")
                 @unknown default:
-                    print("Unknown decoding error")
+                    NSLog("Unknown decoding error")
                 }
             }
         }
@@ -312,7 +296,7 @@ class LanguageEngine: NSObject {
             let data = try JSONEncoder().encode(config)
             try data.write(to: configURL)
         } catch {
-            print("Failed to cache config for \(config.code): \(error)")
+            NSLog("Failed to cache config for \(config.code): \(error)")
         }
     }
     
@@ -331,7 +315,6 @@ class LanguageEngine: NSObject {
             loadedModels[config.code] = nil // Placeholder
         }
         
-        print("Simulated model loading for \(config.code)")
         return true
     }
     
@@ -342,13 +325,11 @@ class LanguageEngine: NSObject {
         // Simulate a small delay to mimic downloading
         try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
         
-        print("Simulated model download for \(config.code)")
         return true
     }
 }
 
 // MARK: - Supporting Types
-
 struct SignLanguageConfig: Codable {
     let code: String
     let name: String
@@ -429,7 +410,7 @@ class RecognitionPipeline {
         do {
             try handler.perform(requests)
         } catch {
-            print("Failed to perform vision requests: \(error)")
+            NSLog("Failed to perform vision requests: \(error)")
         }
     }
     
