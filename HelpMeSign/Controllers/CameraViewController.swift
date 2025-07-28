@@ -29,6 +29,10 @@ import Foundation
     private var aiSystem: AIUserExperienceSystem!
     private var languageEngine: LanguageEngine!
     private var translationDisplayView: TranslationDisplayView!
+    
+    // MARK: - Writing System Support
+    private var writingSystemSelectorView: WritingSystemSelectorView?
+    private var currentWritingSystem: String?
 
     // MARK: - UI Elements
     var camView: NSView!
@@ -784,12 +788,18 @@ import Foundation
         DispatchQueue.main.async {
             print("CameraViewController: Updating alphabet bar to \(languageCode)")
             
-            // Only reload if the language actually changed
-            if let currentLanguage = self.getCurrentLanguageFromUI(), currentLanguage != languageCode {
-                print("CameraViewController: Language changed from \(currentLanguage) to \(languageCode), reloading alphabet")
-                self.reloadAlphabetForLanguage(languageCode)
+            // Check if we need to reload the alphabet
+            if let currentLanguage = self.getCurrentLanguageFromUI() {
+                if currentLanguage != languageCode {
+                    print("CameraViewController: Language changed from \(currentLanguage) to \(languageCode), reloading alphabet")
+                    self.reloadAlphabetForLanguage(languageCode)
+                } else {
+                    print("CameraViewController: Same language detected, skipping alphabet reload")
+                }
             } else {
-                print("CameraViewController: No language change detected, skipping alphabet reload")
+                // No current language detected, this is likely the initial load
+                print("CameraViewController: Initial load detected, reloading alphabet for \(languageCode)")
+                self.reloadAlphabetForLanguage(languageCode)
             }
         }
     }
@@ -841,22 +851,139 @@ import Foundation
     }
     
     private func reloadAlphabetForLanguage(_ languageCode: String) {
-        // Load languages.json and find the new language
+        // Check if this language has multiple writing systems
+        if let writingSystems = getWritingSystems(for: languageCode) {
+            print("CameraViewController: Language \(languageCode) has \(writingSystems.count) writing systems")
+            setupWritingSystemSelector(with: writingSystems, languageCode: languageCode)
+            return
+        }
+        
+        // Hide writing system selector for languages without multiple writing systems
+        hideWritingSystemSelector()
+        
+        // Load handshapes from individual language config file
+        loadAlphabetFromConfig(languageCode: languageCode, writingSystem: nil)
+    }
+    
+    private func loadAlphabetFromConfig(languageCode: String, writingSystem: String?) {
+        let configFileName: String
+        if let writingSystem = writingSystem {
+            configFileName = "\(languageCode.lowercased())_\(writingSystem.lowercased()).json"
+        } else {
+            configFileName = "\(languageCode.lowercased()).json"
+        }
+        
+        guard let configURL = Bundle.main.url(forResource: languageCode.lowercased() + (writingSystem != nil ? "_\(writingSystem!.lowercased())" : ""), withExtension: "json"),
+              let data = try? Data(contentsOf: configURL),
+              let config = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            print("Failed to load language config: \(configFileName)")
+            return
+        }
+        
+        print("CameraViewController: Loaded language config for \(languageCode)\(writingSystem != nil ? " (\(writingSystem!))" : "")")
+        
+        // Extract handshapes from the alphabet section
+        guard let alphabet = config["alphabet"] as? [String: Any] else {
+            print("Failed to find alphabet section for language: \(languageCode)")
+            print("Available keys in config: \(config.keys)")
+            return
+        }
+        
+        // Extract symbols from letters first (A-Z)
+        var handshapes: [String] = []
+        
+        if let letters = alphabet["letters"] as? [[String: Any]] {
+            let letterSymbols = letters.compactMap { $0["symbol"] as? String }
+            handshapes.append(contentsOf: letterSymbols)
+            print("CameraViewController: Found \(letterSymbols.count) letters for \(languageCode): \(letterSymbols)")
+        }
+        
+        // Extract symbols from numbers second (0-9)
+        if let numbers = alphabet["numbers"] as? [[String: Any]] {
+            let numberSymbols = numbers.compactMap { $0["symbol"] as? String }
+            handshapes.append(contentsOf: numberSymbols)
+            print("CameraViewController: Found \(numberSymbols.count) numbers for \(languageCode): \(numberSymbols)")
+        }
+        
+        if handshapes.isEmpty {
+            print("No handshapes found for language: \(languageCode)")
+            return
+        }
+        
+        print("CameraViewController: Total handshapes for \(languageCode): \(handshapes)")
+        print("CameraViewController: Handshapes order check - First 5: \(Array(handshapes.prefix(5)))")
+        print("CameraViewController: Handshapes order check - Last 5: \(Array(handshapes.suffix(5)))")
+        
+        print("Reloading alphabet for \(languageCode): \(handshapes)")
+        
+        // Continue with the existing alphabet display logic
+        displayAlphabetGrid(handshapes: handshapes)
+    }
+    
+    // MARK: - Writing System Support
+    
+    private func getWritingSystems(for languageCode: String) -> [String: String]? {
+        // Load languages.json to check for writing systems
         guard let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let languages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            print("Failed to load languages.json")
-            return
+            return nil
         }
         
-        // Find the selected language
-        guard let selectedLanguage = languages.first(where: { ($0["code"] as? String) == languageCode }),
-              let handshapes = selectedLanguage["handshapes"] as? [String] else {
-            print("Failed to find handshapes for language: \(languageCode)")
-            return
+        // Find the language
+        guard let language = languages.first(where: { ($0["code"] as? String) == languageCode }),
+              let writingSystems = language["writingSystems"] as? [String: String] else {
+            return nil
         }
         
-        print("Reloading alphabet for \(languageCode): \(handshapes)")
+        return writingSystems
+    }
+    
+    private func setupWritingSystemSelector(with writingSystems: [String: String], languageCode: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Create writing system selector if it doesn't exist
+            if self.writingSystemSelectorView == nil {
+                self.writingSystemSelectorView = WritingSystemSelectorView()
+                self.view.addSubview(self.writingSystemSelectorView!)
+                
+                // Position it above the alphabet bar
+                NSLayoutConstraint.activate([
+                    self.writingSystemSelectorView!.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+                    self.writingSystemSelectorView!.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -280),
+                    self.writingSystemSelectorView!.widthAnchor.constraint(equalToConstant: 300),
+                    self.writingSystemSelectorView!.heightAnchor.constraint(equalToConstant: 32)
+                ])
+            }
+            
+            // Show the selector
+            self.writingSystemSelectorView?.isHidden = false
+            
+            // Configure the selector
+            let defaultSystem = Array(writingSystems.keys).first ?? "hiragana"
+            self.currentWritingSystem = defaultSystem
+            
+            self.writingSystemSelectorView?.configure(
+                with: writingSystems,
+                selectedSystem: defaultSystem
+            ) { [weak self] selectedSystem in
+                self?.currentWritingSystem = selectedSystem
+                self?.loadAlphabetFromConfig(languageCode: languageCode, writingSystem: selectedSystem)
+            }
+            
+            // Load the default writing system
+            self.loadAlphabetFromConfig(languageCode: languageCode, writingSystem: defaultSystem)
+        }
+    }
+    
+    private func hideWritingSystemSelector() {
+        DispatchQueue.main.async { [weak self] in
+            self?.writingSystemSelectorView?.isHidden = true
+        }
+    }
+    
+    private func displayAlphabetGrid(handshapes: [String]) {
         
         // Find the alphabet bar section and update it
         if let bottomSection = self.view.subviews.first(where: { $0.frame.origin.y == 0 }) {
@@ -901,6 +1028,9 @@ import Foundation
     }
     
     private func createAlphabetGrid(in section: NSView, handshapes: [String]) {
+        print("CameraViewController: createAlphabetGrid called with \(handshapes.count) handshapes")
+        print("CameraViewController: Section frame: \(section.frame)")
+        
         let width = section.frame.width
         let height = section.frame.height
         
@@ -921,13 +1051,15 @@ import Foundation
         print("Creating alphabet grid: \(handshapes.count) letters, \(columnsPerRow) columns, \(rows) rows")
         print("Grid dimensions: \(totalGridWidth) x \(totalGridHeight), starting at (\(startX), \(startY))")
         
-        // Create letter buttons in grid layout
+        // Create letter buttons in grid layout - fill row by row
         for (index, letter) in handshapes.enumerated() {
+            // Calculate row and column to fill row by row (left to right, top to bottom)
             let row = index / columnsPerRow
             let column = index % columnsPerRow
             
             let x = startX + CGFloat(column) * (letterSize + letterSpacing)
-            let y = startY + CGFloat(row) * (letterSize + letterSpacing)
+            // In macOS, Y=0 is at the top, so we need to flip the row calculation
+            let y = startY + CGFloat(rows - 1 - row) * (letterSize + letterSpacing)
             
             let letterButton = createAlphabetButton(
                 letter: letter,
@@ -938,6 +1070,8 @@ import Foundation
             // Ensure the button is properly added and positioned
             section.addSubview(letterButton)
             letterButton.needsDisplay = true
+            
+            print("CameraViewController: Added letter '\(letter)' at position (\(column), \(row)) - (\(x), \(y))")
         }
         
         // Force the section to redraw

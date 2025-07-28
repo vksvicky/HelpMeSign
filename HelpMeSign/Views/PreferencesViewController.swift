@@ -25,8 +25,9 @@ class PreferencesViewController: NSViewController {
         let nativeName: String?
         let speakers: Int?
         let difficulty: String?
+        let isAvailable: Bool
         
-        init(code: String, name: String, flag: String, country: String, nativeName: String? = nil, speakers: Int? = nil, difficulty: String? = nil) {
+        init(code: String, name: String, flag: String, country: String, nativeName: String? = nil, speakers: Int? = nil, difficulty: String? = nil, isAvailable: Bool = true) {
             self.code = code
             self.name = name
             self.flag = flag
@@ -34,6 +35,7 @@ class PreferencesViewController: NSViewController {
             self.nativeName = nativeName
             self.speakers = speakers
             self.difficulty = difficulty
+            self.isAvailable = isAvailable
         }
     }
     
@@ -103,6 +105,9 @@ class PreferencesViewController: NSViewController {
                 let difficulty = metadata?["difficulty"] as? String
                 let nativeName = dict["nativeName"] as? String
                 
+                // Check if language config is available
+                let isAvailable = isLanguageConfigAvailable(for: code)
+                
                 return LanguageInfo(
                     code: code,
                     name: name,
@@ -110,7 +115,8 @@ class PreferencesViewController: NSViewController {
                     country: country,
                     nativeName: nativeName,
                     speakers: speakers,
-                    difficulty: difficulty
+                    difficulty: difficulty,
+                    isAvailable: isAvailable
                 )
             }
             
@@ -125,6 +131,24 @@ class PreferencesViewController: NSViewController {
             allLanguages = []
             filteredLanguages = []
         }
+    }
+    
+    private func isLanguageConfigAvailable(for languageCode: String) -> Bool {
+        // Check if the language config file exists in the main Resources directory
+        let configFileName = "\(languageCode.lowercased()).json"
+        
+        // Try to find the file in the main Resources directory (where it gets copied during build)
+        if let configURL = Bundle.main.url(forResource: languageCode.lowercased(), withExtension: "json") {
+            print("PreferencesViewController: Language config available for \(languageCode): \(configURL.lastPathComponent)")
+            return true
+        }
+        
+        print("PreferencesViewController: Language config NOT available for \(languageCode): \(configFileName)")
+        return false
+    }
+    
+    private func getIndexOfLanguage(_ languageCode: String) -> Int {
+        return filteredLanguages.firstIndex(where: { $0.code == languageCode }) ?? 0
     }
     
     private func setDefaultLanguageBasedOnLocale() {
@@ -153,13 +177,20 @@ class PreferencesViewController: NSViewController {
             }
         }
         
-        // Set the detected language or fallback to BSL
-        if let detected = detectedSignLanguage, allLanguages.contains(where: { $0.code == detected }) {
+        // Set the detected language or fallback to first available language
+        if let detected = detectedSignLanguage, 
+           allLanguages.contains(where: { $0.code == detected && $0.isAvailable }) {
             selectedLanguage = detected
             print("PreferencesViewController: Set default language to \(detected) based on system preferences")
         } else {
-            selectedLanguage = "BSL"
-            print("PreferencesViewController: No matching sign language found, defaulting to BSL")
+            // Find first available language as fallback
+            if let firstAvailable = allLanguages.first(where: { $0.isAvailable }) {
+                selectedLanguage = firstAvailable.code
+                print("PreferencesViewController: No matching sign language found, defaulting to \(firstAvailable.code)")
+            } else {
+                selectedLanguage = "ASL" // Ultimate fallback
+                print("PreferencesViewController: No available languages found, defaulting to ASL")
+            }
         }
         
         // Save the default language to UserDefaults if no language is currently set
@@ -380,7 +411,36 @@ class PreferencesViewController: NSViewController {
         print("PreferencesViewController: Loading current selection")
         
         // Load current language from UserDefaults
-        selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "BSL"
+        let savedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "BSL"
+        
+        // Check if saved language is available, if not find first available
+        if let savedLanguageInfo = allLanguages.first(where: { $0.code == savedLanguage }) {
+            if savedLanguageInfo.isAvailable {
+                selectedLanguage = savedLanguage
+            } else {
+                // Find first available language as fallback
+                if let firstAvailable = allLanguages.first(where: { $0.isAvailable }) {
+                    selectedLanguage = firstAvailable.code
+                    UserDefaults.standard.set(firstAvailable.code, forKey: "SelectedLanguage")
+                    print("PreferencesViewController: Saved language \(savedLanguage) not available, switched to \(firstAvailable.code)")
+                } else {
+                    selectedLanguage = "ASL" // Ultimate fallback
+                    UserDefaults.standard.set("ASL", forKey: "SelectedLanguage")
+                    print("PreferencesViewController: No available languages found, defaulting to ASL")
+                }
+            }
+        } else {
+            // Saved language not found in list, find first available
+            if let firstAvailable = allLanguages.first(where: { $0.isAvailable }) {
+                selectedLanguage = firstAvailable.code
+                UserDefaults.standard.set(firstAvailable.code, forKey: "SelectedLanguage")
+                print("PreferencesViewController: Saved language \(savedLanguage) not found, switched to \(firstAvailable.code)")
+            } else {
+                selectedLanguage = "ASL" // Ultimate fallback
+                UserDefaults.standard.set("ASL", forKey: "SelectedLanguage")
+                print("PreferencesViewController: No available languages found, defaulting to ASL")
+            }
+        }
         
         // Load current hand preference from UserDefaults
         selectedHand = UserDefaults.standard.string(forKey: "HandPreference") ?? "Right"
@@ -477,6 +537,25 @@ extension PreferencesViewController: NSTableViewDelegate {
         
         let language = filteredLanguages[row]
         let isSelected = language.code == selectedLanguage
+        let isAvailable = language.isAvailable
+        
+        // Determine text color based on availability and selection
+        let textColor: NSColor
+        if !isAvailable {
+            textColor = NSColor.disabledControlTextColor
+        } else if isSelected {
+            textColor = NSColor.controlAccentColor
+        } else {
+            textColor = NSColor.labelColor
+        }
+        
+        // Determine secondary text color
+        let secondaryTextColor: NSColor
+        if !isAvailable {
+            secondaryTextColor = NSColor.disabledControlTextColor
+        } else {
+            secondaryTextColor = NSColor.secondaryLabelColor
+        }
         
         switch tableColumn?.identifier {
         case NSUserInterfaceItemIdentifier("flag"):
@@ -487,12 +566,13 @@ extension PreferencesViewController: NSTableViewDelegate {
             flagLabel.isBordered = false
             flagLabel.backgroundColor = NSColor.clear
             flagLabel.wantsLayer = false
+            flagLabel.textColor = textColor
             return flagLabel
             
         case NSUserInterfaceItemIdentifier("name"):
             let nameLabel = NSTextField(labelWithString: language.name)
             nameLabel.font = NSFont.systemFont(ofSize: 14, weight: isSelected ? .semibold : .regular)
-            nameLabel.textColor = isSelected ? NSColor.controlAccentColor : NSColor.labelColor
+            nameLabel.textColor = textColor
             nameLabel.isEditable = false
             nameLabel.isBordered = false
             nameLabel.backgroundColor = NSColor.clear
@@ -502,12 +582,17 @@ extension PreferencesViewController: NSTableViewDelegate {
                 nameLabel.stringValue = "\(language.name)\n\(nativeName)"
             }
             
+            // Add "(Not Available)" suffix for unavailable languages
+            if !isAvailable {
+                nameLabel.stringValue += "\n(Not Available)"
+            }
+            
             return nameLabel
             
         case NSUserInterfaceItemIdentifier("code"):
             let codeLabel = NSTextField(labelWithString: language.code)
             codeLabel.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
-            codeLabel.textColor = isSelected ? NSColor.controlAccentColor : NSColor.secondaryLabelColor
+            codeLabel.textColor = textColor
             codeLabel.alignment = .center
             codeLabel.isEditable = false
             codeLabel.isBordered = false
@@ -519,7 +604,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             let speakersText = language.speakers != nil ? formatSpeakers(language.speakers!) : "N/A"
             let speakersLabel = NSTextField(labelWithString: speakersText)
             speakersLabel.font = NSFont.systemFont(ofSize: 12)
-            speakersLabel.textColor = NSColor.secondaryLabelColor
+            speakersLabel.textColor = secondaryTextColor
             speakersLabel.alignment = .center
             speakersLabel.isEditable = false
             speakersLabel.isBordered = false
@@ -531,7 +616,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             let difficultyText = language.difficulty ?? "Unknown"
             let difficultyLabel = NSTextField(labelWithString: difficultyText)
             difficultyLabel.font = NSFont.systemFont(ofSize: 12)
-            difficultyLabel.textColor = getDifficultyColor(difficultyText)
+            difficultyLabel.textColor = isAvailable ? getDifficultyColor(difficultyText) : NSColor.disabledControlTextColor
             difficultyLabel.alignment = .center
             difficultyLabel.isEditable = false
             difficultyLabel.isBordered = false
@@ -544,6 +629,12 @@ extension PreferencesViewController: NSTableViewDelegate {
         }
     }
     
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+        guard row >= 0 && row < filteredLanguages.count else { return false }
+        let language = filteredLanguages[row]
+        return language.isAvailable
+    }
+    
     func tableViewSelectionDidChange(_ notification: Notification) {
         // CRASH PREVENTION: Wrap in async to prevent Core Animation issues
         DispatchQueue.main.async { [weak self] in
@@ -552,7 +643,14 @@ extension PreferencesViewController: NSTableViewDelegate {
             let selectedRow = self.languageTableView.selectedRow
             if selectedRow >= 0 && selectedRow < self.filteredLanguages.count {
                 let selectedLanguage = self.filteredLanguages[selectedRow]
-                self.selectLanguage(selectedLanguage.code)
+                
+                // Only allow selection of available languages
+                if selectedLanguage.isAvailable {
+                    self.selectLanguage(selectedLanguage.code)
+                } else {
+                    // Revert selection to previously selected available language
+                    self.languageTableView.selectRowIndexes(IndexSet(integer: self.getIndexOfLanguage(self.selectedLanguage)), byExtendingSelection: false)
+                }
             }
         }
     }

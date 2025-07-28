@@ -2,312 +2,74 @@
   "languageCode": "asl",
   "languageName": "American Sign Language",
   "nativeName": "American Sign Language",
+  "handUsage": {
+    "defaultHand": "right",
+    "preferredHand": "right",
+    "handPatterns": {
+      "alphabet": "single_hand",
+      "numbers": "single_hand",
+      "basicSigns": "single_hand",
+      "complexSigns": "both_hands",
+      "classifiers": "both_hands",
+      "fingerspelling": "single_hand"
+    },
+    "handSwitching": {
+      "enabled": true,
+      "conditions": ["dominant_hand_injury", "comfort_preference", "context_requirements"]
+    }
+  },
   "alphabet": {
     "letters": [
-      {
-        "symbol": "A",
-        "gesturePattern": "{\"fingers\": \"fist_thumb_up\", \"hand\": \"right\", \"position\": \"asl_a_position\"}",
-        "confidence": 0.95,
-        "category": "letter"
-      },
-      {
-        "symbol": "B",
-        "gesturePattern": "{\"fingers\": \"flat_hand_palm_up\", \"hand\": \"right\", \"position\": \"asl_b_position\"}",
-        "confidence": 0.92,
-        "category": "letter"
-      },
-      {
-        "symbol": "C",
-        "gesturePattern": "{\"fingers\": \"curved_c_shape\", \"hand\": \"right\", \"position\": \"asl_c_position\"}",
-        "confidence": 0.90,
-        "category": "letter"
-      },
-      {
-        "symbol": "D",
-        "gesturePattern": "{\"fingers\": \"index_pointing_up\", \"hand\": \"right\", \"position\": \"asl_d_position\"}",
-        "confidence": 0.93,
-        "category": "letter"
-      },
-      {
-        "symbol": "E",
-        "gesturePattern": "{\"fingers\": \"fingers_curled_down\", \"hand\": \"right\", \"position\": \"asl_e_position\"}",
-        "confidence": 0.88,
-        "category": "letter"
-      },
-      {
-        "symbol": "F",
-        "gesturePattern": "{\"fingers\": \"index_thumb_touch_others_up\", \"hand\": \"right\", \"position\": \"asl_f_position\"}",
-        "confidence": 0.91,
-        "category": "letter"
-      },
-      {
-        "symbol": "G",
-        "gesturePattern": "{\"fingers\": \"index_thumb_parallel\", \"hand\": \"right\", \"position\": \"asl_g_position\"}",
-        "confidence": 0.89,
-        "category": "letter"
-      },
-      {
-        "symbol": "H",
-        "gesturePattern": "{\"fingers\": \"index_middle_up\", \"hand\": \"right\", \"position\": \"asl_h_position\"}",
-        "confidence": 0.94,
-        "category": "letter"
-      },
-      {
-        "symbol": "I",
-        "gesturePattern": "{\"fingers\": \"pinky_up_others_down\", \"hand\": \"right\", \"position\": \"asl_i_position\"}",
-        "confidence": 0.87,
-        "category": "letter"
-      },
-      {
-        "symbol": "J",
-        "gesturePattern": "{\"fingers\": \"pinky_curve_motion\", \"hand\": \"right\", \"position\": \"asl_j_position\"}",
-        "confidence": 0.86,
-        "category": "letter"
-      },
-      {
-        "symbol": "K",
-        "gesturePattern": "{\"fingers\": \"index_middle_ring_up\", \"hand\": \"right\", \"position\": \"asl_k_position\"}",
-        "confidence": 0.85,
-        "category": "letter"
-      },
-      {
-        "symbol": "L",
-        "gesturePattern": "{\"fingers\": \"thumb_index_l_shape\", \"hand\": \"right\", \"position\": \"asl_l_position\"}",
-        "confidence": 0.96,
-        "category": "letter"
-      },
-      {
-        "symbol": "M",
-        "gesturePattern": "{\"fingers\": \"three_fingers_down_thumb_ring_up\", \"hand\": \"right\", \"position\": \"asl_m_position\"}",
-        "confidence": 0.84,
-        "category": "letter"
-      },
-      {
-        "symbol": "N",
-        "gesturePattern": "{\"fingers\": \"two_fingers_down_thumb_ring_middle_up\", \"hand\": \"right\", \"position\": \"asl_n_position\"}",
-        "confidence": 0.83,
-        "category": "letter"
-      },
-      {
-        "symbol": "O",
-        "gesturePattern": "{\"fingers\": \"curved_circle_shape\", \"hand\": \"right\", \"position\": \"asl_o_position\"}",
-        "confidence": 0.92,
-        "category": "letter"
-      },
-      {
-        "symbol": "P",
-        "gesturePattern": "{\"fingers\": \"index_down_thumb_up\", \"hand\": \"right\", \"position\": \"asl_p_position\"}",
-        "confidence": 0.81,
-        "category": "letter"
-      },
-      {
-        "symbol": "Q",
-        "gesturePattern": "{\"fingers\": \"index_thumb_down_others_up\", \"hand\": \"right\", \"position\": \"asl_q_position\"}",
-        "confidence": 0.80,
-        "category": "letter"
-      },
-      {
-        "symbol": "R",
-        "gesturePattern": "{\"fingers\": \"index_middle_crossed\", \"hand\": \"right\", \"position\": \"asl_r_position\"}",
-        "confidence": 0.79,
-        "category": "letter"
-      },
-      {
-        "symbol": "S",
-        "gesturePattern": "{\"fingers\": \"fist_closed\", \"hand\": \"right\", \"position\": \"asl_s_position\"}",
-        "confidence": 0.98,
-        "category": "letter"
-      },
-      {
-        "symbol": "T",
-        "gesturePattern": "{\"fingers\": \"index_thumb_t_shape\", \"hand\": \"right\", \"position\": \"asl_t_position\"}",
-        "confidence": 0.78,
-        "category": "letter"
-      },
-      {
-        "symbol": "U",
-        "gesturePattern": "{\"fingers\": \"index_middle_up_others_down\", \"hand\": \"right\", \"position\": \"asl_u_position\"}",
-        "confidence": 0.97,
-        "category": "letter"
-      },
-      {
-        "symbol": "V",
-        "gesturePattern": "{\"fingers\": \"index_middle_v_shape\", \"hand\": \"right\", \"position\": \"asl_v_position\"}",
-        "confidence": 0.96,
-        "category": "letter"
-      },
-      {
-        "symbol": "W",
-        "gesturePattern": "{\"fingers\": \"three_fingers_up_thumb_pinky_down\", \"hand\": \"right\", \"position\": \"asl_w_position\"}",
-        "confidence": 0.77,
-        "category": "letter"
-      },
-      {
-        "symbol": "X",
-        "gesturePattern": "{\"fingers\": \"index_bent_others_down\", \"hand\": \"right\", \"position\": \"asl_x_position\"}",
-        "confidence": 0.76,
-        "category": "letter"
-      },
-      {
-        "symbol": "Y",
-        "gesturePattern": "{\"fingers\": \"thumb_pinky_up_others_down\", \"hand\": \"right\", \"position\": \"asl_y_position\"}",
-        "confidence": 0.95,
-        "category": "letter"
-      },
-      {
-        "symbol": "Z",
-        "gesturePattern": "{\"fingers\": \"index_z_motion\", \"hand\": \"right\", \"position\": \"asl_z_position\"}",
-        "confidence": 0.75,
-        "category": "letter"
-      }
+      {"symbol": "A", "gesturePattern": "fist_thumb_up", "confidence": 0.95, "handUsage": "right"},
+      {"symbol": "B", "gesturePattern": "flat_hand_palm_up", "confidence": 0.92, "handUsage": "right"},
+      {"symbol": "C", "gesturePattern": "curved_c_shape", "confidence": 0.90, "handUsage": "right"},
+      {"symbol": "D", "gesturePattern": "index_pointing_up", "confidence": 0.93, "handUsage": "right"},
+      {"symbol": "E", "gesturePattern": "fingers_curled_down", "confidence": 0.88, "handUsage": "right"},
+      {"symbol": "F", "gesturePattern": "index_thumb_touch_others_up", "confidence": 0.91, "handUsage": "right"},
+      {"symbol": "G", "gesturePattern": "index_thumb_parallel", "confidence": 0.89, "handUsage": "right"},
+      {"symbol": "H", "gesturePattern": "index_middle_up", "confidence": 0.94, "handUsage": "right"},
+      {"symbol": "I", "gesturePattern": "pinky_up_others_down", "confidence": 0.87, "handUsage": "right"},
+      {"symbol": "J", "gesturePattern": "pinky_curve_motion", "confidence": 0.86, "handUsage": "right"},
+      {"symbol": "K", "gesturePattern": "index_middle_ring_up", "confidence": 0.85, "handUsage": "right"},
+      {"symbol": "L", "gesturePattern": "thumb_index_l_shape", "confidence": 0.96, "handUsage": "right"},
+      {"symbol": "M", "gesturePattern": "three_fingers_down_thumb_ring_up", "confidence": 0.84, "handUsage": "right"},
+      {"symbol": "N", "gesturePattern": "two_fingers_down_thumb_ring_middle_up", "confidence": 0.83, "handUsage": "right"},
+      {"symbol": "O", "gesturePattern": "curved_circle_shape", "confidence": 0.92, "handUsage": "right"},
+      {"symbol": "P", "gesturePattern": "index_down_thumb_up", "confidence": 0.81, "handUsage": "right"},
+      {"symbol": "Q", "gesturePattern": "index_down_thumb_side", "confidence": 0.82, "handUsage": "right"},
+      {"symbol": "R", "gesturePattern": "index_middle_crossed", "confidence": 0.80, "handUsage": "right"},
+      {"symbol": "S", "gesturePattern": "fist_closed", "confidence": 0.93, "handUsage": "right"},
+      {"symbol": "T", "gesturePattern": "index_thumb_t_formation", "confidence": 0.85, "handUsage": "right"},
+      {"symbol": "U", "gesturePattern": "index_middle_up_others_down", "confidence": 0.89, "handUsage": "right"},
+      {"symbol": "V", "gesturePattern": "index_middle_up_others_down", "confidence": 0.90, "handUsage": "right"},
+      {"symbol": "W", "gesturePattern": "three_fingers_up", "confidence": 0.87, "handUsage": "right"},
+      {"symbol": "X", "gesturePattern": "index_bent", "confidence": 0.84, "handUsage": "right"},
+      {"symbol": "Y", "gesturePattern": "thumb_pinky_up", "confidence": 0.91, "handUsage": "right"},
+      {"symbol": "Z", "gesturePattern": "index_tracing_z", "confidence": 0.83, "handUsage": "right"}
     ],
     "numbers": [
-      {
-        "symbol": "0",
-        "gesturePattern": "{\"fingers\": \"fist_zero\", \"hand\": \"right\", \"position\": \"asl_zero_position\"}",
-        "confidence": 0.94,
-        "category": "number"
-      },
-      {
-        "symbol": "1",
-        "gesturePattern": "{\"fingers\": \"index_only_up\", \"hand\": \"right\", \"position\": \"asl_one_position\"}",
-        "confidence": 0.96,
-        "category": "number"
-      },
-      {
-        "symbol": "2",
-        "gesturePattern": "{\"fingers\": \"index_middle_up\", \"hand\": \"right\", \"position\": \"asl_two_position\"}",
-        "confidence": 0.95,
-        "category": "number"
-      },
-      {
-        "symbol": "3",
-        "gesturePattern": "{\"fingers\": \"three_up_thumb_ring_down\", \"hand\": \"right\", \"position\": \"asl_three_position\"}",
-        "confidence": 0.93,
-        "category": "number"
-      },
-      {
-        "symbol": "4",
-        "gesturePattern": "{\"fingers\": \"four_up_thumb_down\", \"hand\": \"right\", \"position\": \"asl_four_position\"}",
-        "confidence": 0.92,
-        "category": "number"
-      },
-      {
-        "symbol": "5",
-        "gesturePattern": "{\"fingers\": \"all_five_up\", \"hand\": \"right\", \"position\": \"asl_five_position\"}",
-        "confidence": 0.97,
-        "category": "number"
-      },
-      {
-        "symbol": "6",
-        "gesturePattern": "{\"fingers\": \"thumb_pinky_up_others_down\", \"hand\": \"right\", \"position\": \"asl_six_position\"}",
-        "confidence": 0.91,
-        "category": "number"
-      },
-      {
-        "symbol": "7",
-        "gesturePattern": "{\"fingers\": \"thumb_index_middle_up\", \"hand\": \"right\", \"position\": \"asl_seven_position\"}",
-        "confidence": 0.90,
-        "category": "number"
-      },
-      {
-        "symbol": "8",
-        "gesturePattern": "{\"fingers\": \"thumb_index_up_others_down\", \"hand\": \"right\", \"position\": \"asl_eight_position\"}",
-        "confidence": 0.89,
-        "category": "number"
-      },
-      {
-        "symbol": "9",
-        "gesturePattern": "{\"fingers\": \"index_bent_others_down\", \"hand\": \"right\", \"position\": \"asl_nine_position\"}",
-        "confidence": 0.88,
-        "category": "number"
-      }
-    ],
-    "punctuation": [
-      {
-        "symbol": ",",
-        "gesturePattern": "{\"fingers\": \"comma_motion\", \"hand\": \"right\", \"position\": \"asl_comma_position\"}",
-        "confidence": 0.85,
-        "category": "punctuation"
-      },
-      {
-        "symbol": ".",
-        "gesturePattern": "{\"fingers\": \"period_motion\", \"hand\": \"right\", \"position\": \"asl_period_position\"}",
-        "confidence": 0.87,
-        "category": "punctuation"
-      },
-      {
-        "symbol": "!",
-        "gesturePattern": "{\"fingers\": \"exclamation_motion\", \"hand\": \"right\", \"position\": \"asl_exclamation_position\"}",
-        "confidence": 0.86,
-        "category": "punctuation"
-      },
-      {
-        "symbol": "?",
-        "gesturePattern": "{\"fingers\": \"question_motion\", \"hand\": \"right\", \"position\": \"asl_question_position\"}",
-        "confidence": 0.88,
-        "category": "punctuation"
-      }
-    ],
-    "actions": [
-      {
-        "symbol": "SPACE",
-        "gesturePattern": "{\"fingers\": \"space_motion\", \"hand\": \"right\", \"position\": \"asl_space_position\"}",
-        "actionType": "space"
-      },
-      {
-        "symbol": "CLEAR",
-        "gesturePattern": "{\"fingers\": \"clear_motion\", \"hand\": \"right\", \"position\": \"asl_clear_position\"}",
-        "actionType": "clear"
-      },
-      {
-        "symbol": "DELETE",
-        "gesturePattern": "{\"fingers\": \"delete_motion\", \"hand\": \"right\", \"position\": \"asl_delete_position\"}",
-        "actionType": "delete"
-      },
-      {
-        "symbol": "ENTER",
-        "gesturePattern": "{\"fingers\": \"enter_motion\", \"hand\": \"right\", \"position\": \"asl_enter_position\"}",
-        "actionType": "enter"
-      }
+      {"symbol": "0", "gesturePattern": "fist_closed", "confidence": 0.95, "handUsage": "right"},
+      {"symbol": "1", "gesturePattern": "index_up", "confidence": 0.94, "handUsage": "right"},
+      {"symbol": "2", "gesturePattern": "index_middle_up", "confidence": 0.93, "handUsage": "right"},
+      {"symbol": "3", "gesturePattern": "index_middle_ring_up", "confidence": 0.92, "handUsage": "right"},
+      {"symbol": "4", "gesturePattern": "four_fingers_up", "confidence": 0.91, "handUsage": "right"},
+      {"symbol": "5", "gesturePattern": "all_fingers_up", "confidence": 0.90, "handUsage": "right"},
+      {"symbol": "6", "gesturePattern": "thumb_pinky_up_others_down", "confidence": 0.91, "handUsage": "right"},
+      {"symbol": "7", "gesturePattern": "thumb_index_middle_up", "confidence": 0.90, "handUsage": "right"},
+      {"symbol": "8", "gesturePattern": "thumb_index_up_others_down", "confidence": 0.89, "handUsage": "right"},
+      {"symbol": "9", "gesturePattern": "index_bent_others_down", "confidence": 0.88, "handUsage": "right"}
     ]
   },
   "grammar": {
     "wordOrder": "svo",
-    "sentenceStructure": ["subject", "verb", "object"],
-    "tenseMarkers": {
-      "past": "ed",
-      "present": "ing",
-      "future": "will"
-    },
-    "pluralMarkers": {
-      "plural": "s",
-      "irregular": ["children", "people", "men", "women"]
-    },
-    "questionMarkers": {
-      "yes_no": "raised_eyebrows",
-      "wh_question": "furrowed_brows"
-    },
     "nonManualFeatures": {
-      "facial_expressions": ["neutral", "happy", "sad", "angry", "surprised", "disgusted", "fearful"],
-      "eyebrow_positions": ["raised", "furrowed", "neutral"],
-      "head_movements": ["tilt_left", "tilt_right", "nod_yes", "nod_no", "neutral"],
-      "body_language": ["forward", "backward", "neutral"]
+      "facialExpressions": ["neutral", "question", "negation", "emphasis", "surprise", "anger", "sadness", "happiness"],
+      "eyebrowPositions": ["raised", "furrowed", "neutral"],
+      "headMovements": ["nod_yes", "nod_no", "tilt_left", "tilt_right"],
+      "bodyMovements": ["shoulder_shift", "body_lean", "eye_gaze"]
     }
   },
-  "metadata": {
-    "region": "US",
-    "family": "sign_language",
-    "complexity": "moderate",
-    "estimatedSpeakers": 500000,
-    "script": "latin",
-    "direction": "ltr",
-    "description": "American Sign Language with unlimited vocabulary support",
-    "unlimitedVocabulary": true,
-    "dynamicLearning": true,
-    "machineLearning": true,
-    "facialExpressionRecognition": true,
-    "handTracking": "21_point_landmarks",
-    "recognitionMethod": "svm_cnn_combined"
-  }
+  "regionalVariants": [
+    "Northeastern", "Southern", "Western", "Midwestern"
+  ]
 } 

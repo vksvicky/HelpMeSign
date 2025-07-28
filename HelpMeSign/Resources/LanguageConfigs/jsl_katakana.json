@@ -1,0 +1,84 @@
+{
+  "languageCode": "jsl",
+  "writingSystem": "katakana",
+  "languageName": "Japanese Sign Language - Katakana",
+  "nativeName": "日本手話 - カタカナ",
+  "handUsage": {
+    "defaultHand": "right",
+    "preferredHand": "right",
+    "handPatterns": {
+      "alphabet": "both_hands",
+      "numbers": "both_hands",
+      "basicSigns": "both_hands",
+      "complexSigns": "both_hands",
+      "classifiers": "both_hands",
+      "fingerspelling": "both_hands"
+    },
+    "handSwitching": {
+      "enabled": true,
+      "conditions": ["dominant_hand_injury", "comfort_preference", "context_requirements"]
+    }
+  },
+  "alphabet": {
+    "letters": [
+      {"symbol": "ア", "gesturePattern": "fist_thumb_jsl", "confidence": 0.95, "handUsage": "both"},
+      {"symbol": "イ", "gesturePattern": "flat_hand_jsl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "ウ", "gesturePattern": "curved_c_jsl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "エ", "gesturePattern": "index_pointing_jsl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "オ", "gesturePattern": "fingers_curled_jsl", "confidence": 0.88, "handUsage": "both"},
+      {"symbol": "カ", "gesturePattern": "index_thumb_touch_jsl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "キ", "gesturePattern": "index_thumb_parallel_jsl", "confidence": 0.89, "handUsage": "both"},
+      {"symbol": "ク", "gesturePattern": "index_middle_jsl", "confidence": 0.94, "handUsage": "both"},
+      {"symbol": "ケ", "gesturePattern": "pinky_up_jsl", "confidence": 0.87, "handUsage": "both"},
+      {"symbol": "コ", "gesturePattern": "pinky_curve_jsl", "confidence": 0.86, "handUsage": "both"},
+      {"symbol": "サ", "gesturePattern": "index_middle_ring_jsl", "confidence": 0.85, "handUsage": "both"},
+      {"symbol": "シ", "gesturePattern": "thumb_index_l_jsl", "confidence": 0.96, "handUsage": "both"},
+      {"symbol": "ス", "gesturePattern": "three_fingers_down_jsl", "confidence": 0.84, "handUsage": "both"},
+      {"symbol": "セ", "gesturePattern": "two_fingers_down_jsl", "confidence": 0.83, "handUsage": "both"},
+      {"symbol": "ソ", "gesturePattern": "curved_circle_jsl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "タ", "gesturePattern": "index_down_jsl", "confidence": 0.81, "handUsage": "both"},
+      {"symbol": "チ", "gesturePattern": "index_down_thumb_side_jsl", "confidence": 0.82, "handUsage": "both"},
+      {"symbol": "ツ", "gesturePattern": "index_middle_crossed_jsl", "confidence": 0.80, "handUsage": "both"},
+      {"symbol": "テ", "gesturePattern": "fist_closed_jsl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "ト", "gesturePattern": "index_thumb_t_jsl", "confidence": 0.85, "handUsage": "both"},
+      {"symbol": "ナ", "gesturePattern": "index_middle_up_jsl", "confidence": 0.89, "handUsage": "both"},
+      {"symbol": "ニ", "gesturePattern": "index_middle_v_jsl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "ヌ", "gesturePattern": "three_fingers_up_jsl", "confidence": 0.87, "handUsage": "both"},
+      {"symbol": "ネ", "gesturePattern": "index_bent_jsl", "confidence": 0.84, "handUsage": "both"},
+      {"symbol": "ノ", "gesturePattern": "thumb_pinky_up_jsl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "ハ", "gesturePattern": "index_tracing_z_jsl", "confidence": 0.83, "handUsage": "both"},
+      {"symbol": "ヒ", "gesturePattern": "fist_thumb_jsl", "confidence": 0.95, "handUsage": "both"},
+      {"symbol": "フ", "gesturePattern": "flat_hand_jsl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "ヘ", "gesturePattern": "curved_c_jsl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "ホ", "gesturePattern": "index_pointing_jsl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "マ", "gesturePattern": "fingers_curled_jsl", "confidence": 0.88, "handUsage": "both"},
+      {"symbol": "ミ", "gesturePattern": "index_thumb_touch_jsl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "ム", "gesturePattern": "index_thumb_parallel_jsl", "confidence": 0.89, "handUsage": "both"},
+      {"symbol": "メ", "gesturePattern": "index_middle_jsl", "confidence": 0.94, "handUsage": "both"},
+      {"symbol": "モ", "gesturePattern": "pinky_up_jsl", "confidence": 0.87, "handUsage": "both"},
+      {"symbol": "ヤ", "gesturePattern": "pinky_curve_jsl", "confidence": 0.86, "handUsage": "both"},
+      {"symbol": "ユ", "gesturePattern": "index_middle_ring_jsl", "confidence": 0.85, "handUsage": "both"},
+      {"symbol": "ヨ", "gesturePattern": "thumb_index_l_jsl", "confidence": 0.96, "handUsage": "both"},
+      {"symbol": "ラ", "gesturePattern": "three_fingers_down_jsl", "confidence": 0.84, "handUsage": "both"},
+      {"symbol": "リ", "gesturePattern": "two_fingers_down_jsl", "confidence": 0.83, "handUsage": "both"},
+      {"symbol": "ル", "gesturePattern": "curved_circle_jsl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "レ", "gesturePattern": "index_down_jsl", "confidence": 0.81, "handUsage": "both"},
+      {"symbol": "ロ", "gesturePattern": "index_down_thumb_side_jsl", "confidence": 0.82, "handUsage": "both"},
+      {"symbol": "ワ", "gesturePattern": "index_middle_crossed_jsl", "confidence": 0.80, "handUsage": "both"},
+      {"symbol": "ヲ", "gesturePattern": "fist_closed_jsl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "ン", "gesturePattern": "index_thumb_t_jsl", "confidence": 0.85, "handUsage": "both"}
+    ]
+  },
+  "grammar": {
+    "wordOrder": "sov",
+    "nonManualFeatures": {
+      "facialExpressions": ["neutral", "question", "negation", "emphasis", "surprise", "anger", "sadness", "happiness"],
+      "eyebrowPositions": ["raised", "furrowed", "neutral"],
+      "headMovements": ["nod_yes", "nod_no", "tilt_left", "tilt_right"],
+      "bodyMovements": ["shoulder_shift", "body_lean", "eye_gaze"]
+    }
+  },
+  "regionalVariants": [
+    "Tokyo", "Osaka", "Kyoto", "Nagoya", "Fukuoka"
+  ]
+} 

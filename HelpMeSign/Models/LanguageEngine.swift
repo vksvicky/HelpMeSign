@@ -287,6 +287,21 @@ class LanguageEngine: NSObject {
             print("Loaded \(languages.count) local languages")
         } catch {
             print("Failed to load local languages: \(error)")
+            // Try to provide more detailed error information
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("Missing key: \(key.stringValue) at path: \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("Type mismatch: expected \(type) at path: \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("Value not found: expected \(type) at path: \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("Data corrupted at path: \(context.codingPath)")
+                @unknown default:
+                    print("Unknown decoding error")
+                }
+            }
         }
     }
     
@@ -345,10 +360,21 @@ struct SignLanguageConfig: Codable {
     let vocabularyURL: String
     let grammarRules: [String]
     let handshapes: [String]
-    let facialExpressions: [String]
-    let bodyMovements: [String]
-    let regionalVariants: [String]
+    let grammar: GrammarConfig?
+    let regionalVariants: [String]?
     let metadata: LanguageMetadata
+}
+
+struct GrammarConfig: Codable {
+    let wordOrder: String?
+    let nonManualFeatures: NonManualFeatures?
+}
+
+struct NonManualFeatures: Codable {
+    let facialExpressions: [String]?
+    let eyebrowPositions: [String]?
+    let headMovements: [String]?
+    let bodyMovements: [String]?
 }
 
 struct LanguageMetadata: Codable {

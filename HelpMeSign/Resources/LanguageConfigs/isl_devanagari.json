@@ -1,0 +1,94 @@
+{
+  "languageCode": "isl",
+  "writingSystem": "devanagari",
+  "languageName": "Indian Sign Language - Devanagari",
+  "nativeName": "भारतीय सांकेतिक भाषा - देवनागरी",
+  "handUsage": {
+    "defaultHand": "right",
+    "preferredHand": "right",
+    "handPatterns": {
+      "alphabet": "both_hands",
+      "numbers": "both_hands",
+      "basicSigns": "both_hands",
+      "complexSigns": "both_hands",
+      "classifiers": "both_hands",
+      "fingerspelling": "both_hands"
+    },
+    "handSwitching": {
+      "enabled": true,
+      "conditions": ["dominant_hand_injury", "comfort_preference", "context_requirements"]
+    }
+  },
+  "alphabet": {
+    "letters": [
+      {"symbol": "अ", "gesturePattern": "fist_thumb_side_isl", "confidence": 0.95, "handUsage": "both"},
+      {"symbol": "आ", "gesturePattern": "flat_hand_palm_forward_isl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "इ", "gesturePattern": "curved_c_isl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "ई", "gesturePattern": "index_pointing_forward_isl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "उ", "gesturePattern": "fingers_curled_isl", "confidence": 0.88, "handUsage": "both"},
+      {"symbol": "ऊ", "gesturePattern": "index_thumb_touch_isl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "ऋ", "gesturePattern": "index_thumb_parallel_isl", "confidence": 0.89, "handUsage": "both"},
+      {"symbol": "ए", "gesturePattern": "index_middle_forward_isl", "confidence": 0.94, "handUsage": "both"},
+      {"symbol": "ऐ", "gesturePattern": "pinky_up_isl", "confidence": 0.87, "handUsage": "both"},
+      {"symbol": "ओ", "gesturePattern": "pinky_curve_isl", "confidence": 0.86, "handUsage": "both"},
+      {"symbol": "औ", "gesturePattern": "index_middle_ring_isl", "confidence": 0.85, "handUsage": "both"},
+      {"symbol": "क", "gesturePattern": "thumb_index_l_isl", "confidence": 0.96, "handUsage": "both"},
+      {"symbol": "ख", "gesturePattern": "three_fingers_down_isl", "confidence": 0.84, "handUsage": "both"},
+      {"symbol": "ग", "gesturePattern": "two_fingers_down_isl", "confidence": 0.83, "handUsage": "both"},
+      {"symbol": "घ", "gesturePattern": "curved_circle_isl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "ङ", "gesturePattern": "index_down_isl", "confidence": 0.81, "handUsage": "both"},
+      {"symbol": "च", "gesturePattern": "index_down_thumb_side_isl", "confidence": 0.82, "handUsage": "both"},
+      {"symbol": "छ", "gesturePattern": "index_middle_crossed_isl", "confidence": 0.80, "handUsage": "both"},
+      {"symbol": "ज", "gesturePattern": "fist_closed_isl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "झ", "gesturePattern": "index_thumb_t_isl", "confidence": 0.85, "handUsage": "both"},
+      {"symbol": "ञ", "gesturePattern": "index_middle_up_isl", "confidence": 0.89, "handUsage": "both"},
+      {"symbol": "ट", "gesturePattern": "index_middle_v_isl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "ठ", "gesturePattern": "three_fingers_up_isl", "confidence": 0.87, "handUsage": "both"},
+      {"symbol": "ड", "gesturePattern": "index_bent_isl", "confidence": 0.84, "handUsage": "both"},
+      {"symbol": "ढ", "gesturePattern": "thumb_pinky_up_isl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "ण", "gesturePattern": "index_tracing_z_isl", "confidence": 0.83, "handUsage": "both"},
+      {"symbol": "त", "gesturePattern": "fist_thumb_side_isl", "confidence": 0.95, "handUsage": "both"},
+      {"symbol": "थ", "gesturePattern": "flat_hand_palm_forward_isl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "द", "gesturePattern": "curved_c_isl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "ध", "gesturePattern": "index_pointing_forward_isl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "न", "gesturePattern": "fingers_curled_isl", "confidence": 0.88, "handUsage": "both"},
+      {"symbol": "प", "gesturePattern": "index_thumb_touch_isl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "फ", "gesturePattern": "index_thumb_parallel_isl", "confidence": 0.89, "handUsage": "both"},
+      {"symbol": "ब", "gesturePattern": "index_middle_forward_isl", "confidence": 0.94, "handUsage": "both"},
+      {"symbol": "भ", "gesturePattern": "pinky_up_isl", "confidence": 0.87, "handUsage": "both"},
+      {"symbol": "म", "gesturePattern": "pinky_curve_isl", "confidence": 0.86, "handUsage": "both"},
+      {"symbol": "य", "gesturePattern": "index_middle_ring_isl", "confidence": 0.85, "handUsage": "both"},
+      {"symbol": "र", "gesturePattern": "thumb_index_l_isl", "confidence": 0.96, "handUsage": "both"},
+      {"symbol": "ल", "gesturePattern": "three_fingers_down_isl", "confidence": 0.84, "handUsage": "both"},
+      {"symbol": "व", "gesturePattern": "two_fingers_down_isl", "confidence": 0.83, "handUsage": "both"},
+      {"symbol": "श", "gesturePattern": "curved_circle_isl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "ष", "gesturePattern": "index_down_isl", "confidence": 0.81, "handUsage": "both"},
+      {"symbol": "स", "gesturePattern": "index_down_thumb_side_isl", "confidence": 0.82, "handUsage": "both"},
+      {"symbol": "ह", "gesturePattern": "index_middle_crossed_isl", "confidence": 0.80, "handUsage": "both"}
+    ],
+    "numbers": [
+      {"symbol": "०", "gesturePattern": "fist_closed_isl", "confidence": 0.95, "handUsage": "both"},
+      {"symbol": "१", "gesturePattern": "index_up_isl", "confidence": 0.94, "handUsage": "both"},
+      {"symbol": "२", "gesturePattern": "index_middle_up_isl", "confidence": 0.93, "handUsage": "both"},
+      {"symbol": "३", "gesturePattern": "index_middle_ring_up_isl", "confidence": 0.92, "handUsage": "both"},
+      {"symbol": "४", "gesturePattern": "four_fingers_up_isl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "५", "gesturePattern": "all_fingers_up_isl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "६", "gesturePattern": "thumb_pinky_up_isl", "confidence": 0.91, "handUsage": "both"},
+      {"symbol": "७", "gesturePattern": "thumb_index_middle_up_isl", "confidence": 0.90, "handUsage": "both"},
+      {"symbol": "८", "gesturePattern": "thumb_index_up_isl", "confidence": 0.89, "handUsage": "both"},
+      {"symbol": "९", "gesturePattern": "index_bent_isl", "confidence": 0.88, "handUsage": "both"}
+    ]
+  },
+  "grammar": {
+    "wordOrder": "sov",
+    "nonManualFeatures": {
+      "facialExpressions": ["neutral", "question", "negation", "emphasis", "surprise", "anger", "sadness", "happiness"],
+      "eyebrowPositions": ["raised", "furrowed", "neutral"],
+      "headMovements": ["nod_yes", "nod_no", "tilt_left", "tilt_right"],
+      "bodyMovements": ["shoulder_shift", "body_lean", "eye_gaze"]
+    }
+  },
+  "regionalVariants": [
+    "Delhi", "Mumbai", "Kolkata", "Chennai", "Bangalore", "Hyderabad"
+  ]
+} 

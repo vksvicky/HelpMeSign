@@ -204,21 +204,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             defer: false
         )
         
-        // CRASH PREVENTION: Disable problematic features
-        preferencesWindow.toolbar = nil
-        preferencesWindow.touchBar = nil
-        preferencesWindow.isMovableByWindowBackground = false
-        preferencesWindow.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        preferencesWindow.standardWindowButton(.zoomButton)?.isHidden = true
-        
-        // Prevent window resizing by using fixed style mask
-        preferencesWindow.styleMask = [.titled, .closable]
+        // Basic window configuration
         preferencesWindow.title = "Preferences"
         preferencesWindow.isReleasedWhenClosed = false
         
         // Create Preferences view controller
         let preferencesVC = PreferencesViewController()
-        preferencesVC.view.wantsLayer = false
         
         // Set as content view controller
         preferencesWindow.contentViewController = preferencesVC
@@ -240,9 +231,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
     // MARK: - NSWindowDelegate
     func windowWillClose(_ notification: Notification) {
-        // CRASH PREVENTION: Simple cleanup when preferences window closes
-        // Don't modify properties here to avoid memory management conflicts
-        print("AppDelegate: Preferences window closing, cleanup complete")
+        print("AppDelegate: Preferences window closing")
     }
     
 
