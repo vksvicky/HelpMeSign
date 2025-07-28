@@ -11,6 +11,7 @@ import MetalKit
 import AVFoundation
 import Vision
 import CoreML
+import Foundation
 
 @objc class CameraViewController: NSViewController, AVCaptureVideoDataOutputSampleBufferDelegate, MTKViewDelegate {
     // MARK: - Camera & Metal Properties
@@ -94,7 +95,7 @@ import CoreML
         langContainer.wantsLayer = true
         langContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor
         langContainer.layer?.cornerRadius = 8
-        languageLabel = NSTextField(labelWithString: "ASL")
+        languageLabel = NSTextField(labelWithString: "BSL")
         languageLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
         languageLabel.textColor = .white
         languageLabel.sizeToFit()
@@ -199,7 +200,7 @@ import CoreML
         headerView.layer?.backgroundColor = NSColor.white.cgColor
         
         // Header label
-        let headerLabel = NSTextField(labelWithString: "🇺🇸 ASL - Sign Language Translations")
+                    let headerLabel = NSTextField(labelWithString: "")
         headerLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
         headerLabel.textColor = NSColor.systemBlue
         headerLabel.frame = NSRect(x: 10, y: 10, width: 300, height: 20)
@@ -475,9 +476,8 @@ import CoreML
         var icon: NSTextField?
         
         if startStopButton.subviews.count >= 2,
-           let containerView = startStopButton.subviews[1] as? NSView,
-           containerView.subviews.count >= 2,
-           let textField = containerView.subviews[1] as? NSTextField {
+           startStopButton.subviews[1].subviews.count >= 2,
+           let textField = startStopButton.subviews[1].subviews[1] as? NSTextField {
             icon = textField
             print("Found icon using direct path: '\(textField.stringValue)'")
         }
@@ -489,7 +489,7 @@ import CoreML
                 for subview in view.subviews {
                     if let textField = subview as? NSTextField {
                         textFields.append(textField)
-                    } else if subview is NSView {
+                    } else {
                         textFields.append(contentsOf: findAllTextFields(in: subview))
                     }
                 }
@@ -563,7 +563,7 @@ import CoreML
         } else {
             print("No text fields found to update!")
         }
-    }
+        }
     
     // MARK: - Button Handlers (must be at class level for @objc)
     
@@ -601,6 +601,11 @@ import CoreML
         setupCamera()
         setupPipeline()
         setupLanguageChangeObserver()
+        
+        // Load saved language preference AFTER AppDelegate has had a chance to set defaults
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.loadSavedLanguagePreference()
+        }
     }
     
     func setupCamera() {
@@ -680,6 +685,22 @@ import CoreML
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
     
+    // MARK: - Language Preference Loading
+    
+    private func loadSavedLanguagePreference() {
+        // Get saved language preference
+        let savedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "ASL"
+        print("CameraViewController: Loading saved language preference: \(savedLanguage)")
+        
+        // Update the UI with the saved language
+        DispatchQueue.main.async {
+            self.updateLanguageDisplay(savedLanguage)
+            self.updateTranslationHeader(savedLanguage)
+            self.updateAlphabetBar(savedLanguage)
+            print("CameraViewController: Updated UI with saved language: \(savedLanguage)")
+        }
+    }
+    
     // MARK: - Language Change Handling
     
     private func setupLanguageChangeObserver() {
@@ -725,7 +746,7 @@ import CoreML
             self.languageLabel?.stringValue = languageCode
             
             // Update flag based on language
-            let flag = self.getFlagForLanguage(languageCode)
+            let flag = LanguageManager.shared.flag(for: languageCode)
             self.flagLabel?.stringValue = flag
             print("CameraViewController: Updated flag to \(flag)")
         }
@@ -735,8 +756,7 @@ import CoreML
         // Update translation area header
         DispatchQueue.main.async {
             print("CameraViewController: Updating translation header to \(languageCode)")
-            let flag = self.getFlagForLanguage(languageCode)
-            let languageName = self.getLanguageName(languageCode)
+            _ = LanguageManager.shared.name(for: languageCode) // Unused variable, but keeping for potential future use
             
             // Find and update the header label in the translation area
             if let translationSection = self.view.subviews.first(where: { $0.frame.origin.y == 256 }) {
@@ -746,7 +766,7 @@ import CoreML
                         print("CameraViewController: Found header view")
                         for headerSubview in headerView.subviews {
                             if let headerLabel = headerSubview as? NSTextField {
-                                headerLabel.stringValue = "\(flag) \(languageCode) - Sign Language Translations"
+                                headerLabel.stringValue = ""
                                 print("CameraViewController: Updated header to \(headerLabel.stringValue)")
                                 break
                             }
@@ -996,21 +1016,5 @@ import CoreML
         }
     }
     
-    private func getFlagForLanguage(_ languageCode: String) -> String {
-        let flags: [String: String] = [
-            "ASL": "🇺🇸", "BSL": "🇬🇧", "ISL": "🇮🇳", "JSL": "🇯🇵", "KSL": "🇰🇷",
-            "CSL": "🇨🇳", "FSL": "🇫🇷", "DSL": "🇩🇪"
-        ]
-        return flags[languageCode] ?? "🌐"
-    }
-    
-    private func getLanguageName(_ languageCode: String) -> String {
-        let names: [String: String] = [
-            "ASL": "American Sign Language", "BSL": "British Sign Language",
-            "ISL": "Indian Sign Language", "JSL": "Japanese Sign Language",
-            "KSL": "Korean Sign Language", "CSL": "Chinese Sign Language",
-            "FSL": "French Sign Language", "DSL": "German Sign Language"
-        ]
-        return names[languageCode] ?? languageCode
-    }
+
 }

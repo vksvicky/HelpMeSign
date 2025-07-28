@@ -40,10 +40,35 @@ class PreferencesViewController: NSViewController {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // CRASH PREVENTION: Disable layer backing on all views
+        view.wantsLayer = false
+        view.layer?.delegate = nil
+        
         setupLanguages()
         setupUI()
         setupTableView()
         loadCurrentSelection()
+    }
+    
+    // MARK: - Public Methods
+    /// Initialize the preferences view controller without running locale detection
+    static func createForPreferences() -> PreferencesViewController {
+        let vc = PreferencesViewController()
+        // Don't run locale detection for preferences window
+        return vc
+    }
+    
+    /// Initialize the preferences view controller with locale detection (for app startup)
+    static func createWithLocaleDetection() -> PreferencesViewController {
+        let vc = PreferencesViewController()
+        // Run locale detection for app startup
+        vc.runLocaleDetection()
+        return vc
+    }
+    
+    private func runLocaleDetection() {
+        setDefaultLanguageBasedOnLocale()
     }
     
     // MARK: - Setup
@@ -77,28 +102,108 @@ class PreferencesViewController: NSViewController {
                 )
             }
         } else {
-            // Fallback to hardcoded languages if JSON fails
+            // Fallback to minimal essential languages if JSON fails
             allLanguages = [
-                LanguageInfo(code: "ASL", name: "American Sign Language", flag: "🇺🇸", country: "US", speakers: 500000, difficulty: "Intermediate"),
-                LanguageInfo(code: "BSL", name: "British Sign Language", flag: "🇬🇧", country: "GB", speakers: 150000, difficulty: "Intermediate"),
-                LanguageInfo(code: "ISL", name: "Indian Sign Language", flag: "🇮🇳", country: "IN", speakers: 2000000, difficulty: "Beginner"),
-                LanguageInfo(code: "JSL", name: "Japanese Sign Language", flag: "🇯🇵", country: "JP", speakers: 300000, difficulty: "Advanced"),
-                LanguageInfo(code: "KSL", name: "Korean Sign Language", flag: "🇰🇷", country: "KR", speakers: 250000, difficulty: "Intermediate")
+                LanguageInfo(code: "BSL", name: "British Sign Language", flag: "🇬🇧", country: "GB", speakers: 150000, difficulty: "Intermediate")
             ]
+            print("PreferencesViewController: JSON loading failed, using minimal fallback")
         }
         
         // Sort languages by name
         allLanguages.sort { $0.name < $1.name }
         filteredLanguages = allLanguages
+        
+        // Note: setDefaultLanguageBasedOnLocale() is now called separately via runLocaleDetection()
+    }
+    
+    private func setDefaultLanguageBasedOnLocale() {
+        // Get user's preferred languages from macOS system settings
+        let preferredLanguages = Locale.preferredLanguages
+        let currentLocale = Locale.current
+        
+        print("PreferencesViewController: System preferred languages: \(preferredLanguages)")
+        print("PreferencesViewController: Current locale: \(currentLocale.identifier)")
+        
+        // Try to find a matching sign language based on system language preferences
+        var detectedSignLanguage: String?
+        
+        for languageCode in preferredLanguages {
+            let language = Locale(identifier: languageCode)
+            let baseLanguage = language.language.languageCode?.identifier ?? ""
+            let region = language.region?.identifier ?? ""
+            
+            print("PreferencesViewController: Checking language: \(baseLanguage), region: \(region)")
+            
+            // Check if we have a sign language that matches this language/region
+            if let matchingLanguage = findSignLanguageForSystemLanguage(baseLanguage: baseLanguage, region: region) {
+                detectedSignLanguage = matchingLanguage
+                print("PreferencesViewController: Found matching sign language: \(matchingLanguage) for system language: \(languageCode)")
+                break
+            }
+        }
+        
+        // Set the detected language or fallback to BSL
+        if let detected = detectedSignLanguage, allLanguages.contains(where: { $0.code == detected }) {
+            selectedLanguage = detected
+            print("PreferencesViewController: Set default language to \(detected) based on system preferences")
+        } else {
+            selectedLanguage = "BSL"
+            print("PreferencesViewController: No matching sign language found, defaulting to BSL")
+        }
+        
+        // Save the default language to UserDefaults if no language is currently set
+        if UserDefaults.standard.string(forKey: "SelectedLanguage") == nil {
+            UserDefaults.standard.set(selectedLanguage, forKey: "SelectedLanguage")
+            print("PreferencesViewController: Saved default language \(selectedLanguage) to UserDefaults")
+        } else {
+            // Use the saved language preference
+            selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "BSL"
+            print("PreferencesViewController: Using saved language preference: \(selectedLanguage)")
+        }
+    }
+    
+    private func findSignLanguageForSystemLanguage(baseLanguage: String, region: String) -> String? {
+        print("PreferencesViewController: Looking for match - baseLanguage: '\(baseLanguage)', region: '\(region)'")
+        
+        // Check if any of our sign languages match the system language/region
+        for language in allLanguages {
+            print("PreferencesViewController: Checking language: \(language.code) (\(language.name), country: \(language.country))")
+            
+            // Check if the sign language's country code matches the region
+            if language.country == region {
+                print("PreferencesViewController: Found exact region match: \(language.country) == \(region) -> \(language.code)")
+                return language.code
+            }
+            
+            // Check if the sign language name contains the base language (but be more specific)
+            let signLanguageName = language.name.lowercased()
+            let baseLanguageName = baseLanguage.lowercased()
+            
+            // Only match if it's a clear language match, not just partial string match
+            if baseLanguageName == "en" && signLanguageName.contains("english") {
+                print("PreferencesViewController: Found English language match: \(language.code)")
+                return language.code
+            }
+            
+            if baseLanguageName == "kn" && signLanguageName.contains("kannada") {
+                print("PreferencesViewController: Found Kannada language match: \(language.code)")
+                return language.code
+            }
+        }
+        
+        print("PreferencesViewController: No match found")
+        return nil
     }
     
     private func setupUI() {
-        view.wantsLayer = true
+        // CRASH PREVENTION: Disable layer backing on all views
+        view.wantsLayer = false
         view.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         
         // Create main container
         let containerView = NSView()
         containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.wantsLayer = false
         view.addSubview(containerView)
         
         // Title
@@ -106,12 +211,14 @@ class PreferencesViewController: NSViewController {
         titleLabel.font = NSFont.boldSystemFont(ofSize: 24)
         titleLabel.textColor = NSColor.labelColor
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.wantsLayer = false
         containerView.addSubview(titleLabel)
         
         // Search field
         searchField = NSSearchField()
         searchField.placeholderString = "Search languages..."
         searchField.translatesAutoresizingMaskIntoConstraints = false
+        searchField.wantsLayer = false
         searchField.target = self
         searchField.action = #selector(searchFieldChanged)
         containerView.addSubview(searchField)
@@ -121,17 +228,20 @@ class PreferencesViewController: NSViewController {
         handPreferenceLabel.font = NSFont.systemFont(ofSize: 16, weight: .medium)
         handPreferenceLabel.textColor = NSColor.labelColor
         handPreferenceLabel.translatesAutoresizingMaskIntoConstraints = false
+        handPreferenceLabel.wantsLayer = false
         containerView.addSubview(handPreferenceLabel)
         
         // Hand preference segmented control
         handPreferenceSegmentedControl = NSSegmentedControl(labels: ["Left Hand", "Right Hand"], trackingMode: .selectOne, target: self, action: #selector(handPreferenceChanged))
         handPreferenceSegmentedControl.translatesAutoresizingMaskIntoConstraints = false
+        handPreferenceSegmentedControl.wantsLayer = false
         handPreferenceSegmentedControl.selectedSegment = 1 // Default to right hand
         containerView.addSubview(handPreferenceSegmentedControl)
         
         // Scroll view for table
         scrollView = NSScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.wantsLayer = false
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
@@ -170,11 +280,16 @@ class PreferencesViewController: NSViewController {
         // Create table view
         languageTableView = NSTableView()
         languageTableView.translatesAutoresizingMaskIntoConstraints = false
+        languageTableView.wantsLayer = false
         languageTableView.delegate = self
         languageTableView.dataSource = self
-        languageTableView.selectionHighlightStyle = .sourceList
+        languageTableView.style = .sourceList
         languageTableView.rowHeight = 60
         languageTableView.intercellSpacing = NSSize(width: 0, height: 5)
+        
+        // CRASH PREVENTION: Configure table view for safety
+        languageTableView.allowsEmptySelection = true
+        languageTableView.allowsMultipleSelection = false
         
         // Add columns
         let flagColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("flag"))
@@ -265,12 +380,23 @@ class PreferencesViewController: NSViewController {
             // Update button appearance
             languageTableView.reloadData()
             
+            // Save to UserDefaults
+            UserDefaults.standard.set(languageCode, forKey: "SelectedLanguage")
+            
             // Post notification
             NotificationCenter.default.post(
                 name: NSNotification.Name("LanguageChanged"),
                 object: nil,
                 userInfo: ["languageCode": languageCode]
             )
+            
+            // Also update the main window's camera view controller directly
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                if let mainWindow = NSApplication.shared.mainWindow,
+                   let cameraVC = mainWindow.contentViewController as? CameraViewController {
+                    cameraVC.changeLanguage(to: languageCode)
+                }
+            }
             
             print("Language selected: \(languageCode)")
         } else {
@@ -302,6 +428,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             flagLabel.isEditable = false
             flagLabel.isBordered = false
             flagLabel.backgroundColor = NSColor.clear
+            flagLabel.wantsLayer = false
             return flagLabel
             
         case NSUserInterfaceItemIdentifier("name"):
@@ -311,6 +438,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             nameLabel.isEditable = false
             nameLabel.isBordered = false
             nameLabel.backgroundColor = NSColor.clear
+            nameLabel.wantsLayer = false
             
             if let nativeName = language.nativeName {
                 nameLabel.stringValue = "\(language.name)\n\(nativeName)"
@@ -326,6 +454,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             codeLabel.isEditable = false
             codeLabel.isBordered = false
             codeLabel.backgroundColor = NSColor.clear
+            codeLabel.wantsLayer = false
             return codeLabel
             
         case NSUserInterfaceItemIdentifier("speakers"):
@@ -337,6 +466,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             speakersLabel.isEditable = false
             speakersLabel.isBordered = false
             speakersLabel.backgroundColor = NSColor.clear
+            speakersLabel.wantsLayer = false
             return speakersLabel
             
         case NSUserInterfaceItemIdentifier("difficulty"):
@@ -348,6 +478,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             difficultyLabel.isEditable = false
             difficultyLabel.isBordered = false
             difficultyLabel.backgroundColor = NSColor.clear
+            difficultyLabel.wantsLayer = false
             return difficultyLabel
             
         default:
@@ -356,10 +487,15 @@ extension PreferencesViewController: NSTableViewDelegate {
     }
     
     func tableViewSelectionDidChange(_ notification: Notification) {
-        let selectedRow = languageTableView.selectedRow
-        if selectedRow >= 0 && selectedRow < filteredLanguages.count {
-            let selectedLanguage = filteredLanguages[selectedRow]
-            self.selectLanguage(selectedLanguage.code)
+        // CRASH PREVENTION: Wrap in async to prevent Core Animation issues
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            let selectedRow = self.languageTableView.selectedRow
+            if selectedRow >= 0 && selectedRow < self.filteredLanguages.count {
+                let selectedLanguage = self.filteredLanguages[selectedRow]
+                self.selectLanguage(selectedLanguage.code)
+            }
         }
     }
     

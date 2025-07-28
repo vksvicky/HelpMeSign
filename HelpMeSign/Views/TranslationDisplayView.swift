@@ -41,7 +41,7 @@ class TranslationDisplayView: NSView {
     
     private func setupTranslationDisplay() {
         // Header with language indicator
-        languageLabel = NSTextField(labelWithString: "🇺🇸 ASL - Sign Language Translations")
+        languageLabel = NSTextField(labelWithString: "")
         languageLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
         languageLabel.textColor = NSColor.systemBlue
         languageLabel.alignment = .center
@@ -121,8 +121,7 @@ class TranslationDisplayView: NSView {
     /// Update the language display
     func updateLanguageDisplay(_ languageCode: String) {
         currentLanguage = languageCode
-        let flag = getFlagForLanguage(languageCode)
-        languageLabel.stringValue = "\(flag) \(languageCode) - Sign Language Translations"
+        languageLabel.stringValue = ""
     }
     
     /// Clear all translations

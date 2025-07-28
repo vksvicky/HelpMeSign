@@ -57,7 +57,7 @@ class AlphabetBarView: NSView {
             print("Data asset not found, trying imageset approach")
             
             // Try to load as image asset (imageset approach)
-            if let image = NSImage(named: svgFileName) {
+            if NSImage(named: svgFileName) != nil {
                 print("Found image asset")
                 // For now, we'll need to extract the SVG data from the image
                 // This is a fallback approach

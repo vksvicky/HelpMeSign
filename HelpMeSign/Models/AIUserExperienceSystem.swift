@@ -445,7 +445,7 @@ class AIUserExperienceSystem: NSObject {
         var features: [Float] = []
         
         // Extract joint positions with confidence filtering
-        for joint in VNHumanHandPoseObservation.JointName.allCases {
+        for joint in VNHumanHandPoseObservation.JointName.allJointNames {
             if let point = landmarks[joint], point.confidence > 0.3 {
                 // Only include high-confidence landmarks
                 features.append(Float(point.location.x))
@@ -671,7 +671,7 @@ class AIUserExperienceSystem: NSObject {
         let handWidth = max(indexTipX, middleTipX) - wristX
         
         // Normalize to stable ranges
-        let normalizedSpread = round(handSpread * 10) / 10
+        _ = round(handSpread * 10) / 10 // normalizedSpread - unused but keeping for potential future use
         let normalizedHeight = round(handHeight * 10) / 10
         let normalizedWidth = round(handWidth * 10) / 10
         
@@ -830,8 +830,12 @@ struct AIRecognitionResult {
 
 // MARK: - Extensions
 
-extension VNHumanHandPoseObservation.JointName: CaseIterable {
-    public static var allCases: [VNHumanHandPoseObservation.JointName] {
+// MARK: - Joint Name Array (Alternative to CaseIterable extension)
+
+// Using a static array instead of CaseIterable extension to avoid potential conflicts
+// with future Vision framework updates
+extension VNHumanHandPoseObservation.JointName {
+    static var allJointNames: [VNHumanHandPoseObservation.JointName] {
         return [
             .wrist, .thumbCMC, .thumbMP, .thumbIP, .thumbTip,
             .indexMCP, .indexPIP, .indexDIP, .indexTip,

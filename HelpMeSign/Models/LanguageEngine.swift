@@ -90,7 +90,7 @@ class LanguageEngine: NSObject {
     
     private func setupTranslationEngine() {
         translationEngine = TranslationEngine()
-        translationEngine?.onTranslationComplete = { [weak self] result in
+        translationEngine?.onTranslationComplete = { @Sendable [weak self] result in
             self?.onTranslationComplete?(result)
         }
     }
@@ -145,9 +145,9 @@ class LanguageEngine: NSObject {
         // Load language model
         let modelLoaded = await loadLanguageModel(for: config)
         if modelLoaded {
-            languageQueue.sync {
-                activeLanguages.insert(languageCode)
-            }
+                    _ = languageQueue.sync {
+            activeLanguages.insert(languageCode)
+        }
             onLanguageLoaded?(config)
             print("Successfully loaded language: \(config.name) (\(config.code))")
             return true
@@ -474,8 +474,7 @@ class RecognitionPipeline {
 }
 
 // MARK: - Translation Engine
-
-class TranslationEngine {
+class TranslationEngine: @unchecked Sendable {
     private var translationCache: [String: TranslationResult] = [:]
     private let cacheQueue = DispatchQueue(label: "com.helpmesign.translation.cache", attributes: .concurrent)
     
@@ -499,8 +498,8 @@ class TranslationEngine {
         
         // Cache result with thread-safe write
         if let result = result {
-            cacheQueue.async(flags: .barrier) {
-                self.translationCache[cacheKey] = result
+            cacheQueue.async(flags: .barrier) { @Sendable [weak self] in
+                self?.translationCache[cacheKey] = result
             }
         }
         

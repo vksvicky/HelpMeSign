@@ -684,25 +684,6 @@
             </objects>
             <point key="canvasLocation" x="75" y="0.0"/>
         </scene>
-        <!--Window Controller-->
-        <scene sceneID="R2V-B0-nI4">
-            <objects>
-                <windowController id="B8D-0N-5wS" sceneMemberID="viewController">
-                    <window key="window" title="HelpMeSign" animationBehavior="default" id="IQv-IB-iLA">
-                        <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES"/>
-                        <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-                        <rect key="contentRect" x="350" y="0.0" width="1024" height="1024"/>
-                        <value key="minSize" type="size" width="1024" height="1024"/>
-                        <value key="maxSize" type="size" width="1024" height="1024"/>
-                        <connections>
-                            <outlet property="contentViewController" destination="CameraViewControllerID" id="CameraContentViewControllerOutlet"/>
-                        </connections>
-                    </window>
-                </windowController>
-                <customObject id="Oky-zY-oP4" userLabel="First Responder" customClass="NSResponder" propertyAccessControl="localizable" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="75" y="250"/>
-        </scene>
         <!--Camera View Controller-->
         <scene sceneID="CameraViewControllerScene">
             <objects>
@@ -729,6 +710,5 @@
             </objects>
             <point key="canvasLocation" x="106" y="274"/>
         </scene>
-
     </scenes>
 </document>
