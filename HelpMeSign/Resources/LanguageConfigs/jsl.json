@@ -7,6 +7,7 @@
     "katakana": "jsl_katakana.json",
     "kanji": "jsl_kanji.json"
   },
+  "writingSystemOrder": ["hiragana", "katakana", "kanji"],
   "handUsage": {
     "defaultHand": "right",
     "preferredHand": "right",

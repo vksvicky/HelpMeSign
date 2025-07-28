@@ -4,6 +4,7 @@ class WritingSystemSelectorView: NSView {
     
     // MARK: - Properties
     private var writingSystems: [String: String] = [:]
+    private var writingSystemOrder: [String] = []
     private var selectedSystem: String?
     private var onSelectionChanged: ((String) -> Void)?
     
@@ -23,10 +24,13 @@ class WritingSystemSelectorView: NSView {
     }
     
     // MARK: - Public Methods
-    func configure(with writingSystems: [String: String], selectedSystem: String? = nil, onSelectionChanged: @escaping (String) -> Void) {
+    func configure(with writingSystems: [String: String], order: [String]? = nil, selectedSystem: String? = nil, onSelectionChanged: @escaping (String) -> Void) {
         self.writingSystems = writingSystems
         self.selectedSystem = selectedSystem
         self.onSelectionChanged = onSelectionChanged
+        
+        // Store the order if provided, otherwise use the keys in their original order
+        self.writingSystemOrder = order ?? Array(writingSystems.keys)
         
         updateSegmentedControl()
     }
@@ -81,8 +85,8 @@ class WritingSystemSelectorView: NSView {
     }
     
     private func updateSegmentedControl() {
-        let systems = Array(writingSystems.keys)
-        print("WritingSystemSelectorView: Updating segmented control with \(systems.count) systems: \(systems)")
+        let systems = writingSystemOrder
+        print("WritingSystemSelectorView: Updating segmented control with \(systems.count) systems in order: \(systems)")
         
         segmentedControl.segmentCount = systems.count
         segmentedControl.isEnabled = true
@@ -134,10 +138,10 @@ class WritingSystemSelectorView: NSView {
     
     @objc private func segmentedControlChanged() {
         let selectedIndex = segmentedControl.selectedSegment
-        let systems = Array(writingSystems.keys)
+        let systems = writingSystemOrder
         
         print("WritingSystemSelectorView: Segmented control changed, selectedIndex: \(selectedIndex)")
-        print("WritingSystemSelectorView: Available systems: \(systems)")
+        print("WritingSystemSelectorView: Available systems in order: \(systems)")
         
         guard selectedIndex >= 0 && selectedIndex < systems.count else { 
             print("WritingSystemSelectorView: Invalid selectedIndex: \(selectedIndex), systems count: \(systems.count)")
@@ -161,7 +165,7 @@ class WritingSystemSelectorView: NSView {
         let location = gesture.location(in: segmentedControl)
         let segmentWidth = segmentedControl.bounds.width / CGFloat(segmentedControl.segmentCount)
         let clickedIndex = Int(location.x / segmentWidth)
-        let systems = Array(writingSystems.keys)
+        let systems = writingSystemOrder
         
         print("WritingSystemSelectorView: Click gesture detected at location: \(location.x)")
         print("WritingSystemSelectorView: Segment width: \(segmentWidth), clickedIndex: \(clickedIndex)")

@@ -100,6 +100,7 @@
       "katakana": "jsl_katakana.json",
       "kanji": "jsl_kanji.json"
     },
+    "writingSystemOrder": ["hiragana", "katakana", "kanji"],
     "grammarRules": [
       "Topic-Comment structure",
       "Use of classifiers",

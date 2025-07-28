@@ -1,4 +1,5 @@
 //
+
 //  CameraViewController.swift
 //  HelpMeSign
 //
@@ -47,8 +48,8 @@ import Foundation
         let width: CGFloat = 1024
         let height: CGFloat = 1024
         let topHeight = height * 0.5
-        let midHeight = height * 0.25
-        let botHeight = height * 0.25
+        let midHeight = height * 0.2
+        let botHeight = height * 0.3
         let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: height))
         container.wantsLayer = true
         
@@ -858,9 +859,9 @@ import Foundation
     
     private func reloadAlphabetForLanguage(_ languageCode: String) {
         // Check if this language has multiple writing systems
-        if let writingSystems = getWritingSystems(for: languageCode) {
-            print("CameraViewController: Language \(languageCode) has \(writingSystems.count) writing systems")
-            setupWritingSystemSelector(with: writingSystems, languageCode: languageCode)
+        if let writingSystemsData = getWritingSystems(for: languageCode) {
+            print("CameraViewController: Language \(languageCode) has \(writingSystemsData.systems.count) writing systems")
+            setupWritingSystemSelector(with: writingSystemsData.systems, order: writingSystemsData.order, languageCode: languageCode)
             return
         }
         
@@ -940,7 +941,7 @@ import Foundation
     
     // MARK: - Writing System Support
     
-    private func getWritingSystems(for languageCode: String) -> [String: String]? {
+    private func getWritingSystems(for languageCode: String) -> (systems: [String: String], order: [String])? {
         // Load languages.json to check for writing systems
         guard let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
               let data = try? Data(contentsOf: url),
@@ -954,10 +955,13 @@ import Foundation
             return nil
         }
         
-        return writingSystems
+        // Get the order if available, otherwise use the keys in their original order
+        let order = language["writingSystemOrder"] as? [String] ?? Array(writingSystems.keys)
+        
+        return (systems: writingSystems, order: order)
     }
     
-    private func setupWritingSystemSelector(with writingSystems: [String: String], languageCode: String) {
+    private func setupWritingSystemSelector(with writingSystems: [String: String], order: [String], languageCode: String) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
@@ -966,7 +970,7 @@ import Foundation
                 self.writingSystemSelectorView = WritingSystemSelectorView()
                 self.view.addSubview(self.writingSystemSelectorView!)
                 
-                // Position it at the top of the bottom section with proper spacing - ensure no overlap
+                // Position it properly within the bottom section - adjust for larger grids
                 NSLayoutConstraint.activate([
                     self.writingSystemSelectorView!.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
                     self.writingSystemSelectorView!.topAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -320),
@@ -977,12 +981,13 @@ import Foundation
             // Show the selector
             self.writingSystemSelectorView?.isHidden = false
             
-            // Configure the selector
-            let defaultSystem = Array(writingSystems.keys).first ?? "hiragana"
+            // Configure the selector with order
+            let defaultSystem = order.first ?? "hiragana"
             self.currentWritingSystem = defaultSystem
             
             self.writingSystemSelectorView?.configure(
                 with: writingSystems,
+                order: order,
                 selectedSystem: defaultSystem
             ) { [weak self] selectedSystem in
                 print("CameraViewController: Writing system selection changed to: \(selectedSystem)")
@@ -1063,29 +1068,40 @@ import Foundation
         let sectionWidth = width
         let sectionHeight = height
         
-        // Calculate grid dimensions within this section - reduce margins for better space utilization
-        let gridTopMargin: CGFloat = 10
-        let gridBottomMargin: CGFloat = 10
-        let gridLeftMargin: CGFloat = 10
-        let gridRightMargin: CGFloat = 10
+        // Calculate grid dimensions within this section - adjust for character count
+        let gridTopMargin: CGFloat = handshapes.count == 76 ? 25 : (handshapes.count > 50 ? 85 : 70)  // More space for Kanji
+        let gridBottomMargin: CGFloat = 20
+        let gridLeftMargin: CGFloat = 25
+        let gridRightMargin: CGFloat = 25
         
         let availableGridWidth = sectionWidth - gridLeftMargin - gridRightMargin
         let availableGridHeight = sectionHeight - gridTopMargin - gridBottomMargin
         
-        // Calculate optimal button size - use more columns for better space utilization
-        let columnsPerRow = min(16, handshapes.count) // Use more columns for better horizontal space usage
-        let rows = Int(ceil(Double(handshapes.count) / Double(columnsPerRow)))
-        let letterSpacing: CGFloat = 6
+        // Calculate optimal button size - better distribution for all character counts
+        let totalCharacters = handshapes.count
+        // Use specific column counts for better distribution
+        let columnsPerRow: Int
+        if totalCharacters == 36 { // A-Z, 0-9
+            columnsPerRow = 12
+        } else if totalCharacters == 46 { // Hiragana
+            columnsPerRow = 16
+        } else if totalCharacters == 76 { // Kanji
+            columnsPerRow = 18
+        } else {
+            columnsPerRow = min(18, totalCharacters)
+        }
+        let rows = Int(ceil(Double(totalCharacters) / Double(columnsPerRow)))
+        let letterSpacing: CGFloat = 12  // Better spacing for alignment
         
         let letterSize = (availableGridWidth - (CGFloat(columnsPerRow - 1) * letterSpacing)) / CGFloat(columnsPerRow)
         let finalLetterSize = min(letterSize, availableGridHeight / CGFloat(rows))
         
-        // Position grid within the bottom section - ensure it stays within bounds
+        // Position grid within the bottom section - better centering
         let totalGridWidth = CGFloat(columnsPerRow) * finalLetterSize + CGFloat(columnsPerRow - 1) * letterSpacing
-        let startX = max(gridLeftMargin, gridLeftMargin + (availableGridWidth - totalGridWidth) / 2)
+        let startX = gridLeftMargin + (availableGridWidth - totalGridWidth) / 2
         
-        let totalGridHeight = CGFloat(rows) * (finalLetterSize + letterSpacing) - letterSpacing
-        let startY = max(gridTopMargin, gridTopMargin + (availableGridHeight - totalGridHeight) / 2)
+        let totalGridHeight = CGFloat(rows) * finalLetterSize + CGFloat(rows - 1) * letterSpacing
+        let startY = gridTopMargin + (availableGridHeight - totalGridHeight) / 2
         
         print("CameraViewController: Grid centering - section width: \(width), grid width: \(totalGridWidth), startX: \(startX)")
         print("CameraViewController: Grid centering - section height: \(height), grid height: \(totalGridHeight), startY: \(startY)")
@@ -1093,14 +1109,14 @@ import Foundation
         print("Creating alphabet grid: \(handshapes.count) letters, \(columnsPerRow) columns, \(rows) rows")
         print("Grid dimensions: \(totalGridWidth) x \(totalGridHeight), starting at (\(startX), \(startY))")
         
-        // Create letter buttons in grid layout - fill row by row
+        // Create letter buttons in grid layout - fill row by row to maintain JSON order
         for (index, letter) in handshapes.enumerated() {
             // Calculate row and column to fill row by row (left to right, top to bottom)
             let row = index / columnsPerRow
             let column = index % columnsPerRow
             
             let x = startX + CGFloat(column) * (finalLetterSize + letterSpacing)
-            // In macOS, Y=0 is at the top, so we need to flip the row calculation
+            // Proper Y positioning from top to bottom - flip the row calculation
             let y = startY + CGFloat(rows - 1 - row) * (finalLetterSize + letterSpacing)
             
             let letterButton = createAlphabetButton(
