@@ -51,12 +51,24 @@ import Foundation
         let botHeight = height * 0.25
         let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: height))
         container.wantsLayer = true
-        container.layer?.backgroundColor = NSColor(calibratedWhite: 0.97, alpha: 1.0).cgColor
+        
+        // Create gradient background for the whole window to show section boundaries
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.frame = container.bounds
+        gradientLayer.colors = [
+            NSColor(calibratedWhite: 0.95, alpha: 1.0).cgColor,
+            NSColor(calibratedWhite: 0.90, alpha: 1.0).cgColor,
+            NSColor(calibratedWhite: 0.85, alpha: 1.0).cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.5, 1.0]
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 1.0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 0.0)
+        container.layer?.addSublayer(gradientLayer)
 
         // --- Top Section: 16:9 Camera View, Centered ---
         let topSection = NSView(frame: NSRect(x: 0, y: height - topHeight, width: width, height: topHeight))
         topSection.wantsLayer = true
-        topSection.layer?.backgroundColor = NSColor.white.cgColor
+        topSection.layer?.backgroundColor = NSColor.clear.cgColor
         
         // Camera view: 16:9, centered in top band
         let camMaxWidth: CGFloat = width * 0.8
@@ -193,45 +205,26 @@ import Foundation
         // --- Middle Section: Translation Display ---
         let midSection = NSView(frame: NSRect(x: 0, y: botHeight, width: width, height: midHeight))
         midSection.wantsLayer = true
-        midSection.layer?.backgroundColor = NSColor(calibratedWhite: 0.99, alpha: 1.0).cgColor
+        midSection.layer?.backgroundColor = NSColor.clear.cgColor
         
         // Create a simple translation display view (no external file dependency)
         print("🔧 Creating simple translation display view")
         
-        // Create header view
-        let headerView = NSView(frame: NSRect(x: width * 0.1, y: midHeight * 0.8, width: width * 0.8, height: 40))
-        headerView.wantsLayer = true
-        headerView.layer?.backgroundColor = NSColor.white.cgColor
+        // Header view removed - no longer needed
         
-        // Header label
-                    let headerLabel = NSTextField(labelWithString: "")
-        headerLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
-        headerLabel.textColor = NSColor.systemBlue
-        headerLabel.frame = NSRect(x: 10, y: 10, width: 300, height: 20)
-        headerView.addSubview(headerLabel)
-        
-        // Clear button
-        let clearButton = NSButton(title: "Clear", target: self, action: #selector(clearTranslationsAction))
-        clearButton.bezelStyle = NSButton.BezelStyle.rounded
-        clearButton.frame = NSRect(x: width * 0.8 - 70, y: 8, width: 60, height: 24)
-        headerView.addSubview(clearButton)
-        
-        midSection.addSubview(headerView)
-        
-        // Create scroll view for main text view
-        let scrollView = NSScrollView(frame: NSRect(x: width * 0.1, y: midHeight * 0.1, width: width * 0.8, height: midHeight * 0.7))
+        // Create scroll view for main text view - full height, no border
+        let scrollView = NSScrollView(frame: NSRect(x: width * 0.1, y: midHeight * 0.05, width: width * 0.8, height: midHeight * 0.9))
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
-        scrollView.borderType = .lineBorder
+        scrollView.scrollerStyle = .overlay
+        scrollView.borderType = .noBorder
         scrollView.wantsLayer = true
-        scrollView.layer?.borderWidth = 1
-        scrollView.layer?.borderColor = NSColor.systemGray.withAlphaComponent(0.3).cgColor
         scrollView.layer?.cornerRadius = 8
         
         // Create main text view inside scroll view with proper size
         let textViewWidth = scrollView.frame.width - 20
-        let textViewHeight = scrollView.frame.height - 20
+        let textViewHeight = scrollView.frame.height - 40
         let mainTextView = NSTextView(frame: NSRect(x: 0, y: 0, width: textViewWidth, height: textViewHeight))
         mainTextView.string = "Ready for translations..." // Add initial text to verify visibility
         mainTextView.isEditable = false
@@ -252,6 +245,19 @@ import Foundation
         scrollView.documentView = mainTextView
         midSection.addSubview(scrollView)
         
+        // Add clear button outside the text area (positioned to the right of scroll view)
+        let clearButtonInText = NSButton(title: "🧹", target: self, action: #selector(clearTranslationsAction))
+        clearButtonInText.bezelStyle = NSButton.BezelStyle.regularSquare
+        clearButtonInText.frame = NSRect(x: scrollView.frame.maxX + 10, y: scrollView.frame.minY + 5, width: 36, height: 28)
+        clearButtonInText.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        clearButtonInText.wantsLayer = true
+        clearButtonInText.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.9).cgColor
+        clearButtonInText.layer?.cornerRadius = 4
+        clearButtonInText.layer?.borderWidth = 1
+        clearButtonInText.layer?.borderColor = NSColor.systemGray.withAlphaComponent(0.3).cgColor
+        clearButtonInText.toolTip = "Clear all translations"
+        midSection.addSubview(clearButtonInText)
+        
         print("🔧 Text view frame: \(mainTextView.frame)")
         print("🔧 Scroll view frame: \(scrollView.frame)")
         print("🔧 Text view is hidden: \(mainTextView.isHidden)")
@@ -267,7 +273,7 @@ import Foundation
         // --- Bottom Section: Alphabet Bar ---
         let botSection = NSView(frame: NSRect(x: 0, y: 0, width: width, height: botHeight))
         botSection.wantsLayer = true
-        botSection.layer?.backgroundColor = NSColor(calibratedWhite: 0.95, alpha: 1.0).cgColor
+        botSection.layer?.backgroundColor = NSColor.clear.cgColor
         
         // Add divider at the top
         let divider = NSView(frame: NSRect(x: width * 0.15, y: botHeight - 2, width: width * 0.7, height: 2))
@@ -867,16 +873,28 @@ import Foundation
     
     private func loadAlphabetFromConfig(languageCode: String, writingSystem: String?) {
         let configFileName: String
+        let resourceName: String
         if let writingSystem = writingSystem {
             configFileName = "\(languageCode.lowercased())_\(writingSystem.lowercased()).json"
+            resourceName = "\(languageCode.lowercased())_\(writingSystem.lowercased())"
         } else {
             configFileName = "\(languageCode.lowercased()).json"
+            resourceName = languageCode.lowercased()
         }
         
-        guard let configURL = Bundle.main.url(forResource: languageCode.lowercased() + (writingSystem != nil ? "_\(writingSystem!.lowercased())" : ""), withExtension: "json"),
+        print("CameraViewController: Attempting to load config file: \(configFileName)")
+        print("CameraViewController: Resource name: \(resourceName)")
+        
+        guard let configURL = Bundle.main.url(forResource: resourceName, withExtension: "json"),
               let data = try? Data(contentsOf: configURL),
               let config = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             print("Failed to load language config: \(configFileName)")
+            print("CameraViewController: Available resources in bundle:")
+            if let resources = Bundle.main.urls(forResourcesWithExtension: "json", subdirectory: nil) {
+                for resource in resources {
+                    print("  - \(resource.lastPathComponent)")
+                }
+            }
             return
         }
         
@@ -948,12 +966,11 @@ import Foundation
                 self.writingSystemSelectorView = WritingSystemSelectorView()
                 self.view.addSubview(self.writingSystemSelectorView!)
                 
-                // Position it above the alphabet bar
+                // Position it at the top of the bottom section with proper spacing - ensure no overlap
                 NSLayoutConstraint.activate([
                     self.writingSystemSelectorView!.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
-                    self.writingSystemSelectorView!.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -280),
-                    self.writingSystemSelectorView!.widthAnchor.constraint(equalToConstant: 300),
-                    self.writingSystemSelectorView!.heightAnchor.constraint(equalToConstant: 32)
+                    self.writingSystemSelectorView!.topAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -320),
+                    self.writingSystemSelectorView!.widthAnchor.constraint(equalToConstant: 400)
                 ])
             }
             
@@ -968,6 +985,7 @@ import Foundation
                 with: writingSystems,
                 selectedSystem: defaultSystem
             ) { [weak self] selectedSystem in
+                print("CameraViewController: Writing system selection changed to: \(selectedSystem)")
                 self?.currentWritingSystem = selectedSystem
                 self?.loadAlphabetFromConfig(languageCode: languageCode, writingSystem: selectedSystem)
             }
@@ -985,8 +1003,15 @@ import Foundation
     
     private func displayAlphabetGrid(handshapes: [String]) {
         
-        // Find the alphabet bar section and update it
-        if let bottomSection = self.view.subviews.first(where: { $0.frame.origin.y == 0 }) {
+        // Debug: Print all available sections
+        print("CameraViewController: Available sections:")
+        for (index, subview) in self.view.subviews.enumerated() {
+            print("  Section \(index): frame=\(subview.frame), type=\(type(of: subview))")
+        }
+        
+        // Find the alphabet bar section and update it - select the last NSView section (filter out WritingSystemSelectorView)
+        let mainSections = self.view.subviews.filter { !($0 is WritingSystemSelectorView) }
+        if mainSections.count >= 3, let bottomSection = mainSections.last {
             print("Found bottom section, starting cleanup...")
             
             // COMPLETE cleanup - remove ALL subviews except the divider
@@ -1034,19 +1059,36 @@ import Foundation
         let width = section.frame.width
         let height = section.frame.height
         
-        // Fixed 12-column grid layout for consistency
-        let letterSize: CGFloat = 35
-        let letterSpacing: CGFloat = 8
-        let columnsPerRow = 12  // Fixed 12 columns
+        // Use section dimensions for layout (not window dimensions)
+        let sectionWidth = width
+        let sectionHeight = height
+        
+        // Calculate grid dimensions within this section - reduce margins for better space utilization
+        let gridTopMargin: CGFloat = 10
+        let gridBottomMargin: CGFloat = 10
+        let gridLeftMargin: CGFloat = 10
+        let gridRightMargin: CGFloat = 10
+        
+        let availableGridWidth = sectionWidth - gridLeftMargin - gridRightMargin
+        let availableGridHeight = sectionHeight - gridTopMargin - gridBottomMargin
+        
+        // Calculate optimal button size - use more columns for better space utilization
+        let columnsPerRow = min(16, handshapes.count) // Use more columns for better horizontal space usage
         let rows = Int(ceil(Double(handshapes.count) / Double(columnsPerRow)))
+        let letterSpacing: CGFloat = 6
         
-        // Calculate spacing to center the grid horizontally
-        let totalGridWidth = CGFloat(columnsPerRow) * letterSize + CGFloat(columnsPerRow - 1) * letterSpacing
-        let startX = (width - totalGridWidth) / 2
+        let letterSize = (availableGridWidth - (CGFloat(columnsPerRow - 1) * letterSpacing)) / CGFloat(columnsPerRow)
+        let finalLetterSize = min(letterSize, availableGridHeight / CGFloat(rows))
         
-        // Calculate total grid height and center it vertically
-        let totalGridHeight = CGFloat(rows) * (letterSize + letterSpacing) - letterSpacing
-        let startY = (height - totalGridHeight) / 2
+        // Position grid within the bottom section - ensure it stays within bounds
+        let totalGridWidth = CGFloat(columnsPerRow) * finalLetterSize + CGFloat(columnsPerRow - 1) * letterSpacing
+        let startX = max(gridLeftMargin, gridLeftMargin + (availableGridWidth - totalGridWidth) / 2)
+        
+        let totalGridHeight = CGFloat(rows) * (finalLetterSize + letterSpacing) - letterSpacing
+        let startY = max(gridTopMargin, gridTopMargin + (availableGridHeight - totalGridHeight) / 2)
+        
+        print("CameraViewController: Grid centering - section width: \(width), grid width: \(totalGridWidth), startX: \(startX)")
+        print("CameraViewController: Grid centering - section height: \(height), grid height: \(totalGridHeight), startY: \(startY)")
         
         print("Creating alphabet grid: \(handshapes.count) letters, \(columnsPerRow) columns, \(rows) rows")
         print("Grid dimensions: \(totalGridWidth) x \(totalGridHeight), starting at (\(startX), \(startY))")
@@ -1057,14 +1099,15 @@ import Foundation
             let row = index / columnsPerRow
             let column = index % columnsPerRow
             
-            let x = startX + CGFloat(column) * (letterSize + letterSpacing)
+            let x = startX + CGFloat(column) * (finalLetterSize + letterSpacing)
             // In macOS, Y=0 is at the top, so we need to flip the row calculation
-            let y = startY + CGFloat(rows - 1 - row) * (letterSize + letterSpacing)
+            let y = startY + CGFloat(rows - 1 - row) * (finalLetterSize + letterSpacing)
             
             let letterButton = createAlphabetButton(
                 letter: letter,
                 position: CGPoint(x: x, y: y),
-                size: CGSize(width: letterSize, height: letterSize)
+                size: CGSize(width: finalLetterSize, height: finalLetterSize),
+                letterSize: finalLetterSize
             )
             
             // Ensure the button is properly added and positioned
@@ -1081,7 +1124,7 @@ import Foundation
         print("Alphabet grid created with \(handshapes.count) buttons")
     }
     
-    private func createAlphabetButton(letter: String, position: CGPoint, size: CGSize) -> NSButton {
+    private func createAlphabetButton(letter: String, position: CGPoint, size: CGSize, letterSize: CGFloat) -> NSButton {
         let button = NSButton(title: letter, target: self, action: #selector(letterButtonClicked(_:)))
         button.frame = NSRect(origin: position, size: size)
         button.wantsLayer = true
@@ -1099,8 +1142,10 @@ import Foundation
         button.layer?.shadowOpacity = 0.1
         button.layer?.shadowRadius = 4
         
-        // Style the title
-        button.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        // Style the title with larger, more readable font size
+        let baseFontSize = min(letterSize * 0.6, 24)  // Larger proportion, max 24pt
+        let adaptiveFontSize = max(baseFontSize, 12)  // Minimum 12pt for better readability
+        button.font = NSFont.systemFont(ofSize: adaptiveFontSize, weight: .semibold)
         button.contentTintColor = NSColor.systemBlue
         
         // Add tracking area for hover effects

@@ -43,16 +43,27 @@ class WritingSystemSelectorView: NSView {
         // Configure title label
         titleLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         titleLabel.textColor = NSColor.labelColor
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         
         // Configure segmented control
         segmentedControl.segmentStyle = .rounded
+        segmentedControl.trackingMode = .selectOne
         segmentedControl.target = self
         segmentedControl.action = #selector(segmentedControlChanged)
+        segmentedControl.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Ensure the control is properly configured for interaction
+        segmentedControl.isEnabled = true
+        
+        // Add a gesture recognizer as a backup
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
+        segmentedControl.addGestureRecognizer(clickGesture)
         
         // Configure stack view
         stackView.orientation = .horizontal
         stackView.spacing = 8
         stackView.alignment = .centerY
+        stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.addArrangedSubview(titleLabel)
         stackView.addArrangedSubview(segmentedControl)
         
@@ -71,7 +82,10 @@ class WritingSystemSelectorView: NSView {
     
     private func updateSegmentedControl() {
         let systems = Array(writingSystems.keys)
+        print("WritingSystemSelectorView: Updating segmented control with \(systems.count) systems: \(systems)")
+        
         segmentedControl.segmentCount = systems.count
+        segmentedControl.isEnabled = true
         
         for (index, system) in systems.enumerated() {
             let displayName = getDisplayName(for: system)
@@ -80,8 +94,11 @@ class WritingSystemSelectorView: NSView {
             
             if system == selectedSystem {
                 segmentedControl.setSelected(true, forSegment: index)
+                print("WritingSystemSelectorView: Selected system: \(system) at index: \(index)")
             }
         }
+        
+        print("WritingSystemSelectorView: Segmented control updated, selectedSegment: \(segmentedControl.selectedSegment)")
     }
     
     private func getDisplayName(for system: String) -> String {
@@ -119,10 +136,50 @@ class WritingSystemSelectorView: NSView {
         let selectedIndex = segmentedControl.selectedSegment
         let systems = Array(writingSystems.keys)
         
-        guard selectedIndex >= 0 && selectedIndex < systems.count else { return }
+        print("WritingSystemSelectorView: Segmented control changed, selectedIndex: \(selectedIndex)")
+        print("WritingSystemSelectorView: Available systems: \(systems)")
+        
+        guard selectedIndex >= 0 && selectedIndex < systems.count else { 
+            print("WritingSystemSelectorView: Invalid selectedIndex: \(selectedIndex), systems count: \(systems.count)")
+            return 
+        }
         
         let selectedSystem = systems[selectedIndex]
+        print("WritingSystemSelectorView: Selected system changed to: \(selectedSystem)")
+        
+        // Update the internal state
         self.selectedSystem = selectedSystem
-        onSelectionChanged?(selectedSystem)
+        
+        // Call the callback on the main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.onSelectionChanged?(selectedSystem)
+        }
+    }
+    
+    @objc private func handleClick(_ gesture: NSClickGestureRecognizer) {
+        // Calculate which segment was actually clicked
+        let location = gesture.location(in: segmentedControl)
+        let segmentWidth = segmentedControl.bounds.width / CGFloat(segmentedControl.segmentCount)
+        let clickedIndex = Int(location.x / segmentWidth)
+        let systems = Array(writingSystems.keys)
+        
+        print("WritingSystemSelectorView: Click gesture detected at location: \(location.x)")
+        print("WritingSystemSelectorView: Segment width: \(segmentWidth), clickedIndex: \(clickedIndex)")
+        
+        guard clickedIndex >= 0 && clickedIndex < systems.count else { 
+            print("WritingSystemSelectorView: Invalid clickedIndex: \(clickedIndex)")
+            return 
+        }
+        
+        let selectedSystem = systems[clickedIndex]
+        print("WritingSystemSelectorView: Click gesture - selected system: \(selectedSystem)")
+        
+        // Update the segmented control selection
+        segmentedControl.selectedSegment = clickedIndex
+        self.selectedSystem = selectedSystem
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.onSelectionChanged?(selectedSystem)
+        }
     }
 } 

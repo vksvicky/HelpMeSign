@@ -82,9 +82,7 @@
       {"symbol": "開", "gesturePattern": "open_jsl", "confidence": 0.87, "handUsage": "both"},
       {"symbol": "閉", "gesturePattern": "close_jsl", "confidence": 0.86, "handUsage": "both"},
       {"symbol": "始", "gesturePattern": "start_jsl", "confidence": 0.85, "handUsage": "both"},
-      {"symbol": "終", "gesturePattern": "end_jsl", "confidence": 0.96, "handUsage": "both"},
-      {"symbol": "始", "gesturePattern": "begin_jsl", "confidence": 0.84, "handUsage": "both"},
-      {"symbol": "終", "gesturePattern": "finish_jsl", "confidence": 0.83, "handUsage": "both"}
+      {"symbol": "終", "gesturePattern": "end_jsl", "confidence": 0.96, "handUsage": "both"}
     ],
     "numbers": [
       {"symbol": "零", "gesturePattern": "zero_jsl", "confidence": 0.95, "handUsage": "both"},
