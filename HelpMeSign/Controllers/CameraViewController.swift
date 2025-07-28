@@ -208,11 +208,7 @@ import Foundation
         midSection.wantsLayer = true
         midSection.layer?.backgroundColor = NSColor.clear.cgColor
         
-        // Create a simple translation display view (no external file dependency)
-        print("🔧 Creating simple translation display view")
-        
-        // Header view removed - no longer needed
-        
+        // Create a simple translation display view (no external file dependency)        
         // Create scroll view for main text view - full height, no border
         let scrollView = NSScrollView(frame: NSRect(x: width * 0.1, y: midHeight * 0.05, width: width * 0.8, height: midHeight * 0.9))
         scrollView.hasVerticalScroller = true
@@ -259,15 +255,9 @@ import Foundation
         clearButtonInText.toolTip = "Clear all translations"
         midSection.addSubview(clearButtonInText)
         
-        print("🔧 Text view frame: \(mainTextView.frame)")
-        print("🔧 Scroll view frame: \(scrollView.frame)")
-        print("🔧 Text view is hidden: \(mainTextView.isHidden)")
-        print("🔧 Text view alpha: \(mainTextView.alphaValue)")
-        
         // Store reference for updates
         self.fallbackTextView = mainTextView
-        print("🔧 Created simple translation view successfully")
-        print("🔧 fallbackTextView reference set: \(fallbackTextView != nil)")
+
         
         container.addSubview(midSection)
 
@@ -315,7 +305,7 @@ import Foundation
     private func setupAICallbacks() {
         // AI system callbacks
         aiSystem.onSignRecognized = { [weak self] (result: AIRecognitionResult) in
-            print("🎯 AI System callback triggered: \(result.sign)")
+    
             DispatchQueue.main.async {
                 self?.handleSignRecognition(result)
             }
@@ -350,14 +340,14 @@ import Foundation
     // MARK: - AI & ML Handlers
     
     private func handleSignRecognition(_ result: AIRecognitionResult) {
-        print("🎯 handleSignRecognition called: \(result.sign) with confidence: \(result.confidence)")
+
         
         // Add translation to the history
         if let translationView = translationDisplayView {
-            print("📝 Adding translation to display: \(result.sign)")
+    
             translationView.addTranslation(result.sign, confidence: result.confidence)
         } else if let fallbackView = fallbackTextView {
-            print("📝 Adding translation to fallback view: \(result.sign)")
+    
             let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
             let confidencePercentage = Int(result.confidence * 100)
             let newEntry = "[\(timestamp)] \(result.sign) (\(confidencePercentage)%)\n"
@@ -371,13 +361,8 @@ import Foundation
                 fallbackView.needsDisplay = true
                 fallbackView.needsLayout = true
                 
-                print("📝 Updated fallback view, new content length: \(fallbackView.string.count)")
-                print("📝 Current text preview: \(String(fallbackView.string.suffix(100)))")
-                print("📝 Text view frame: \(fallbackView.frame)")
-                print("📝 Text view is hidden: \(fallbackView.isHidden)")
+                
             }
-        } else {
-            print("❌ Both translationDisplayView and fallbackTextView are nil!")
         }
         
         // Update language display
@@ -929,11 +914,7 @@ import Foundation
             return
         }
         
-        print("CameraViewController: Total handshapes for \(languageCode): \(handshapes)")
-        print("CameraViewController: Handshapes order check - First 5: \(Array(handshapes.prefix(5)))")
-        print("CameraViewController: Handshapes order check - Last 5: \(Array(handshapes.suffix(5)))")
-        
-        print("Reloading alphabet for \(languageCode): \(handshapes)")
+        print("CameraViewController: Loaded \(handshapes.count) characters for \(languageCode)")
         
         // Continue with the existing alphabet display logic
         displayAlphabetGrid(handshapes: handshapes)
@@ -1008,29 +989,20 @@ import Foundation
     
     private func displayAlphabetGrid(handshapes: [String]) {
         
-        // Debug: Print all available sections
-        print("CameraViewController: Available sections:")
-        for (index, subview) in self.view.subviews.enumerated() {
-            print("  Section \(index): frame=\(subview.frame), type=\(type(of: subview))")
-        }
+        // Find the alphabet bar section and update it
         
         // Find the alphabet bar section and update it - select the last NSView section (filter out WritingSystemSelectorView)
         let mainSections = self.view.subviews.filter { !($0 is WritingSystemSelectorView) }
         if mainSections.count >= 3, let bottomSection = mainSections.last {
-            print("Found bottom section, starting cleanup...")
-            
-            // COMPLETE cleanup - remove ALL subviews except the divider
+            // Clean up existing subviews
             let allSubviews = bottomSection.subviews
-            print("Found \(allSubviews.count) subviews to process")
             
             for subview in allSubviews {
                 // Keep only the divider (usually at the bottom)
                 if subview.frame.origin.y < 10 && subview.frame.height < 10 {
-                    print("Keeping divider at position: \(subview.frame)")
                     continue
                 }
                 
-                print("Removing subview: \(type(of: subview)) at position: \(subview.frame)")
                 subview.removeFromSuperview()
             }
             
@@ -1058,8 +1030,6 @@ import Foundation
     }
     
     private func createAlphabetGrid(in section: NSView, handshapes: [String]) {
-        print("CameraViewController: createAlphabetGrid called with \(handshapes.count) handshapes")
-        print("CameraViewController: Section frame: \(section.frame)")
         
         let width = section.frame.width
         let height = section.frame.height
@@ -1103,11 +1073,7 @@ import Foundation
         let totalGridHeight = CGFloat(rows) * finalLetterSize + CGFloat(rows - 1) * letterSpacing
         let startY = gridTopMargin + (availableGridHeight - totalGridHeight) / 2
         
-        print("CameraViewController: Grid centering - section width: \(width), grid width: \(totalGridWidth), startX: \(startX)")
-        print("CameraViewController: Grid centering - section height: \(height), grid height: \(totalGridHeight), startY: \(startY)")
-        
-        print("Creating alphabet grid: \(handshapes.count) letters, \(columnsPerRow) columns, \(rows) rows")
-        print("Grid dimensions: \(totalGridWidth) x \(totalGridHeight), starting at (\(startX), \(startY))")
+        // Grid layout calculated successfully
         
         // Create letter buttons in grid layout - fill row by row to maintain JSON order
         for (index, letter) in handshapes.enumerated() {
@@ -1129,15 +1095,11 @@ import Foundation
             // Ensure the button is properly added and positioned
             section.addSubview(letterButton)
             letterButton.needsDisplay = true
-            
-            print("CameraViewController: Added letter '\(letter)' at position (\(column), \(row)) - (\(x), \(y))")
         }
         
         // Force the section to redraw
         section.needsLayout = true
         section.needsDisplay = true
-        
-        print("Alphabet grid created with \(handshapes.count) buttons")
     }
     
     private func createAlphabetButton(letter: String, position: CGPoint, size: CGSize, letterSize: CGFloat) -> NSButton {

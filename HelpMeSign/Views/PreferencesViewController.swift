@@ -54,7 +54,7 @@ class PreferencesViewController: NSViewController {
             if let window = self.view.window {
                 window.setContentSize(NSSize(width: 600, height: 600))
                 window.setFrame(NSRect(x: window.frame.origin.x, y: window.frame.origin.y, width: 600, height: 600), display: true)
-                print("PreferencesViewController: Delayed window size enforcement to 600x600")
+
             }
         }
         
@@ -86,7 +86,6 @@ class PreferencesViewController: NSViewController {
     
     // MARK: - Setup
     private func setupLanguages() {
-        print("PreferencesViewController: Loading languages from JSON")
         
         // Load languages directly from JSON
         if let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
@@ -122,12 +121,8 @@ class PreferencesViewController: NSViewController {
             
             filteredLanguages = allLanguages
             
-            print("PreferencesViewController: Loaded \(allLanguages.count) languages from JSON")
-            if let firstLanguage = allLanguages.first {
-                print("PreferencesViewController: First language: \(firstLanguage.code) - \(firstLanguage.name)")
-            }
+            // Languages loaded successfully
         } else {
-            print("PreferencesViewController: Failed to load languages.json - no fallback data")
             allLanguages = []
             filteredLanguages = []
         }
@@ -135,16 +130,7 @@ class PreferencesViewController: NSViewController {
     
     private func isLanguageConfigAvailable(for languageCode: String) -> Bool {
         // Check if the language config file exists in the main Resources directory
-        let configFileName = "\(languageCode.lowercased()).json"
-        
-        // Try to find the file in the main Resources directory (where it gets copied during build)
-        if let configURL = Bundle.main.url(forResource: languageCode.lowercased(), withExtension: "json") {
-            print("PreferencesViewController: Language config available for \(languageCode): \(configURL.lastPathComponent)")
-            return true
-        }
-        
-        print("PreferencesViewController: Language config NOT available for \(languageCode): \(configFileName)")
-        return false
+        return Bundle.main.url(forResource: languageCode.lowercased(), withExtension: "json") != nil
     }
     
     private func getIndexOfLanguage(_ languageCode: String) -> Int {

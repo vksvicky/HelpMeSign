@@ -33,15 +33,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         launchQueue.sync {
             // Only launch once to prevent race conditions
             guard !hasLaunched else {
-                print("AppDelegate: Already launched, skipping duplicate call")
                 return
             }
             
-            print("AppDelegate: applicationDidFinishLaunching(_:) called")
             hasLaunched = true
-            
-            // Create a simple window with visible content
-            print("AppDelegate: Creating simple window with visible content")
             
             DispatchQueue.main.async {
                 self.createSimpleWindow()
@@ -69,9 +64,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.isMovableByWindowBackground = false
         
         // Create the full CameraViewController with all functionality
-        print("AppDelegate: Creating full CameraViewController")
         let cameraVC = CameraViewController()
-        print("AppDelegate: CameraViewController created successfully")
         
         window.contentViewController = cameraVC
         
@@ -82,24 +75,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.setFrameUsingName("MainWindow")
         window.setFrameAutosaveName("MainWindow")
         
-        print("AppDelegate: Full CameraViewController loaded with camera, AI, and translation functionality")
         window.makeKeyAndOrderFront(nil)
-        
-        print("AppDelegate: Window with CameraViewController created and made visible")
     }
     
     private func setDefaultLanguageIfNeeded() {
         // TEMPORARY: Clear existing preference to force locale detection
         UserDefaults.standard.removeObject(forKey: "SelectedLanguage")
-        print("AppDelegate: Cleared existing language preference to force locale detection")
         
         // Only set default if no language preference is saved
         if UserDefaults.standard.string(forKey: "SelectedLanguage") == nil {
-            print("AppDelegate: No saved language preference, setting default based on system")
-            
             // Get user's preferred languages from macOS system settings
             let preferredLanguages = Locale.preferredLanguages
-            print("AppDelegate: System preferred languages: \(preferredLanguages)")
             
             // Find the appropriate sign language based on system locale
             var defaultLanguage = getDefaultLanguageFromJSON() // Dynamic fallback
@@ -109,31 +95,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let baseLanguage = language.language.languageCode?.identifier ?? ""
                 let region = language.region?.identifier ?? ""
                 
-                print("AppDelegate: Checking language: \(baseLanguage), region: \(region)")
-                
                 // Check if we have a sign language that matches this language/region
                 if let matchingLanguage = findSignLanguageForSystemLanguage(baseLanguage: baseLanguage, region: region) {
                     defaultLanguage = matchingLanguage
-                    print("AppDelegate: Found matching sign language: \(matchingLanguage) for system language: \(languageCode)")
                     break
                 }
             }
             
             // Use the detected language (or BSL as fallback)
-            print("AppDelegate: Using detected language: \(defaultLanguage)")
             UserDefaults.standard.set(defaultLanguage, forKey: "SelectedLanguage")
-            print("AppDelegate: Force set default language to \(defaultLanguage) for debugging")
             
             // Update the camera view controller with the default language
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 if let mainWindow = NSApplication.shared.mainWindow,
                    let cameraVC = mainWindow.contentViewController as? CameraViewController {
                     cameraVC.changeLanguage(to: defaultLanguage)
-                    print("AppDelegate: Updated camera view controller with default language: \(defaultLanguage)")
                 }
             }
-        } else {
-            print("AppDelegate: Using saved language preference: \(UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "unknown")")
         }
     }
     
