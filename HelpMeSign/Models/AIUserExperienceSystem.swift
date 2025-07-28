@@ -10,32 +10,35 @@ class AIUserExperienceSystem: NSObject {
     // MARK: - Properties
     static let shared = AIUserExperienceSystem()
     
-    // Supported sign languages with their codes and metadata
-    private let supportedLanguages: [SignLanguage] = [
-        SignLanguage(code: "ASL", name: "American Sign Language", country: "US", flag: "🇺🇸", modelName: "asl_model"),
-        SignLanguage(code: "BSL", name: "British Sign Language", country: "GB", flag: "🇬🇧", modelName: "bsl_model"),
-        SignLanguage(code: "ISL", name: "Indian Sign Language", country: "IN", flag: "🇮🇳", modelName: "isl_model"),
-        SignLanguage(code: "JSL", name: "Japanese Sign Language", country: "JP", flag: "🇯🇵", modelName: "jsl_model"),
-        SignLanguage(code: "KSL", name: "Korean Sign Language", country: "KR", flag: "🇰🇷", modelName: "ksl_model"),
-        SignLanguage(code: "CSL", name: "Chinese Sign Language", country: "CN", flag: "🇨🇳", modelName: "csl_model"),
-        SignLanguage(code: "FSL", name: "French Sign Language", country: "FR", flag: "🇫🇷", modelName: "fsl_model"),
-        SignLanguage(code: "DSL", name: "German Sign Language", country: "DE", flag: "🇩🇪", modelName: "dsl_model"),
-        SignLanguage(code: "LIS", name: "Italian Sign Language", country: "IT", flag: "🇮🇹", modelName: "lis_model"),
-        SignLanguage(code: "LSE", name: "Spanish Sign Language", country: "ES", flag: "🇪🇸", modelName: "lse_model"),
-        SignLanguage(code: "RUS", name: "Russian Sign Language", country: "RU", flag: "🇷🇺", modelName: "rus_model"),
-        SignLanguage(code: "PSL", name: "Polish Sign Language", country: "PL", flag: "🇵🇱", modelName: "psl_model"),
-        SignLanguage(code: "TSL", name: "Turkish Sign Language", country: "TR", flag: "🇹🇷", modelName: "tsl_model"),
-        SignLanguage(code: "ARSL", name: "Arabic Sign Language", country: "SA", flag: "🇸🇦", modelName: "arsl_model"),
-        SignLanguage(code: "HZSL", name: "Hebrew Sign Language", country: "IL", flag: "🇮🇱", modelName: "hzsl_model"),
-        SignLanguage(code: "THSL", name: "Thai Sign Language", country: "TH", flag: "🇹🇭", modelName: "thsl_model"),
-        SignLanguage(code: "VSL", name: "Vietnamese Sign Language", country: "VN", flag: "🇻🇳", modelName: "vsl_model"),
-        SignLanguage(code: "MSL", name: "Malay Sign Language", country: "MY", flag: "🇲🇾", modelName: "msl_model"),
-        SignLanguage(code: "IDSL", name: "Indonesian Sign Language", country: "ID", flag: "🇮🇩", modelName: "idsl_model"),
-        SignLanguage(code: "PHSL", name: "Philippine Sign Language", country: "PH", flag: "🇵🇭", modelName: "phsl_model")
-    ]
+    // Supported sign languages loaded dynamically from LanguageManager
+    private var supportedLanguages: [SignLanguage] {
+        return getSupportedLanguages()
+    }
     
-    // Current active language
-    private var currentLanguage: SignLanguage = SignLanguage(code: "ASL", name: "American Sign Language", country: "US", flag: "🇺🇸", modelName: "asl_model")
+
+    
+    // Current active language - will be set dynamically
+    private var currentLanguage: SignLanguage {
+        get {
+            // Get current language from UserDefaults or default to first available
+            let savedCode = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "BSL"
+            return supportedLanguages.first { $0.code == savedCode } ?? supportedLanguages.first ?? createDefaultLanguage()
+        }
+        set {
+            // This will be handled by the setter if needed
+        }
+    }
+    
+    private func createDefaultLanguage() -> SignLanguage {
+        // Try to load the first language from JSON as default
+        let languages = getSupportedLanguages()
+        if let firstLanguage = languages.first {
+            return firstLanguage
+        }
+        
+        // Only use hard-coded fallback if JSON loading completely fails
+        return SignLanguage(code: "BSL", name: "British Sign Language", country: "GB", flag: "🇬🇧", modelName: "bsl_model")
+    }
     
     // MARK: - Public Properties for Testing
     var isRecognitionActive: Bool {
@@ -261,7 +264,27 @@ class AIUserExperienceSystem: NSObject {
     
     /// Get all supported languages
     func getSupportedLanguages() -> [SignLanguage] {
-        return supportedLanguages
+        // Load languages from JSON directly to avoid hard-coded data
+        guard let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let jsonLanguages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return []
+        }
+        
+        return jsonLanguages.compactMap { dict in
+            guard let code = dict["code"] as? String,
+                  let name = dict["name"] as? String,
+                  let flag = dict["flag"] as? String,
+                  let country = dict["country"] as? String else { return nil }
+            
+            return SignLanguage(
+                code: code,
+                name: name,
+                country: country,
+                flag: flag,
+                modelName: "\(code.lowercased())_model"
+            )
+        }
     }
     
     /// Get current language

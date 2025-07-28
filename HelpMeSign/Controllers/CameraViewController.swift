@@ -605,7 +605,7 @@ import Foundation
         // Load saved language preference AFTER AppDelegate has had a chance to set defaults
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             self.loadSavedLanguagePreference()
-        }
+    }
     }
     
     func setupCamera() {

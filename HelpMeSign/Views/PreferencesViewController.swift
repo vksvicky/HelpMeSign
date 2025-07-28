@@ -45,6 +45,17 @@ class PreferencesViewController: NSViewController {
         view.wantsLayer = false
         view.layer?.delegate = nil
         
+        // Window size will be enforced after a delay
+        
+        // Also enforce window size after a delay to ensure it takes effect
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let window = self.view.window {
+                window.setContentSize(NSSize(width: 600, height: 600))
+                window.setFrame(NSRect(x: window.frame.origin.x, y: window.frame.origin.y, width: 600, height: 600), display: true)
+                print("PreferencesViewController: Delayed window size enforcement to 600x600")
+            }
+        }
+        
         setupLanguages()
         setupUI()
         setupTableView()
@@ -73,23 +84,24 @@ class PreferencesViewController: NSViewController {
     
     // MARK: - Setup
     private func setupLanguages() {
-        // Load languages from JSON file
+        print("PreferencesViewController: Loading languages from JSON")
+        
+        // Load languages directly from JSON
         if let url = Bundle.main.url(forResource: "languages", withExtension: "json"),
            let data = try? Data(contentsOf: url),
-           let languages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+           let jsonLanguages = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             
-            allLanguages = languages.compactMap { language in
-                guard let code = language["code"] as? String,
-                      let name = language["name"] as? String,
-                      let flag = language["flag"] as? String,
-                      let country = language["country"] as? String else {
-                    return nil
-                }
+            allLanguages = jsonLanguages.compactMap { dict in
+                guard let code = dict["code"] as? String,
+                      let name = dict["name"] as? String,
+                      let flag = dict["flag"] as? String,
+                      let country = dict["country"] as? String else { return nil }
                 
-                let nativeName = language["nativeName"] as? String
-                let metadata = language["metadata"] as? [String: Any]
+                // Extract speakers and difficulty from metadata
+                let metadata = dict["metadata"] as? [String: Any]
                 let speakers = metadata?["speakers"] as? Int
                 let difficulty = metadata?["difficulty"] as? String
+                let nativeName = dict["nativeName"] as? String
                 
                 return LanguageInfo(
                     code: code,
@@ -101,19 +113,18 @@ class PreferencesViewController: NSViewController {
                     difficulty: difficulty
                 )
             }
+            
+            filteredLanguages = allLanguages
+            
+            print("PreferencesViewController: Loaded \(allLanguages.count) languages from JSON")
+            if let firstLanguage = allLanguages.first {
+                print("PreferencesViewController: First language: \(firstLanguage.code) - \(firstLanguage.name)")
+            }
         } else {
-            // Fallback to minimal essential languages if JSON fails
-            allLanguages = [
-                LanguageInfo(code: "BSL", name: "British Sign Language", flag: "🇬🇧", country: "GB", speakers: 150000, difficulty: "Intermediate")
-            ]
-            print("PreferencesViewController: JSON loading failed, using minimal fallback")
+            print("PreferencesViewController: Failed to load languages.json - no fallback data")
+            allLanguages = []
+            filteredLanguages = []
         }
-        
-        // Sort languages by name
-        allLanguages.sort { $0.name < $1.name }
-        filteredLanguages = allLanguages
-        
-        // Note: setDefaultLanguageBasedOnLocale() is now called separately via runLocaleDetection()
     }
     
     private func setDefaultLanguageBasedOnLocale() {
@@ -284,8 +295,8 @@ class PreferencesViewController: NSViewController {
         languageTableView.delegate = self
         languageTableView.dataSource = self
         languageTableView.style = .sourceList
-        languageTableView.rowHeight = 60
-        languageTableView.intercellSpacing = NSSize(width: 0, height: 5)
+        languageTableView.rowHeight = 40
+        languageTableView.intercellSpacing = NSSize(width: 0, height: 8)
         
         // CRASH PREVENTION: Configure table view for safety
         languageTableView.allowsEmptySelection = true
@@ -300,25 +311,25 @@ class PreferencesViewController: NSViewController {
         
         let nameColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
         nameColumn.title = "Language"
-        nameColumn.width = 200
-        nameColumn.minWidth = 150
+        nameColumn.width = 275
+        nameColumn.minWidth = 225
         
         let codeColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("code"))
         codeColumn.title = "Code"
         codeColumn.width = 80
         codeColumn.minWidth = 60
-        codeColumn.maxWidth = 100
+        codeColumn.maxWidth = 80
         
         let speakersColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("speakers"))
         speakersColumn.title = "Speakers"
         speakersColumn.width = 100
         speakersColumn.minWidth = 80
-        speakersColumn.maxWidth = 120
+        speakersColumn.maxWidth = 100
         
         let difficultyColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("difficulty"))
         difficultyColumn.title = "Level"
-        difficultyColumn.width = 80
-        difficultyColumn.minWidth = 60
+        difficultyColumn.width = 100
+        difficultyColumn.minWidth = 80
         difficultyColumn.maxWidth = 100
         
         languageTableView.addTableColumn(flagColumn)
@@ -327,16 +338,63 @@ class PreferencesViewController: NSViewController {
         languageTableView.addTableColumn(speakersColumn)
         languageTableView.addTableColumn(difficultyColumn)
         
-        // Add to scroll view - this automatically handles constraints
+        // Add table view back to scroll view for vertical scrolling
         scrollView.documentView = languageTableView
+        
+        // Scroll view constraints are handled in setupUI method
+        
+        // Configure table view to prevent horizontal overflow
+        languageTableView.columnAutoresizingStyle = .noColumnAutoresizing
+        languageTableView.autoresizingMask = []
+        languageTableView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Force layout update after view appears
+        DispatchQueue.main.async {
+            // Print debug info to understand the sizing issue
+            print("Scroll view frame: \(self.scrollView.frame)")
+            print("Table view frame: \(self.languageTableView.frame)")
+            print("Table view content size: \(self.languageTableView.frame.size)")
+            
+            // Calculate total column width
+            let totalColumnWidth = self.languageTableView.tableColumns.reduce(0) { $0 + $1.width }
+            print("Total column width: \(totalColumnWidth)")
+            
+            // Force table to be exactly scroll view width
+            let scrollViewWidth = self.scrollView.frame.width
+            self.languageTableView.frame = NSRect(x: 0, y: 0, width: scrollViewWidth, height: self.languageTableView.frame.height)
+            
+            // Adjust column widths to fit
+            let availableWidth = scrollViewWidth - 20 // Small margin
+            let columnCount = CGFloat(self.languageTableView.tableColumns.count)
+            let columnWidth = availableWidth / columnCount
+            
+            for column in self.languageTableView.tableColumns {
+                column.width = columnWidth
+            }
+            
+            self.languageTableView.reloadData()
+        }
     }
     
     private func loadCurrentSelection() {
-        // Find and select the currently selected language
+        print("PreferencesViewController: Loading current selection")
+        
+        // Load current language from UserDefaults
+        selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "BSL"
+        
+        // Load current hand preference from UserDefaults
+        selectedHand = UserDefaults.standard.string(forKey: "HandPreference") ?? "Right"
+        
+        // Update UI to reflect current selection
         if let index = filteredLanguages.firstIndex(where: { $0.code == selectedLanguage }) {
             languageTableView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+            print("PreferencesViewController: Selected current language \(selectedLanguage) at index \(index)")
         }
-        // Don't send notification when window opens, only when user selects a different language
+        
+        // Update hand preference control
+        handPreferenceSegmentedControl.selectedSegment = selectedHand == "Left" ? 0 : 1
+        
+        print("PreferencesViewController: Current selection loaded - Language: \(selectedLanguage), Hand: \(selectedHand)")
     }
     
     // MARK: - Actions
@@ -423,7 +481,7 @@ extension PreferencesViewController: NSTableViewDelegate {
         switch tableColumn?.identifier {
         case NSUserInterfaceItemIdentifier("flag"):
             let flagLabel = NSTextField(labelWithString: language.flag)
-            flagLabel.font = NSFont.systemFont(ofSize: 24)
+            flagLabel.font = NSFont.systemFont(ofSize: 28)
             flagLabel.alignment = .center
             flagLabel.isEditable = false
             flagLabel.isBordered = false
@@ -458,7 +516,7 @@ extension PreferencesViewController: NSTableViewDelegate {
             return codeLabel
             
         case NSUserInterfaceItemIdentifier("speakers"):
-            let speakersText = language.speakers != nil ? formatSpeakers(language.speakers!) : "Unknown"
+            let speakersText = language.speakers != nil ? formatSpeakers(language.speakers!) : "N/A"
             let speakersLabel = NSTextField(labelWithString: speakersText)
             speakersLabel.font = NSFont.systemFont(ofSize: 12)
             speakersLabel.textColor = NSColor.secondaryLabelColor
