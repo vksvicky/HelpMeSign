@@ -63,10 +63,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.touchBar = nil
         window.isMovableByWindowBackground = false
         
-        // Create the full CameraViewController with all functionality
-        let cameraVC = CameraViewController()
+        // Create the full MainWindowController with all functionality
+        let mainWindowController = MainWindowController()
         
-        window.contentViewController = cameraVC
+        window.contentViewController = mainWindowController
         
         // Set default language based on system preferences if no language is saved
         setDefaultLanguageIfNeeded()
@@ -105,11 +105,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             // Use the detected language (or BSL as fallback)
             UserDefaults.standard.set(defaultLanguage, forKey: "SelectedLanguage")
             
-            // Update the camera view controller with the default language
+            // Update the main window controller with the default language
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 if let mainWindow = NSApplication.shared.mainWindow,
-                   let cameraVC = mainWindow.contentViewController as? CameraViewController {
-                    cameraVC.changeLanguage(to: defaultLanguage)
+                   let mainWindowController = mainWindow.contentViewController as? MainWindowController {
+                    mainWindowController.changeLanguage(to: defaultLanguage)
                 }
             }
         }

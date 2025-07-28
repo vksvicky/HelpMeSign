@@ -353,7 +353,7 @@ class AIUserExperienceSystem: NSObject {
     // MARK: - Vision Handlers
     
     private func handleHandPoseDetection(request: VNRequest, error: Error?) {
-        if let error = error {
+        if error != nil {
             return
         }
         
@@ -535,7 +535,7 @@ class AIUserExperienceSystem: NSObject {
             
             // Debug: Print feature stability
             if let keyFeatures = self?.extractKeyHandFeatures(features) {
-                let featureSignature = keyFeatures.map { round($0 * 10) / 10 }.prefix(6)
+                _ = keyFeatures.map { round($0 * 10) / 10 }.prefix(6)
                 
                 // Debug hand shape characteristics
                 if keyFeatures.count >= 6 {
@@ -550,9 +550,9 @@ class AIUserExperienceSystem: NSObject {
                     let handHeight = max(indexTipY, middleTipY) - wristY
                     let handWidth = max(indexTipX, middleTipX) - wristX
                     
-                    let normalizedSpread = round(handSpread * 10) / 10
-                    let normalizedHeight = round(handHeight * 10) / 10
-                    let normalizedWidth = round(handWidth * 10) / 10
+                    _ = round(handSpread * 10) / 10
+                    _ = round(handHeight * 10) / 10
+                    _ = round(handWidth * 10) / 10
                     
                 }
             }

@@ -140,7 +140,6 @@ class PreferencesViewController: NSViewController {
     private func setDefaultLanguageBasedOnLocale() {
         // Get user's preferred languages from macOS system settings
         let preferredLanguages = Locale.preferredLanguages
-        let currentLocale = Locale.current
         
 
         
@@ -350,8 +349,6 @@ class PreferencesViewController: NSViewController {
         
         // Force layout update after view appears
         DispatchQueue.main.async {
-            // Calculate total column width
-            let totalColumnWidth = self.languageTableView.tableColumns.reduce(0) { $0 + $1.width }
             
             // Force table to be exactly scroll view width
             let scrollViewWidth = self.scrollView.frame.width
@@ -460,13 +457,13 @@ class PreferencesViewController: NSViewController {
                 userInfo: ["languageCode": languageCode]
             )
             
-            // Also update the main window's camera view controller directly
+            // Also update the main window's main window controller directly
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 if let mainWindow = NSApplication.shared.mainWindow,
-                   let cameraVC = mainWindow.contentViewController as? CameraViewController {
-                    cameraVC.changeLanguage(to: languageCode)
+                   let mainWindowController = mainWindow.contentViewController as? MainWindowController {
+                    mainWindowController.changeLanguage(to: languageCode)
                 }
-                        }
+            }
         }
     }
 }

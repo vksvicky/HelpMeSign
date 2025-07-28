@@ -73,8 +73,8 @@ class SimplePreferencesViewController: NSViewController {
         // Update main window after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let mainWindow = NSApplication.shared.windows.first(where: { $0.title == "HelpMeSign" }),
-               let cameraVC = mainWindow.contentViewController as? CameraViewController {
-                cameraVC.changeLanguage(to: selectedLanguage)
+               let mainWindowController = mainWindow.contentViewController as? MainWindowController {
+                mainWindowController.changeLanguage(to: selectedLanguage)
             }
         }
     }
