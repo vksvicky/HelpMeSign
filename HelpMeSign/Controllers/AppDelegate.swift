@@ -79,9 +79,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     private func setDefaultLanguageIfNeeded() {
-        // TEMPORARY: Clear existing preference to force locale detection
-        UserDefaults.standard.removeObject(forKey: "SelectedLanguage")
-        
         // Only set default if no language preference is saved
         if UserDefaults.standard.string(forKey: "SelectedLanguage") == nil {
             // Get user's preferred languages from macOS system settings

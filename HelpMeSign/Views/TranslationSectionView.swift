@@ -10,6 +10,11 @@ class TranslationSectionView: NSView {
     // MARK: - Callbacks
     var onClearTapped: (() -> Void)?
     
+    // MARK: - Data
+    private var lastTranslation: String = ""
+    private var lastTranslationTime: Date = Date.distantPast
+    private let translationCooldown: TimeInterval = 2.0 // 2 second cooldown for same translation
+    
     // MARK: - Initialization
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -85,7 +90,20 @@ class TranslationSectionView: NSView {
     
     // MARK: - Public Methods
     func addTranslation(_ translation: String, confidence: Float = 1.0) {
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
+        let now = Date()
+        
+        // Check if this is the same translation as the last one
+        if translation == lastTranslation {
+            let timeSinceLastTranslation = now.timeIntervalSince(lastTranslationTime)
+            
+            // If same translation was shown recently, skip it
+            if timeSinceLastTranslation < translationCooldown {
+                NSLog("TranslationDisplay: Skipping repeated translation '\(translation)' (shown \(timeSinceLastTranslation)s ago)")
+                return
+            }
+        }
+        
+        let timestamp = DateFormatter.localizedString(from: now, dateStyle: .none, timeStyle: .short)
         let confidencePercentage = Int(confidence * 100)
         let entry = "[\(timestamp)] \(translation) (\(confidencePercentage)%)\n"
         
@@ -98,6 +116,10 @@ class TranslationSectionView: NSView {
             self.textView.needsDisplay = true
             self.textView.needsLayout = true
         }
+        
+        // Update last translation info
+        lastTranslation = translation
+        lastTranslationTime = now
     }
     
     func clearTranslations() {

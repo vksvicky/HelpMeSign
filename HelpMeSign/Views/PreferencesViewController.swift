@@ -464,6 +464,11 @@ class PreferencesViewController: NSViewController {
                     mainWindowController.changeLanguage(to: languageCode)
                 }
             }
+            
+            // Update AI system directly
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                AIUserExperienceSystem.shared.changeLanguage(to: languageCode)
+            }
         }
     }
 }

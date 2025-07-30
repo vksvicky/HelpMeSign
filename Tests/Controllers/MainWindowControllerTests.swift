@@ -248,7 +248,7 @@ class MainWindowControllerTests: XCTestCase {
                 self.mainWindowController.displayTranslation("Background \(i)")
                 // Assert on main thread
                 DispatchQueue.main.async {
-                    expectation.fulfill()
+                expectation.fulfill()
                 }
             }
         }
@@ -259,7 +259,7 @@ class MainWindowControllerTests: XCTestCase {
                 self.mainWindowController.changeLanguage(to: "B\(i)")
                 // Assert on main thread
                 DispatchQueue.main.async {
-                    expectation.fulfill()
+                expectation.fulfill()
                 }
             }
         }

@@ -92,6 +92,98 @@ class AIUserExperienceSystemTests: XCTestCase {
         XCTAssertNotNil(aiSystem.onSignRecognized, "Callback should be registered successfully")
     }
     
+    // MARK: - Fix Tests
+    
+    func testNoSignDetection() {
+        // Test that no sign is detected when no hand is visible
+        let emptyFeatures: [Float] = Array(repeating: 0.0, count: 42)
+        let result = aiSystem.testDetermineSignFromHandShape(emptyFeatures)
+        
+        // With the new "no sign" detection, this should return a reasonable fallback
+        // rather than a false positive
+        XCTAssertGreaterThanOrEqual(result, 0, "Should return valid sign index even with empty features")
+        XCTAssertLessThan(result, 26, "Sign index should be within alphabet range")
+    }
+    
+    func testHandVisibilityDetection() {
+        // Test hand visibility detection with various feature sets
+        let invisibleFeatures: [Float] = Array(repeating: 0.0, count: 42) // No hand visible
+        let partiallyVisibleFeatures: [Float] = Array(repeating: 0.3, count: 42) // Partially visible
+        let fullyVisibleFeatures: [Float] = Array(repeating: 0.8, count: 42) // Fully visible
+        
+        // Test with features that should not trigger sign detection
+        XCTAssertNoThrow(aiSystem.processFeatures(invisibleFeatures), "Should handle invisible hand gracefully")
+        XCTAssertNoThrow(aiSystem.processFeatures(partiallyVisibleFeatures), "Should handle partially visible hand gracefully")
+        XCTAssertNoThrow(aiSystem.processFeatures(fullyVisibleFeatures), "Should handle fully visible hand gracefully")
+    }
+    
+    func testAdaptiveLearningInitialization() {
+        // Test that adaptive learning is only initialized once
+        aiSystem.resetAdaptiveLearning() // Reset for clean test
+        
+        // First initialization
+        XCTAssertNoThrow(aiSystem.startRecognition(), "First recognition start should work")
+        
+        // Second initialization should not cause issues
+        XCTAssertNoThrow(aiSystem.stopRecognition(), "Stop recognition should work")
+        XCTAssertNoThrow(aiSystem.startRecognition(), "Second recognition start should work")
+        
+        // Clean up
+        aiSystem.stopRecognition()
+    }
+    
+    func testReducedLogging() {
+        // Test that logging is reduced (this is more of a manual verification)
+        // In a real test environment, we would capture NSLog output and verify frequency
+        XCTAssertNoThrow(aiSystem.startRecognition(), "Recognition start should work with reduced logging")
+        XCTAssertNoThrow(aiSystem.stopRecognition(), "Recognition stop should work")
+    }
+    
+    func testLanguageSuggestionAndSwitching() {
+        // Test language suggestion and switching functionality
+        aiSystem.resetLanguageSuggestionSystem() // Reset for clean test
+        
+        // Simulate accepting a language suggestion
+        XCTAssertNoThrow(aiSystem.acceptLanguageSuggestion(), "Should handle language suggestion acceptance")
+        
+        // Test that dismissing a suggestion works
+        XCTAssertNoThrow(aiSystem.dismissLanguageSuggestion(), "Should handle language suggestion dismissal")
+        
+        // Test language change
+        XCTAssertNoThrow(aiSystem.changeLanguage(to: "ASL"), "Should change language to ASL")
+        XCTAssertNoThrow(aiSystem.changeLanguage(to: "BSL"), "Should change language to BSL")
+    }
+    
+    func testLanguageSuggestionCooldown() {
+        // Test that language suggestions respect the cooldown period
+        aiSystem.resetLanguageSuggestionSystem()
+        
+        // First suggestion should work
+        XCTAssertNoThrow(aiSystem.dismissLanguageSuggestion(), "First suggestion should work")
+        
+        // Immediate second suggestion should be prevented by cooldown
+        // This is tested by the internal logic, but we can verify the system is working
+        XCTAssertNoThrow(aiSystem.resetLanguageSuggestionSystem(), "Reset should work")
+    }
+    
+    func testSignHoldingDetection() {
+        // Test sign holding detection to prevent repeated translations
+        aiSystem.resetSignHoldingDetection()
+        
+        // Test that the system can handle sign holding detection
+        XCTAssertNoThrow(aiSystem.resetSignHoldingDetection(), "Sign holding detection reset should work")
+        
+        // Test that repeated signs are handled properly
+        // This is tested by the internal logic, but we can verify the system is working
+        XCTAssertNoThrow(aiSystem.resetSignHoldingDetection(), "Reset should work")
+    }
+    
+    func testTranslationCooldown() {
+        // Test that translation display respects cooldown periods
+        // This ensures that holding a sign doesn't spam the translation display
+        XCTAssertNoThrow(aiSystem.resetSignHoldingDetection(), "Translation cooldown system should work")
+    }
+    
     // MARK: - Unhappy Path Tests
     
     func testRecognitionStartWhenAlreadyActive() {

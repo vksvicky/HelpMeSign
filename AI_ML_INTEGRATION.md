@@ -294,11 +294,11 @@ let aiSystem = AIUserExperienceSystem.shared
 
 // Set up callbacks
 aiSystem.onSignRecognized = { result in
-    print("Recognized: \(result.sign) with confidence: \(result.confidence)")
+    NSLog("Recognized: \(result.sign) with confidence: \(result.confidence)")
 }
 
 aiSystem.onLanguageChanged = { language in
-    print("Changed to: \(language.name) (\(language.code))")
+    NSLog("Changed to: \(language.name) (\(language.code))")
 }
 
 // Start recognition

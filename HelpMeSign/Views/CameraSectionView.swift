@@ -1,6 +1,7 @@
 import Cocoa
 import MetalKit
 import AVFoundation
+import Foundation
 
 class CameraSectionView: NSView {
     
@@ -21,6 +22,8 @@ class CameraSectionView: NSView {
     // MARK: - Callbacks
     var onStartStopTapped: (() -> Void)?
     var onHoverChanged: ((Bool) -> Void)?
+    var onFrameCaptured: ((CMSampleBuffer) -> Void)?
+    var onLanguageDisplayClicked: (() -> Void)?
     
     // MARK: - Initialization
     override init(frame frameRect: NSRect) {
@@ -96,17 +99,41 @@ class CameraSectionView: NSView {
         langContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor
         langContainer.layer?.cornerRadius = 8
         
+        // Make container clickable
+        langContainer.layer?.masksToBounds = false
+        
+        // Add hover effect
+        let trackingArea = NSTrackingArea(
+            rect: langContainer.bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp],
+            owner: self,
+            userInfo: ["container": langContainer]
+        )
+        langContainer.addTrackingArea(trackingArea)
+        
+        // Add click gesture
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(languageContainerClicked))
+        langContainer.addGestureRecognizer(clickGesture)
+        
         languageLabel = NSTextField(labelWithString: "BSL")
         languageLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
         languageLabel.textColor = .white
         languageLabel.sizeToFit()
         languageLabel.frame.origin = CGPoint(x: 10, y: 12)
+        languageLabel.isEditable = false
+        languageLabel.isSelectable = false
+        languageLabel.backgroundColor = .clear
+        languageLabel.isBordered = false
         langContainer.addSubview(languageLabel)
         
         flagLabel = NSTextField(labelWithString: "🇺🇸")
         flagLabel.font = NSFont.systemFont(ofSize: 20)
         flagLabel.sizeToFit()
         flagLabel.frame.origin = CGPoint(x: 60, y: 8)
+        flagLabel.isEditable = false
+        flagLabel.isSelectable = false
+        flagLabel.backgroundColor = .clear
+        flagLabel.isBordered = false
         langContainer.addSubview(flagLabel)
         
         camView.addSubview(langContainer)
@@ -316,6 +343,34 @@ class CameraSectionView: NSView {
     @objc private func toggleRecognition() {
         onStartStopTapped?()
     }
+    
+    @objc private func languageContainerClicked(sender: NSClickGestureRecognizer) {
+        onLanguageDisplayClicked?()
+    }
+    
+    // MARK: - Mouse Event Handling
+    
+    override func mouseEntered(with event: NSEvent) {
+        if let userInfo = event.trackingArea?.userInfo,
+           let container = userInfo["container"] as? NSView {
+            // Add hover effect - slightly lighter background
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.15
+                container.animator().layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
+            }
+        }
+    }
+    
+    override func mouseExited(with event: NSEvent) {
+        if let userInfo = event.trackingArea?.userInfo,
+           let container = userInfo["container"] as? NSView {
+            // Remove hover effect - return to original background
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.15
+                container.animator().layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor
+            }
+        }
+    }
 }
 
 // MARK: - MTKViewDelegate
@@ -355,5 +410,8 @@ extension CameraSectionView: AVCaptureVideoDataOutputSampleBufferDelegate {
         if status == kCVReturnSuccess, let texture = texture {
             self.currentTexture = CVMetalTextureGetTexture(texture)
         }
+        
+        // Forward frame for AI processing
+        onFrameCaptured?(sampleBuffer)
     }
 } 

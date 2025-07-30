@@ -70,6 +70,9 @@ class SimplePreferencesViewController: NSViewController {
         let selectedLanguage = languagePopUp.selectedItem?.title ?? "ASL"
         UserDefaults.standard.set(selectedLanguage, forKey: "SelectedLanguage")
         
+        // Update AI system
+        AIUserExperienceSystem.shared.changeLanguage(to: selectedLanguage)
+        
         // Update main window after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let mainWindow = NSApplication.shared.windows.first(where: { $0.title == "HelpMeSign" }),

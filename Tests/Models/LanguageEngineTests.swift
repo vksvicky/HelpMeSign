@@ -4,6 +4,7 @@ import Vision
 import CoreML
 @testable import HelpMeSign
 
+@MainActor
 class LanguageEngineTests: XCTestCase {
     var languageEngine: LanguageEngine!
     
@@ -43,7 +44,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             let loadedLanguages = languageEngine.getLoadedLanguages()
@@ -61,7 +62,7 @@ class LanguageEngineTests: XCTestCase {
         Task {
             await languageEngine.discoverLanguages()
             // First load the language
-            let success = await languageEngine.loadLanguage("BSL")
+            let success = _ = await languageEngine.loadLanguage("BSL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             // Then unload it
@@ -96,7 +97,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let result = await languageEngine.translate("A", from: "ASL", to: "BSL")
+            let result = _ = await languageEngine.translate("A", from: "ASL", to: "BSL")
             XCTAssertNotNil(result, "Translation should return a result")
             expectation.fulfill()
         }
@@ -110,10 +111,10 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
-            let result = await languageEngine.recognize("test_gesture", in: "ASL")
+            let result = _ = await languageEngine.recognize("test_gesture", in: "ASL")
             XCTAssertNotNil(result, "Recognition should return a result")
             expectation.fulfill()
         }
@@ -156,8 +157,8 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             // Load the same language twice
-            let success1 = await languageEngine.loadLanguage("ISL")
-            let success2 = await languageEngine.loadLanguage("ISL")
+            let success1 = _ = await languageEngine.loadLanguage("ISL")
+            let success2 = _ = await languageEngine.loadLanguage("ISL")
             
             XCTAssertTrue(success1, "First loading should succeed")
             XCTAssertTrue(success2, "Second loading should also succeed")
@@ -182,7 +183,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Translation with unloaded languages")
         
         Task {
-            let result = await languageEngine.translate("A", from: "UNLOADED1", to: "UNLOADED2")
+            let result = _ = await languageEngine.translate("A", from: "UNLOADED1", to: "UNLOADED2")
             XCTAssertNotNil(result, "Translation should return a result even with unloaded languages")
             expectation.fulfill()
         }
@@ -195,7 +196,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Recognition with unloaded language")
         
         Task {
-            let result = await languageEngine.recognize("test_gesture", in: "UNLOADED")
+            let result = _ = await languageEngine.recognize("test_gesture", in: "UNLOADED")
             XCTAssertNil(result, "Recognition should return nil for unloaded language")
             expectation.fulfill()
         }
@@ -222,7 +223,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Translation with empty string")
         
         Task {
-            let result = await languageEngine.translate("", from: "ASL", to: "BSL")
+            let result = _ = await languageEngine.translate("", from: "ASL", to: "BSL")
             XCTAssertNotNil(result, "Translation should handle empty string")
             expectation.fulfill()
         }
@@ -236,10 +237,10 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
-            let result = await languageEngine.recognize("", in: "ASL")
+            let result = _ = await languageEngine.recognize("", in: "ASL")
             XCTAssertNotNil(result, "Recognition should handle empty gesture")
             expectation.fulfill()
         }
@@ -255,7 +256,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             // Try to load with invalid language code
-            let success = await languageEngine.loadLanguage("")
+            let success = _ = await languageEngine.loadLanguage("")
             XCTAssertFalse(success, "Loading with empty code should fail")
             expectation.fulfill()
         }
@@ -268,7 +269,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Translation with same languages")
         
         Task {
-            let result = await languageEngine.translate("A", from: "ASL", to: "ASL")
+            let result = _ = await languageEngine.translate("A", from: "ASL", to: "ASL")
             XCTAssertNotNil(result, "Translation should handle same source and target")
             expectation.fulfill()
         }
@@ -282,10 +283,10 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
-            let result = await languageEngine.recognize("test_gesture", in: "")
+            let result = _ = await languageEngine.recognize("test_gesture", in: "")
             XCTAssertNil(result, "Recognition should return nil for invalid language")
             expectation.fulfill()
         }
@@ -298,7 +299,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Language loading with special characters")
         
         Task {
-            let success = await languageEngine.loadLanguage("TEST@#$%")
+            let success = _ = await languageEngine.loadLanguage("TEST@#$%")
             XCTAssertFalse(success, "Loading with special characters should fail")
             expectation.fulfill()
         }
@@ -311,7 +312,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Translation with special characters")
         
         Task {
-            let result = await languageEngine.translate("A@#$%", from: "ASL", to: "BSL")
+            let result = _ = await languageEngine.translate("A@#$%", from: "ASL", to: "BSL")
             XCTAssertNotNil(result, "Translation should handle special characters")
             expectation.fulfill()
         }
@@ -325,10 +326,10 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
-            let result = await languageEngine.recognize("test@#$%", in: "ASL")
+            let result = _ = await languageEngine.recognize("test@#$%", in: "ASL")
             XCTAssertNotNil(result, "Recognition should handle special characters")
             expectation.fulfill()
         }
@@ -341,7 +342,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Language loading with unicode characters")
         
         Task {
-            let success = await languageEngine.loadLanguage("测试")
+            let success = _ = await languageEngine.loadLanguage("测试")
             XCTAssertFalse(success, "Loading with unicode characters should fail")
             expectation.fulfill()
         }
@@ -354,7 +355,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Translation with unicode characters")
         
         Task {
-            let result = await languageEngine.translate("测试", from: "ASL", to: "BSL")
+            let result = _ = await languageEngine.translate("测试", from: "ASL", to: "BSL")
             XCTAssertNotNil(result, "Translation should handle unicode characters")
             expectation.fulfill()
         }
@@ -398,7 +399,7 @@ class LanguageEngineTests: XCTestCase {
             // First load some languages
             let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for i in 0..<5 {
-                await languageEngine.loadLanguage(validLanguages[i])
+                _ = _ = await languageEngine.loadLanguage(validLanguages[i])
             }
             
             // Then unload them concurrently
@@ -446,7 +447,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             let group = DispatchGroup()
@@ -479,7 +480,7 @@ class LanguageEngineTests: XCTestCase {
             let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for i in 0..<20 {
                 let languageCode = validLanguages[i % validLanguages.count]
-                await languageEngine.loadLanguage(languageCode)
+                _ = _ = await languageEngine.loadLanguage(languageCode)
             }
             
             XCTAssertTrue(true, "Should handle memory pressure gracefully")
@@ -510,7 +511,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             XCTAssertNoThrow({
@@ -532,11 +533,11 @@ class LanguageEngineTests: XCTestCase {
         Task {
             await languageEngine.discoverLanguages()
             // Test with valid language codes that exist in our registry
-            let success1 = await languageEngine.loadLanguage("ASL")
+            let success1 = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success1, "Should handle valid language code")
             
             // Test with another valid language code
-            let success2 = await languageEngine.loadLanguage("BSL")
+            let success2 = _ = await languageEngine.loadLanguage("BSL")
             XCTAssertTrue(success2, "Should handle another valid language code")
             
             expectation.fulfill()
@@ -558,16 +559,16 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             // Test with minimum valid input
-            let result1 = await languageEngine.recognize("A", in: "ASL")
+            let result1 = _ = await languageEngine.recognize("A", in: "ASL")
             XCTAssertNotNil(result1, "Should handle minimum input")
             
             // Test with maximum valid input
             let maxInput = String(repeating: "A", count: 1000)
-            let result2 = await languageEngine.recognize(maxInput, in: "ASL")
+            let result2 = _ = await languageEngine.recognize(maxInput, in: "ASL")
             XCTAssertNotNil(result2, "Should handle maximum input")
             
             expectation.fulfill()
@@ -582,12 +583,12 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             // Test with minimum valid input
-            let result1 = await languageEngine.translate("A", from: "ASL", to: "BSL")
+            let result1 = _ = await languageEngine.translate("A", from: "ASL", to: "BSL")
             XCTAssertNotNil(result1, "Should handle minimum input")
             
             // Test with maximum valid input
             let maxInput = String(repeating: "A", count: 1000)
-            let result2 = await languageEngine.translate(maxInput, from: "ASL", to: "BSL")
+            let result2 = _ = await languageEngine.translate(maxInput, from: "ASL", to: "BSL")
             XCTAssertNotNil(result2, "Should handle maximum input")
             
             expectation.fulfill()
@@ -614,7 +615,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Language loading with special characters edge case")
         
         Task {
-            let success = await languageEngine.loadLanguage("TEST@#$%")
+            let success = _ = await languageEngine.loadLanguage("TEST@#$%")
             XCTAssertFalse(success, "Should handle special characters gracefully")
             expectation.fulfill()
         }
@@ -627,7 +628,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Language loading with unicode characters edge case")
         
         Task {
-            let success = await languageEngine.loadLanguage("测试")
+            let success = _ = await languageEngine.loadLanguage("测试")
             XCTAssertFalse(success, "Should handle unicode characters gracefully")
             expectation.fulfill()
         }
@@ -640,7 +641,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Language loading with whitespace")
         
         Task {
-            let success = await languageEngine.loadLanguage("   TEST   ")
+            let success = _ = await languageEngine.loadLanguage("   TEST   ")
             XCTAssertFalse(success, "Should handle whitespace gracefully")
             expectation.fulfill()
         }
@@ -654,10 +655,10 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
-            let result = await languageEngine.recognize("test_gesture", in: "")
+            let result = _ = await languageEngine.recognize("test_gesture", in: "")
             XCTAssertNil(result, "Should return nil for empty language")
             expectation.fulfill()
         }
@@ -670,7 +671,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Translation with identical languages")
         
         Task {
-            let result = await languageEngine.translate("A", from: "ASL", to: "ASL")
+            let result = _ = await languageEngine.translate("A", from: "ASL", to: "ASL")
             XCTAssertNotNil(result, "Should handle identical languages gracefully")
             expectation.fulfill()
         }
@@ -687,7 +688,7 @@ class LanguageEngineTests: XCTestCase {
             let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for i in 0..<50 {
                 let languageCode = validLanguages[i % validLanguages.count]
-                await languageEngine.loadLanguage(languageCode)
+                _ = await languageEngine.loadLanguage(languageCode)
             }
             
             let loadedLanguages = languageEngine.getLoadedLanguages()
@@ -706,7 +707,7 @@ class LanguageEngineTests: XCTestCase {
             // First load some languages
             let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for i in 0..<10 {
-                await languageEngine.loadLanguage(validLanguages[i % validLanguages.count])
+                _ = await languageEngine.loadLanguage(validLanguages[i % validLanguages.count])
             }
             
             // Then unload them all
@@ -728,7 +729,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             let longText = String(repeating: "A", count: 10000)
-            let result = await languageEngine.translate(longText, from: "ASL", to: "BSL")
+            let result = _ = await languageEngine.translate(longText, from: "ASL", to: "BSL")
             XCTAssertNotNil(result, "Should handle very long text gracefully")
             expectation.fulfill()
         }
@@ -742,11 +743,11 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             let longGesture = String(repeating: "A", count: 10000)
-            let result = await languageEngine.recognize(longGesture, in: "ASL")
+            let result = _ = await languageEngine.recognize(longGesture, in: "ASL")
             XCTAssertNotNil(result, "Should handle very long gesture gracefully")
             expectation.fulfill()
         }
@@ -759,7 +760,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Language loading with numeric codes")
         
         Task {
-            let success = await languageEngine.loadLanguage("123")
+            let success = _ = await languageEngine.loadLanguage("123")
             XCTAssertFalse(success, "Should handle numeric codes gracefully")
             expectation.fulfill()
         }
@@ -772,7 +773,7 @@ class LanguageEngineTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Translation with numeric text")
         
         Task {
-            let result = await languageEngine.translate("12345", from: "ASL", to: "BSL")
+            let result = _ = await languageEngine.translate("12345", from: "ASL", to: "BSL")
             XCTAssertNotNil(result, "Should handle numeric text gracefully")
             expectation.fulfill()
         }
@@ -786,10 +787,10 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
-            let result = await languageEngine.recognize("12345", in: "ASL")
+            let result = _ = await languageEngine.recognize("12345", in: "ASL")
             XCTAssertNotNil(result, "Should handle numeric gesture gracefully")
             expectation.fulfill()
         }
@@ -808,7 +809,7 @@ class LanguageEngineTests: XCTestCase {
             let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for i in 0..<100 {
                 let languageCode = validLanguages[i % validLanguages.count]
-                await languageEngine.loadLanguage(languageCode)
+                _ = await languageEngine.loadLanguage(languageCode)
             }
             
             let loadedLanguages = languageEngine.getLoadedLanguages()
@@ -829,7 +830,7 @@ class LanguageEngineTests: XCTestCase {
             let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for i in 0..<50 {
                 let languageCode = validLanguages[i % validLanguages.count]
-                await languageEngine.loadLanguage(languageCode)
+                _ = await languageEngine.loadLanguage(languageCode)
             }
             
             // Then unload them rapidly
@@ -851,7 +852,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             for i in 0..<1000 {
-                let result = await languageEngine.translate("A\(i)", from: "ASL", to: "BSL")
+                let result = _ = await languageEngine.translate("A\(i)", from: "ASL", to: "BSL")
                 XCTAssertNotNil(result, "Should handle high volume translation")
             }
             
@@ -867,11 +868,11 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             for i in 0..<1000 {
-                let result = await languageEngine.recognize("gesture\(i)", in: "ASL")
+                let result = _ = await languageEngine.recognize("gesture\(i)", in: "ASL")
                 XCTAssertNotNil(result, "Should handle high volume recognition")
             }
             
@@ -888,7 +889,7 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             // Reduce the number of concurrent operations to avoid race conditions
@@ -932,12 +933,12 @@ class LanguageEngineTests: XCTestCase {
             let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for i in 0..<50 {
                 let languageCode = validLanguages[i % validLanguages.count]
-                await languageEngine.loadLanguage(languageCode)
+                _ = await languageEngine.loadLanguage(languageCode)
             }
             
             // Perform operations under memory stress (reduced from 100 to 25)
             for i in 0..<25 {
-                let result = await languageEngine.translate("A\(i)", from: "ASL", to: "BSL")
+                let result = _ = await languageEngine.translate("A\(i)", from: "ASL", to: "BSL")
                 XCTAssertNotNil(result, "Should handle memory stress")
             }
             
@@ -960,17 +961,17 @@ class LanguageEngineTests: XCTestCase {
             XCTAssertGreaterThan(availableLanguages.count, 0, "Should discover languages")
             
             // Load languages
-            let success1 = await languageEngine.loadLanguage("JSL")
+            let success1 = _ = await languageEngine.loadLanguage("JSL")
             XCTAssertTrue(success1, "Should load JSL")
-            let success2 = await languageEngine.loadLanguage("ASL")
+            let success2 = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success2, "Should load ASL")
             
             // Perform translation
-            let translationResult = await languageEngine.translate("A", from: "ASL", to: "BSL")
+            let translationResult = _ = await languageEngine.translate("A", from: "ASL", to: "BSL")
             XCTAssertNotNil(translationResult, "Should perform translation")
             
             // Perform recognition
-            let recognitionResult = await languageEngine.recognize("test_gesture", in: "ASL")
+            let recognitionResult = _ = await languageEngine.recognize("test_gesture", in: "ASL")
             XCTAssertNotNil(recognitionResult, "Should perform recognition")
             
             // Unload language
@@ -992,7 +993,7 @@ class LanguageEngineTests: XCTestCase {
             // Load multiple languages
             let languages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
             for language in languages {
-                await languageEngine.loadLanguage(language)
+                _ = await languageEngine.loadLanguage(language)
             }
             
             // Verify all are loaded
@@ -1003,7 +1004,7 @@ class LanguageEngineTests: XCTestCase {
             
             // Perform operations with each language
             for language in languages {
-                let result = await languageEngine.translate("A", from: language, to: "BSL")
+                let result = _ = await languageEngine.translate("A", from: language, to: "BSL")
                 XCTAssertNotNil(result, "Should work with \(language)")
             }
             
@@ -1024,11 +1025,11 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             // Load a language (should be cached)
-            await languageEngine.loadLanguage("ISL")
+            _ = await languageEngine.loadLanguage("ISL")
             
             // Unload and reload (should use cache)
             languageEngine.unloadLanguage("ISL")
-            await languageEngine.loadLanguage("ISL")
+            _ = await languageEngine.loadLanguage("ISL")
             
             let loadedLanguages = languageEngine.getLoadedLanguages()
             XCTAssertTrue(loadedLanguages.contains("ISL"), "Should use cache")
@@ -1062,9 +1063,9 @@ class LanguageEngineTests: XCTestCase {
         Task {
             await languageEngine.discoverLanguages()
             // Trigger callbacks
-            await languageEngine.loadLanguage("ASL")
-            await languageEngine.translate("A", from: "ASL", to: "BSL")
-            await languageEngine.recognize("test_gesture", in: "ASL")
+            _ = await languageEngine.loadLanguage("ASL")
+            _ = await languageEngine.translate("A", from: "ASL", to: "BSL")
+            _ = await languageEngine.recognize("test_gesture", in: "ASL")
             
             // Verify callbacks were called
             XCTAssertTrue(languageLoadedCalled, "Language loaded callback should be called")
@@ -1085,7 +1086,7 @@ class LanguageEngineTests: XCTestCase {
             let expectation = XCTestExpectation(description: "Language loading performance")
             
             Task {
-                await languageEngine.loadLanguage("ASL")
+                _ = await languageEngine.loadLanguage("ASL")
                 expectation.fulfill()
             }
             
@@ -1100,10 +1101,10 @@ class LanguageEngineTests: XCTestCase {
             
             Task {
                 await languageEngine.discoverLanguages()
-                let success = await languageEngine.loadLanguage("ASL")
+                let success = _ = await languageEngine.loadLanguage("ASL")
                 XCTAssertTrue(success, "Language loading should succeed")
                 
-                let result = await languageEngine.recognize("test_gesture", in: "ASL")
+                let result = _ = await languageEngine.recognize("test_gesture", in: "ASL")
                 XCTAssertNotNil(result, "Should complete recognition")
                 expectation.fulfill()
             }
@@ -1118,7 +1119,7 @@ class LanguageEngineTests: XCTestCase {
             let expectation = XCTestExpectation(description: "Translation pipeline performance")
             
             Task {
-                let result = await languageEngine.translate("A", from: "ASL", to: "BSL")
+                let result = _ = await languageEngine.translate("A", from: "ASL", to: "BSL")
                 XCTAssertNotNil(result, "Should complete translation")
                 expectation.fulfill()
             }
@@ -1136,9 +1137,9 @@ class LanguageEngineTests: XCTestCase {
             Task {
                 // Setup: discover languages and load required languages
                 await languageEngine.discoverLanguages()
-                let success1 = await languageEngine.loadLanguage("ASL")
+                let success1 = _ = await languageEngine.loadLanguage("ASL")
                 XCTAssertTrue(success1, "ASL loading should succeed")
-                let success2 = await languageEngine.loadLanguage("BSL")
+                let success2 = _ = await languageEngine.loadLanguage("BSL")
                 XCTAssertTrue(success2, "BSL loading should succeed")
                 
                 // Perform concurrent operations
@@ -1173,7 +1174,7 @@ class LanguageEngineTests: XCTestCase {
                 let validLanguages = ["ASL", "BSL", "ISL", "JSL", "KSL"]
                 for i in 0..<20 { // Reduced from 50 to make it faster
                     let languageCode = validLanguages[i % validLanguages.count]
-                    await languageEngine.loadLanguage(languageCode)
+                    _ = await languageEngine.loadLanguage(languageCode)
                     languageEngine.unloadLanguage(languageCode)
                 }
                 
@@ -1196,7 +1197,7 @@ class LanguageEngineTests: XCTestCase {
             
             // Load the same language multiple times
             for _ in 0..<5 {
-                let success = await languageEngine.loadLanguage("ASL")
+                let success = _ = await languageEngine.loadLanguage("ASL")
                 XCTAssertTrue(success, "Language loading should be consistent")
             }
             
@@ -1216,15 +1217,15 @@ class LanguageEngineTests: XCTestCase {
         Task {
             // Setup: discover languages and load required languages
             await languageEngine.discoverLanguages()
-            let success1 = await languageEngine.loadLanguage("ASL")
+            let success1 = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success1, "ASL loading should succeed")
-            let success2 = await languageEngine.loadLanguage("BSL")
+            let success2 = _ = await languageEngine.loadLanguage("BSL")
             XCTAssertTrue(success2, "BSL loading should succeed")
             
             // Perform the same translation multiple times
             var results: [TranslationResult?] = []
             for _ in 0..<5 {
-                let result = await languageEngine.translate("A", from: "ASL", to: "BSL")
+                let result = _ = await languageEngine.translate("A", from: "ASL", to: "BSL")
                 results.append(result)
             }
             
@@ -1245,13 +1246,13 @@ class LanguageEngineTests: XCTestCase {
         
         Task {
             await languageEngine.discoverLanguages()
-            let success = await languageEngine.loadLanguage("ASL")
+            let success = _ = await languageEngine.loadLanguage("ASL")
             XCTAssertTrue(success, "Language loading should succeed")
             
             // Perform the same recognition multiple times
             var results: [RecognitionResult?] = []
             for _ in 0..<5 {
-                let result = await languageEngine.recognize("test_gesture", in: "ASL")
+                let result = _ = await languageEngine.recognize("test_gesture", in: "ASL")
                 results.append(result)
             }
             
@@ -1276,7 +1277,7 @@ class LanguageEngineTests: XCTestCase {
             
             // Load and unload the same language multiple times
             for _ in 0..<5 {
-                await languageEngine.loadLanguage("KSL")
+                _ = await languageEngine.loadLanguage("KSL")
                 languageEngine.unloadLanguage("KSL")
             }
             
@@ -1306,7 +1307,7 @@ class LanguageEngineTests: XCTestCase {
             ]
             
             for input in maliciousInputs {
-                let result = await languageEngine.translate(input, from: "ASL", to: "BSL")
+                let result = _ = await languageEngine.translate(input, from: "ASL", to: "BSL")
                 XCTAssertNotNil(result, "Should handle malicious input gracefully")
             }
             
@@ -1331,7 +1332,7 @@ class LanguageEngineTests: XCTestCase {
             ]
             
             for code in maliciousCodes {
-                let success = await languageEngine.loadLanguage(code)
+                let success = _ = await languageEngine.loadLanguage(code)
                 XCTAssertFalse(success, "Should reject malicious language codes")
             }
             
@@ -1355,7 +1356,7 @@ class LanguageEngineTests: XCTestCase {
             ]
             
             for code in pathTraversalCodes {
-                let success = await languageEngine.loadLanguage(code)
+                let success = _ = await languageEngine.loadLanguage(code)
                 XCTAssertFalse(success, "Should reject path traversal attempts")
             }
             
@@ -1372,7 +1373,7 @@ class LanguageEngineTests: XCTestCase {
         Task {
             // Test with extremely long inputs
             let longInput = String(repeating: "A", count: 100000)
-            let result = await languageEngine.translate(longInput, from: "ASL", to: "BSL")
+            let result = _ = await languageEngine.translate(longInput, from: "ASL", to: "BSL")
             XCTAssertNotNil(result, "Should handle extremely long input gracefully")
             
             expectation.fulfill()

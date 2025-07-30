@@ -1,0 +1,127 @@
+{
+  "language": "ASL",
+  "name": "American Sign Language (Simplified)",
+  "description": "Simplified ASL alphabet detection patterns",
+  "version": "1.0",
+  "patterns": {
+    "A": {
+      "description": "Closed fist with thumb at side",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "closed",
+        "middle": "closed",
+        "ring": "closed",
+        "little": "closed"
+      },
+      "confidence": 0.9
+    },
+    "B": {
+      "description": "All fingers extended, thumb tucked",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "extended",
+        "middle": "extended",
+        "ring": "extended",
+        "little": "extended"
+      },
+      "confidence": 0.9
+    },
+    "C": {
+      "description": "Curved hand shape",
+      "fingerPositions": {
+        "thumb": "curved",
+        "index": "curved",
+        "middle": "curved",
+        "ring": "curved",
+        "little": "curved"
+      },
+      "confidence": 0.8
+    },
+    "D": {
+      "description": "Index finger pointing up",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "extended",
+        "middle": "closed",
+        "ring": "closed",
+        "little": "closed"
+      },
+      "confidence": 0.9
+    },
+    "E": {
+      "description": "All fingers closed, thumb across palm",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "closed",
+        "middle": "closed",
+        "ring": "closed",
+        "little": "closed"
+      },
+      "confidence": 0.9
+    },
+    "F": {
+      "description": "Thumb and index touching, other fingers extended",
+      "fingerPositions": {
+        "thumb": "extended",
+        "index": "extended",
+        "middle": "extended",
+        "ring": "extended",
+        "little": "extended"
+      },
+      "confidence": 0.8
+    },
+    "G": {
+      "description": "Index finger pointing",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "extended",
+        "middle": "closed",
+        "ring": "closed",
+        "little": "closed"
+      },
+      "confidence": 0.9
+    },
+    "H": {
+      "description": "Index and middle fingers pointing",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "extended",
+        "middle": "extended",
+        "ring": "closed",
+        "little": "closed"
+      },
+      "confidence": 0.9
+    },
+    "I": {
+      "description": "Little finger pointing up",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "closed",
+        "middle": "closed",
+        "ring": "closed",
+        "little": "extended"
+      },
+      "confidence": 0.9
+    },
+    "J": {
+      "description": "Index finger making J motion",
+      "fingerPositions": {
+        "thumb": "closed",
+        "index": "extended",
+        "middle": "closed",
+        "ring": "closed",
+        "little": "closed"
+      },
+      "confidence": 0.8
+    }
+  },
+  "detectionSettings": {
+    "minConfidence": 0.7,
+    "handVisibilityThreshold": 0.5,
+    "fingerExtensionThreshold": 0.3,
+    "fingerCurveThreshold": {
+      "min": 0.2,
+      "max": 0.4
+    }
+  }
+} 

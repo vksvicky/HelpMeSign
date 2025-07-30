@@ -1,5 +1,6 @@
 import Cocoa
 import Foundation
+import AVFoundation
 
 @objc class MainWindowController: NSViewController {
     // MARK: - UI State
@@ -44,6 +45,12 @@ import Foundation
         cameraSectionView = CameraSectionView(frame: topSection.bounds)
         cameraSectionView.onStartStopTapped = { [weak self] in
             self?.toggleRecognition()
+        }
+        cameraSectionView.onFrameCaptured = { [weak self] (sampleBuffer: CMSampleBuffer) in
+            self?.processCameraFrame(sampleBuffer)
+        }
+        cameraSectionView.onLanguageDisplayClicked = { [weak self] in
+            self?.openPreferences()
         }
         topSection.addSubview(cameraSectionView)
         container.addSubview(topSection)
@@ -119,6 +126,12 @@ import Foundation
             }
         }
         
+        aiSystem.onLanguageSuggestion = { [weak self] (suggestedLanguage, confidence) in
+            DispatchQueue.main.async {
+                self?.handleLanguageSuggestion(suggestedLanguage, confidence)
+            }
+        }
+        
         // Language engine callbacks
         languageEngine.onRecognitionComplete = { [weak self] (result: RecognitionResult) in
             DispatchQueue.main.async {
@@ -168,6 +181,28 @@ import Foundation
         translationSectionView.addTranslation(result.targetSign, confidence: result.confidence)
     }
     
+    private func handleLanguageSuggestion(_ suggestedLanguage: String, _ confidence: Float) {
+        // Show language suggestion to user
+        let alert = NSAlert()
+        alert.messageText = "Language Suggestion"
+        alert.informativeText = "I detected you're using \(suggestedLanguage) signing patterns. Would you like to switch from \(aiSystem.activeLanguage.name) to \(suggestedLanguage)? (Confidence: \(Int(confidence * 100))%)"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Switch to \(suggestedLanguage)")
+        alert.addButton(withTitle: "Keep Current Language")
+        
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            // User accepted the suggestion
+            aiSystem.acceptLanguageSuggestion()
+            NSLog("MainWindowController: User accepted language suggestion to \(suggestedLanguage)")
+        } else {
+            // User dismissed the suggestion
+            aiSystem.dismissLanguageSuggestion()
+            NSLog("MainWindowController: User dismissed language suggestion")
+        }
+    }
+    
     // MARK: - Public Methods for Testing
     
     /// Check camera permission status
@@ -195,6 +230,12 @@ import Foundation
             return
         }
         
+        // Update UserDefaults immediately
+        UserDefaults.standard.set(language, forKey: "SelectedLanguage")
+        
+        // Update AI system language
+        aiSystem?.changeLanguage(to: language)
+        
         // Only update UI if views are loaded and on main thread
         DispatchQueue.main.async { [weak self] in
             guard let self = self, self.isViewLoaded else { return }
@@ -204,9 +245,6 @@ import Foundation
             // Reload alphabet for the new language
             self.alphabetSectionView?.reloadAlphabetForLanguage(language)
         }
-        
-        // In a real implementation, you would also update the AI system
-        // and language engine with the new language
     }
     
     // MARK: - Actions
@@ -293,7 +331,7 @@ import Foundation
         changeLanguage(to: languageCode)
     }
     
-    @objc private func handleHandPreferenceChangeNotification(_ notification: Notification) {
+    @objc     private func handleHandPreferenceChangeNotification(_ notification: Notification) {
         guard let handPreference = notification.userInfo?["handPreference"] as? String else { 
             return 
         }
@@ -303,5 +341,19 @@ import Foundation
         
         // Update language engine with new hand preference
         languageEngine?.updateHandPreference(handPreference)
+    }
+    
+    // MARK: - Camera Frame Processing
+    
+    private func processCameraFrame(_ sampleBuffer: CMSampleBuffer) {
+        // Forward the camera frame to the AI system for recognition
+        aiSystem?.processFrame(sampleBuffer)
+    }
+    
+    // MARK: - Preferences Handling
+    
+    private func openPreferences() {
+        let preferencesWindowController = PreferencesWindowController.shared
+        preferencesWindowController.showWindow(nil)
     }
 } 
