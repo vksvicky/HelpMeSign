@@ -1,0 +1,11 @@
+# Sample data file for HelpMeSign
+# This file contains example data that can be processed by the application
+
+Sample Entry 1: This is a test entry for the HelpMeSign application.
+Sample Entry 2: Another example entry to demonstrate functionality.
+Sample Entry 3: Third entry showing how the application handles multiple lines.
+
+# Configuration notes:
+# - Each entry should be on a separate line
+# - Lines starting with # are comments
+# - Empty lines are ignored 

@@ -1,0 +1,17 @@
+{
+    "app_name": "HelpMeSign",
+    "version": "1.0.0",
+    "window_size": {
+        "width": 1024,
+        "height": 1024
+    },
+    "theme": {
+        "primary_color": "#3498db",
+        "secondary_color": "#2980b9",
+        "background_color": "#ffffff"
+    },
+    "settings": {
+        "auto_save": true,
+        "max_history": 100
+    }
+} 

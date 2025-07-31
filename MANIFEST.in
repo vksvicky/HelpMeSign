@@ -1,0 +1,9 @@
+include README.md
+include requirements.txt
+include LICENSE
+recursive-include resources *
+recursive-include tests *.py
+exclude *.pyc
+exclude __pycache__
+exclude .git*
+exclude .DS_Store 

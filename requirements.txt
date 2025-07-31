@@ -1,0 +1,15 @@
+# Core dependencies
+# No external dependencies required for the main application - using built-in tkinter
+
+# Testing and development dependencies
+coverage>=6.0.0
+requests>=2.25.0
+psutil>=5.8.0
+
+# Optional dependencies for enhanced functionality
+# Pillow>=9.0.0  # For advanced image processing (commented out as not currently used)
+
+# Build dependencies (optional - for creating executables)
+# py2app>=0.28.0  # For macOS app bundles
+# pyinstaller>=5.0.0  # For Windows executables
+# pefile>=2023.2.7  # For Windows executable analysis 
