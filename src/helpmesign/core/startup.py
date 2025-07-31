@@ -12,6 +12,8 @@ import hmac
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+from ..utils.logger import get_logger, log_function_entry, log_function_exit, log_exception
+
 
 class StartupScreen:
     """Startup screen with user choice functionality"""
@@ -19,32 +21,56 @@ class StartupScreen:
     def __init__(self, parent=None):
         self.parent = parent
         self.choice = None
-        self.config_manager = SecureConfigManager()
+        self.config_manager = None  # Initialize lazily
+        self.logger = get_logger("helpmesign.startup")
+        self.logger.debug("StartupScreen initialized")
         
     def show(self) -> Optional[str]:
         """Show startup screen and return user choice"""
+        log_function_entry(self.logger, "StartupScreen.show")
+        
         # Create startup window
         self.window = tk.Toplevel(self.parent) if self.parent else tk.Tk()
         self.window.title("Welcome to HelpMeSign")
         self.window.geometry("600x400")
         self.window.resizable(False, False)
         
+        # Force window to be visible
+        self.window.deiconify()
+        self.window.state('normal')
+        self.logger.debug("Startup window created")
+        
         # Center the window
         self.center_window()
+        self.logger.debug("Window centered")
         
-        # Make it modal
+        # Make it modal and bring to front
         self.window.transient(self.parent) if self.parent else None
         self.window.grab_set()
+        self.window.focus_set()
+        self.window.lift()
+        self.window.attributes('-topmost', True)
+        self.logger.debug("Window made modal and brought to front")
         
         # Create UI
         self.create_widgets()
+        self.logger.debug("UI widgets created")
         
         # Load previous choice if exists
         self.load_previous_choice()
+        self.logger.debug("Previous choice loaded")
+        
+        # Ensure window is visible and remove topmost after a short delay
+        self.window.after(100, lambda: self.window.attributes('-topmost', False))
+        self.window.after(200, lambda: self.window.focus_force())
+        self.logger.debug("Window visibility ensured")
         
         # Wait for user choice
+        self.logger.info("Waiting for user choice")
         self.window.wait_window()
+        self.logger.debug(f"User choice: {self.choice}")
         
+        log_function_exit(self.logger, "StartupScreen.show", result=self.choice)
         return self.choice
     
     def center_window(self):
@@ -54,7 +80,15 @@ class StartupScreen:
         height = self.window.winfo_height()
         x = (self.window.winfo_screenwidth() // 2) - (width // 2)
         y = (self.window.winfo_screenheight() // 2) - (height // 2)
+        
+        # Ensure window is positioned on screen
+        if x < 0:
+            x = 50
+        if y < 0:
+            y = 50
+        
         self.window.geometry(f"{width}x{height}+{x}+{y}")
+        self.logger.debug(f"Window positioned at ({x}, {y}) with size {width}x{height}")
     
     def create_widgets(self):
         """Create startup screen widgets"""
@@ -87,15 +121,15 @@ class StartupScreen:
         sign_frame = ttk.LabelFrame(main_frame, text="Sign Mode", padding="15")
         sign_frame.grid(row=2, column=0, padx=(0, 10), sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        sign_icon = ttk.Label(sign_frame, text="✍️", font=("Arial", 24))
+        sign_icon = ttk.Label(sign_frame, text="🤟", font=("Arial", 24))
         sign_icon.grid(row=0, column=0, pady=(0, 10))
         
-        sign_title = ttk.Label(sign_frame, text="Document Signing", font=("Arial", 14, "bold"))
+        sign_title = ttk.Label(sign_frame, text="Sign & Translate", font=("Arial", 14, "bold"))
         sign_title.grid(row=1, column=0, pady=(0, 5))
         
         sign_desc = ttk.Label(
             sign_frame, 
-            text="Sign documents and contracts\nwith digital signatures",
+            text="Translate text to sign language\nand learn sign symbols",
             font=("Arial", 10),
             justify=tk.CENTER
         )
@@ -154,6 +188,10 @@ class StartupScreen:
     def load_previous_choice(self):
         """Load and display previous user choice if available"""
         try:
+            # Initialize config manager if not already done
+            if self.config_manager is None:
+                self.config_manager = SecureConfigManager()
+            
             config = self.config_manager.load_config()
             if config and 'user_mode' in config:
                 previous_mode = config['user_mode']
@@ -172,17 +210,26 @@ class StartupScreen:
     
     def make_choice(self, choice: str):
         """Handle user choice"""
+        log_function_entry(self.logger, "StartupScreen.make_choice", choice=choice)
+        
         self.choice = choice
+        self.logger.info(f"User selected: {choice}")
         
         # Save choice to secure config
         try:
+            # Initialize config manager if not already done
+            if self.config_manager is None:
+                self.config_manager = SecureConfigManager()
+                self.logger.debug("SecureConfigManager initialized")
+            
             config = self.config_manager.load_config() or {}
             config['user_mode'] = choice
             config['last_updated'] = self.get_timestamp()
             self.config_manager.save_config(config)
+            self.logger.info("User choice saved to secure config")
             
             # Show confirmation
-            mode_name = "Sign Mode" if choice == "sign" else "Learn Mode"
+            mode_name = "Sign & Translate Mode" if choice == "sign" else "Learn Mode"
             messagebox.showinfo(
                 "Choice Saved",
                 f"You've selected {mode_name}!\n\n"
@@ -197,8 +244,14 @@ class StartupScreen:
                 "Your choice will not be remembered for future sessions."
             )
         
-        # Close startup window
-        self.window.destroy()
+        # Close startup window gracefully
+        try:
+            self.window.quit()
+            self.window.destroy()
+        except Exception as e:
+            self.logger.warning(f"Error closing startup window: {e}")
+        
+        log_function_exit(self.logger, "StartupScreen.make_choice")
     
     def get_timestamp(self) -> str:
         """Get current timestamp"""
@@ -212,7 +265,10 @@ class SecureConfigManager:
     def __init__(self):
         self.config_dir = Path.home() / ".helpmesign"
         self.config_file = self.config_dir / "user_config.secure"
+        self.logger = get_logger("helpmesign.config")
+        self.logger.debug("SecureConfigManager initializing")
         self.secret_key = self._get_secret_key()
+        self.logger.debug("SecureConfigManager initialized")
     
     def _get_secret_key(self) -> bytes:
         """Get or generate secret key for encryption"""
@@ -284,9 +340,15 @@ class SecureConfigManager:
     
     def load_config(self) -> Optional[Dict[str, Any]]:
         """Load configuration securely"""
+        log_function_entry(self.logger, "SecureConfigManager.load_config")
+        
         try:
             if not self.config_file.exists():
+                self.logger.debug("Config file does not exist")
+                log_function_exit(self.logger, "SecureConfigManager.load_config", result=None)
                 return None
+            
+            self.logger.debug(f"Loading config from: {self.config_file}")
             
             # Read secure data
             with open(self.config_file, 'r') as f:
@@ -297,20 +359,26 @@ class SecureConfigManager:
             signature = bytes.fromhex(secure_data['signature'])
             
             if not self._verify_data(data, signature):
+                self.logger.error("Configuration file has been tampered with")
                 raise ValueError("Configuration file has been tampered with")
             
             # Parse config
             config = json.loads(data)
+            self.logger.debug("Config loaded successfully")
+            log_function_exit(self.logger, "SecureConfigManager.load_config", result=config)
             return config
             
         except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError) as e:
             # Handle first-time run or corrupted config gracefully
-            # Don't print error for first-time runs (file not found)
-            if not isinstance(e, FileNotFoundError):
-                print(f"Config error: {e}")
+            # Don't print error for first-time runs (file not found) or tamper detection
+            if not isinstance(e, FileNotFoundError) and "Configuration file has been tampered with" not in str(e):
+                self.logger.warning(f"Config error: {e}")
+            self.logger.debug(f"Config load failed: {type(e).__name__}")
+            log_function_exit(self.logger, "SecureConfigManager.load_config", result=None)
             return None
         except Exception as e:
-            print(f"Unexpected error loading config: {e}")
+            self.logger.error(f"Unexpected error loading config: {e}")
+            log_function_exit(self.logger, "SecureConfigManager.load_config", result=None)
             return None
     
     def get_user_mode(self) -> Optional[str]:
@@ -344,8 +412,9 @@ def get_user_mode() -> Optional[str]:
         return config_manager.get_user_mode()
     except (Exception, ValueError) as e:
         # Handle first-time run or any config errors gracefully
-        # Don't print error for first-time runs
-        if "Configuration file has been tampered with" not in str(e):
+        # Don't print error for first-time runs or tamper detection
+        error_msg = str(e)
+        if "Configuration file has been tampered with" not in error_msg and "FileNotFoundError" not in error_msg:
             print(f"Config error: {e}")
         return None
 

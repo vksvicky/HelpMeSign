@@ -1,11 +1,64 @@
-# Sample data file for HelpMeSign
-# This file contains example data that can be processed by the application
+# HelpMeSign Sample Data
+# This file contains sample data for the HelpMeSign application
 
-Sample Entry 1: This is a test entry for the HelpMeSign application.
-Sample Entry 2: Another example entry to demonstrate functionality.
-Sample Entry 3: Third entry showing how the application handles multiple lines.
+## Sample Text for Signing
+This is a sample text that can be used for signing practice.
+It contains various types of content including:
+- Regular text
+- Numbers: 12345
+- Special characters: !@#$%^&*()
+- Unicode: 🚀 📚 ✨
 
-# Configuration notes:
-# - Each entry should be on a separate line
-# - Lines starting with # are comments
-# - Empty lines are ignored 
+## Sample Learning Content
+Here are some learning examples:
+
+1. Basic Signing
+   - Text: "Hello World"
+   - Expected output: "Signed: Hello World"
+
+2. Advanced Signing
+   - Text: "HelpMeSign Application"
+   - Expected output: "Signed: HelpMeSign Application"
+
+3. Special Characters
+   - Text: "Test@123!"
+   - Expected output: "Signed: Test@123!"
+
+## Configuration Notes
+- Default window size: 1024x1024
+- Theme: Blue primary (#3498db)
+- Font: Arial, 12pt
+- Auto-save: Enabled
+
+## Usage Instructions
+1. Launch the application
+2. Choose your mode (Sign or Learn)
+3. Enter text in the input area
+4. Click process to see the result
+5. Use the menu to change modes or settings
+
+## File Structure
+```
+HelpMeSign/
+├── main.py
+├── resources/
+│   ├── images/
+│   │   └── icon.png
+│   └── data/
+│       ├── config.json
+│       └── sample_data.txt
+├── src/
+│   └── helpmesign/
+└── scripts/
+    ├── build_macos_app.py
+    ├── build_windows_exe.py
+    └── build_linux_app.py
+```
+
+## Build Instructions
+- macOS: python3 scripts/build_macos_app.py
+- Windows: python3 scripts/build_windows_exe.py
+- Linux: python3 scripts/build_linux_app.py
+
+## Support
+For support and issues, please refer to the README.md file. 

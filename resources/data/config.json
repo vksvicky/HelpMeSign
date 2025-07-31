@@ -1,17 +1,56 @@
 {
     "app_name": "HelpMeSign",
     "version": "1.0.0",
+    "description": "An Application for signing and learning",
     "window_size": {
         "width": 1024,
         "height": 1024
     },
     "theme": {
         "primary_color": "#3498db",
-        "secondary_color": "#2980b9",
-        "background_color": "#ffffff"
+        "secondary_color": "#2ecc71",
+        "background_color": "#ffffff",
+        "text_color": "#2c3e50",
+        "accent_color": "#e74c3c"
     },
-    "settings": {
+    "ui": {
+        "font_family": "Arial",
+        "font_size": 12,
+        "button_padding": 10,
+        "margin": 20
+    },
+    "features": {
         "auto_save": true,
-        "max_history": 100
+        "auto_backup": false,
+        "show_status_bar": true,
+        "enable_shortcuts": true
+    },
+    "defaults": {
+        "user_mode": "sign",
+        "text_input_placeholder": "Enter your text here...",
+        "output_placeholder": "Processed text will appear here..."
+    },
+    "paths": {
+        "resources_dir": "resources",
+        "images_dir": "resources/images",
+        "data_dir": "resources/data",
+        "logs_dir": "logs"
+    },
+    "logging": {
+        "level": "DEBUG",
+        "file_enabled": true,
+        "file_path": null,
+        "console_enabled": true,
+        "max_file_size_mb": 1,
+        "backup_count": 5,
+        "format": {
+            "console": "%(asctime)s - %(levelname)s - %(message)s",
+            "file": "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"
+        }
+    },
+    "security": {
+        "config_file_permissions": "600",
+        "enable_tamper_detection": true,
+        "encrypt_user_preferences": true
     }
 } 

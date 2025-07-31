@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 from ..utils.resource_manager import ResourceManager
+from ..utils.logger import get_logger, setup_logging, log_function_entry, log_function_exit, log_exception
 from ..ui.components import MainWindow, StatusBar
 from .startup import show_startup_screen, get_user_mode, set_user_mode
 
@@ -18,21 +19,29 @@ class HelpMeSignApp:
         Args:
             root: Tkinter root window
         """
+        log_function_entry(get_logger(), "HelpMeSignApp.__init__", root=root)
+        
         self.root = root
         self.resource_manager = ResourceManager()
         
         # Load configuration
         self.config = self.resource_manager.load_config()
         
+        # Set up logging
+        self.logger = setup_logging(self.config)
+        self.logger.info("Initializing HelpMeSign application")
+        
         # Initialize user mode
         self.user_mode = None
         
         # Create main window
         self.main_window = MainWindow(root, title="HelpMeSign")
+        self.logger.debug("Main window created")
         
         # Create status bar
         self.status_bar = StatusBar(root)
         self.status_bar.grid(row=1, column=0, sticky=(tk.W, tk.E))
+        self.logger.debug("Status bar created")
         
         # Set up application
         self.setup_application()
@@ -40,6 +49,8 @@ class HelpMeSignApp:
         
         # Show startup screen if no user mode is set
         self.check_user_mode()
+        
+        log_function_exit(get_logger(), "HelpMeSignApp.__init__")
     
     def setup_application(self) -> None:
         """Set up the application configuration and appearance"""
@@ -65,12 +76,16 @@ class HelpMeSignApp:
         self.main_window.text_input_frame.bind_clear(self.clear_text)
         self.main_window.text_input_frame.bind_enter_key(self.process_text)
         
+        # Bind text processing shortcuts
+        self.main_window.text_input_frame.bind_shortcuts(self.process_text, self.clear_text)
+        
         # Bind window close event
         self.main_window.bind_close_event(self.on_closing)
         
         # Bind menu events
         self.main_window.change_mode = self.change_user_mode
         self.main_window.set_mode = self.set_user_mode_from_menu
+        self.main_window.on_settings_mode_change = self.set_user_mode_from_menu
     
     def set_app_icon(self) -> None:
         """Set the application icon if available"""
@@ -127,58 +142,76 @@ class HelpMeSignApp:
     
     def check_user_mode(self) -> None:
         """Check user mode and show startup screen if needed"""
+        log_function_entry(self.logger, "check_user_mode")
+        
         try:
             # Try to get existing user mode
             self.user_mode = get_user_mode()
+            self.logger.debug(f"Retrieved user mode: {self.user_mode}")
             
             # If no user mode is set, show startup screen
             if not self.user_mode:
+                self.logger.info("No user mode found, showing startup screen")
                 self.show_startup_screen()
             else:
                 # Update status with current mode
-                mode_name = "Sign Mode" if self.user_mode == "sign" else "Learn Mode"
+                mode_name = "Sign & Translate" if self.user_mode == "sign" else "Learn Sign Language"
                 self.status_bar.set_status(f"Current Mode: {mode_name}")
+                self.logger.info(f"User mode set to: {mode_name}")
         except (Exception, ValueError) as e:
             # Handle first-time run or any config errors gracefully
             # Don't print error for first-time runs
             if "Configuration file has been tampered with" not in str(e):
-                print(f"Config error: {e}")
+                self.logger.warning(f"Config error: {e}")
             self.user_mode = None
+            self.logger.info("Showing startup screen due to config error")
             self.show_startup_screen()
+        
+        log_function_exit(self.logger, "check_user_mode")
     
     def show_startup_screen(self) -> None:
         """Show the startup screen to get user choice"""
-        # Hide main window temporarily
-        self.root.withdraw()
+        log_function_entry(self.logger, "show_startup_screen")
+        
+        # Don't hide main window - just show startup screen on top
+        self.logger.debug("Main window remains visible")
         
         # Show startup screen
+        self.logger.info("Showing startup screen")
         choice = show_startup_screen(self.root)
+        self.logger.debug(f"Startup screen returned choice: {choice}")
         
-        # Show main window again
-        self.root.deiconify()
+        # Main window is already visible
+        self.logger.debug("Main window already visible")
         
         if choice:
             self.user_mode = choice
-            mode_name = "Sign Mode" if choice == "sign" else "Learn Mode"
+            mode_name = "Sign & Translate" if choice == "sign" else "Learn Sign Language"
             self.status_bar.set_status(f"Current Mode: {mode_name}")
+            self.logger.info(f"User selected: {mode_name}")
             
             # Update UI based on mode
             self.update_ui_for_mode(choice)
         else:
             # User cancelled, use default mode
             self.user_mode = "sign"
-            self.status_bar.set_status("Current Mode: Sign Mode (Default)")
+            self.status_bar.set_status("Current Mode: Sign & Translate (Default)")
+            self.logger.info("User cancelled, using default mode: Sign & Translate")
             self.update_ui_for_mode("sign")
+        
+        log_function_exit(self.logger, "show_startup_screen")
     
     def update_ui_for_mode(self, mode: str) -> None:
         """Update UI based on selected mode"""
         if mode == "sign":
-            # Sign mode UI updates
-            self.main_window.set_title("HelpMeSign - Sign Mode")
+            # Sign & Translate mode UI updates
+            self.main_window.set_title("HelpMeSign - Sign & Translate")
+            self.logger.info("UI updated for Sign & Translate mode")
             # Add sign-specific UI elements here
         elif mode == "learn":
-            # Learn mode UI updates
-            self.main_window.set_title("HelpMeSign - Learn Mode")
+            # Learn Sign Language mode UI updates
+            self.main_window.set_title("HelpMeSign - Learn Sign Language")
+            self.logger.info("UI updated for Learn Sign Language mode")
             # Add learn-specific UI elements here
     
     def change_user_mode(self) -> None:
@@ -193,7 +226,7 @@ class HelpMeSignApp:
             self.update_ui_for_mode(mode)
             
             # Update status
-            mode_name = "Sign Mode" if mode == "sign" else "Learn Mode"
+            mode_name = "Sign & Translate" if mode == "sign" else "Learn Sign Language"
             self.status_bar.set_status(f"Current Mode: {mode_name}")
             
             # Show confirmation
