@@ -2,116 +2,92 @@
 
 ## Issue Description
 
-On macOS, when running Qt applications (like HelpMeSign) directly through Python, the menubar shows "Python" instead of the application name "HelpMeSign". This is a known limitation of Qt applications on macOS when not packaged as a proper `.app` bundle.
+On macOS, when running PySide6 applications directly through Python (not as a bundled app), the menubar shows "Python" instead of the application name "HelpMeSign". This is a known limitation of Qt applications on macOS when not packaged as proper `.app` bundles.
 
 ## Root Cause
 
-The macOS menubar displays the process name of the application. When running a Python script directly, the process name is "Python" rather than the application name. This happens because:
+The macOS menubar displays the process name of the application. When running a Python script directly, the process name is "Python" regardless of the application name set in the Qt application metadata.
 
-1. The application is launched through the Python interpreter
-2. macOS sees the process as "Python" rather than "HelpMeSign"
-3. Qt's menubar inherits this process name
+## Solutions
 
-## Solutions Implemented
+### Solution 1: Build as macOS App Bundle (Recommended for Production)
 
-### Solution 1: Launcher Script with Symbolic Link (Development)
-
-The `run_helpmesign.sh` script implements a workaround using symbolic links:
+The most reliable solution is to build the application as a proper macOS `.app` bundle using the provided build script:
 
 ```bash
-# Create a temporary symbolic link to Python with the app name
-TEMP_PYTHON_LINK="/tmp/HelpMeSign_python"
-ln -sf "$PYTHON_PATH" "$TEMP_PYTHON_LINK"
-
-# Run the application using the symbolic link
-"$TEMP_PYTHON_LINK" "$SCRIPT_DIR/run_app.py" "$@"
-```
-
-This approach:
-- Creates a symbolic link named "HelpMeSign_python" pointing to the actual Python executable
-- Runs the application through this symbolic link
-- macOS sees the process name as "HelpMeSign_python" instead of "Python"
-- The menubar displays "HelpMeSign" instead of "Python"
-
-**Usage:**
-```bash
-./run_helpmesign.sh
-```
-
-### Solution 2: macOS App Bundle (Production)
-
-The most robust solution is to build the application as a proper macOS `.app` bundle using the build script:
-
-```bash
+# Build the application as a macOS app bundle
 python3 scripts/build_macos_app.py
+
+# The built app will show "HelpMeSign" in the menubar
 ```
 
-This creates a proper macOS application with:
-- `Info.plist` file containing the correct application name
-- Proper bundle structure
-- Correct menubar display
+This works because the app bundle includes an `Info.plist` file with the correct application metadata:
+- `CFBundleName`: "HelpMeSign"
+- `CFBundleDisplayName`: "HelpMeSign"
 
-**Benefits:**
-- Native macOS application experience
-- Correct menubar display
-- Proper application icon
-- Can be distributed and installed like other macOS apps
+### Solution 2: Use the Launcher Script (Development)
 
-### Solution 3: Direct Python Execution (Fallback)
+For development, use the provided launcher script which properly activates the virtual environment:
 
-For development without the launcher script:
+```bash
+# Use the launcher script
+./run_helpmesign.sh
+
+# Or with your virtual environment
+clear && source venv/bin/activate && ./run_helpmesign.sh
+```
+
+**Note**: This will still show "Python" in the menubar, but the application will work correctly.
+
+### Solution 3: Direct Python Execution (Development)
+
+For development, you can continue using your current method:
 
 ```bash
 clear && source venv/bin/activate && python3 run_app.py
 ```
 
-**Note:** This will show "Python" in the menubar, but the application will function correctly.
+**Note**: This will show "Python" in the menubar.
 
 ## Technical Details
 
-### Symbolic Link Approach
+### Why the Symbolic Link Approach Doesn't Work
 
-The symbolic link approach works because:
-1. macOS uses the executable name as the process name
-2. By creating a symbolic link with the desired name, we trick macOS into using that name
-3. The symbolic link points to the actual Python executable, so functionality is preserved
+The Stack Overflow solution of creating a symbolic link to Python with the app name doesn't work reliably because:
+1. The symbolic link approach can cause import issues with virtual environments
+2. macOS security features may prevent the symbolic link from working correctly
+3. The process name is still derived from the underlying Python executable
 
-### App Bundle Approach
+### What We've Implemented
 
-The app bundle approach works because:
-1. `Info.plist` contains `CFBundleName` and `CFBundleDisplayName` keys
-2. macOS reads these keys to determine the application name
-3. The menubar displays the value from `CFBundleDisplayName`
+1. **Application Metadata**: Set in `run_app.py` and `main.py`:
+   ```python
+   app.setApplicationName("HelpMeSign")
+   app.setApplicationDisplayName("HelpMeSign")
+   ```
 
-## Implementation in HelpMeSign
+2. **Environment Variables**: Set for macOS:
+   ```python
+   os.environ['APP_NAME'] = "HelpMeSign"
+   os.environ['CFBundleName'] = "HelpMeSign"
+   os.environ['CFBundleDisplayName'] = "HelpMeSign"
+   ```
 
-### Launcher Script Features
+3. **Process Name Setting**: Attempted using `ctypes`:
+   ```python
+   ctypes.CDLL('libc.dylib').setproctitle(app_name.encode('utf-8'))
+   ```
 
-The `run_helpmesign.sh` script includes:
+4. **Build Script**: Proper `Info.plist` configuration in `scripts/build_macos_app.py`
 
-- Virtual environment detection and activation
-- Cross-platform compatibility (macOS vs other platforms)
-- Automatic cleanup of temporary symbolic links
-- Error handling for missing Python installations
+## Recommendations
 
-### Build Script Integration
-
-The macOS build script (`scripts/build_macos_app.py`) includes:
-
-- Proper `Info.plist` configuration
-- Application icon integration
-- Bundle identifier setup
-- Version information
-
-## Testing
-
-To verify the menubar fix is working:
-
-1. **Development:** Run `./run_helpmesign.sh` and check that the menubar shows "HelpMeSign"
-2. **Production:** Build the app bundle and check that the menubar shows "HelpMeSign"
+1. **For Development**: Use the launcher script or your current method - the "Python" menubar is acceptable for development
+2. **For Production**: Always build as a macOS app bundle using the build script
+3. **For Distribution**: Use the built `.app` bundle which will show the correct application name
 
 ## References
 
 - [Stack Overflow Discussion](https://stackoverflow.com/questions/7827430/setting-mac-osx-application-menu-menu-bar-item-to-other-than-python-in-my-pyth)
 - [Qt for macOS Documentation](https://doc.qt.io/qt-6/macos.html)
-- [macOS App Bundle Guidelines](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html) 
+- [py2app Documentation](https://py2app.readthedocs.io/) 

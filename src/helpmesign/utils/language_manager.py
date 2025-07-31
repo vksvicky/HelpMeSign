@@ -92,6 +92,15 @@ class LanguageManager:
         Returns:
             Localized text or default
         """
+        # Handle None or empty key_path
+        if key_path is None or not isinstance(key_path, str):
+            self.logger.warning(f"Invalid key_path: {key_path}")
+            return default
+        
+        if not key_path.strip():
+            self.logger.warning("Empty key_path provided")
+            return default
+        
         try:
             # Navigate through the nested dictionary
             keys = key_path.split('.')
@@ -131,6 +140,15 @@ class LanguageManager:
         if default is None:
             default = []
         
+        # Handle None or empty key_path
+        if key_path is None or not isinstance(key_path, str):
+            self.logger.warning(f"Invalid key_path: {key_path}")
+            return default
+        
+        if not key_path.strip():
+            self.logger.warning("Empty key_path provided")
+            return default
+        
         try:
             keys = key_path.split('.')
             value = self.current_language_data
@@ -168,6 +186,15 @@ class LanguageManager:
         """
         if default is None:
             default = {}
+        
+        # Handle None or empty key_path
+        if key_path is None or not isinstance(key_path, str):
+            self.logger.warning(f"Invalid key_path: {key_path}")
+            return default
+        
+        if not key_path.strip():
+            self.logger.warning("Empty key_path provided")
+            return default
         
         try:
             keys = key_path.split('.')

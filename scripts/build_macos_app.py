@@ -102,7 +102,7 @@ OPTIONS = {
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '10.13.0',
     },
-    'packages': ['PySide6', 'helpmesign'],
+    'packages': ['PySide6'],
     'includes': ['PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets'],
     'excludes': ['tkinter', 'test', 'distutils'],
     'optimize': 2,
@@ -134,8 +134,11 @@ import argparse
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QCoreApplication
-from src.helpmesign.core.app import create_app
-from src.helpmesign.utils.resource_manager import ResourceManager
+# Add src to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from helpmesign.core.app import create_app
+from helpmesign.utils.resource_manager import ResourceManager
 
 def parse_arguments():
     """Parse command line arguments"""

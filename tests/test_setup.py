@@ -6,7 +6,25 @@ Handles PySide6 initialization and language system setup
 import sys
 import os
 from unittest.mock import MagicMock, patch
-from PySide6.QtWidgets import QApplication
+
+# Try to import PySide6, but handle missing dependencies gracefully
+try:
+    from PySide6.QtWidgets import QApplication
+    PYSIDE6_AVAILABLE = True
+except ImportError as e:
+    # Mock QApplication for CI environments where PySide6 is not available
+    class QApplication:
+        def __init__(self, argv=None):
+            self.argv = argv or []
+        
+        @staticmethod
+        def instance():
+            return None
+        
+        def quit(self):
+            pass
+    
+    PYSIDE6_AVAILABLE = False
 
 # Global QApplication instance for tests
 _qapp = None
@@ -16,10 +34,10 @@ def setup_qapplication():
     global _qapp
     if _qapp is None:
         # Create QApplication if it doesn't exist
-        if not QApplication.instance():
+        if PYSIDE6_AVAILABLE and not QApplication.instance():
             _qapp = QApplication(sys.argv)
         else:
-            _qapp = QApplication.instance()
+            _qapp = QApplication.instance() if PYSIDE6_AVAILABLE else QApplication()
     return _qapp
 
 def teardown_qapplication():

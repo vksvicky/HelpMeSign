@@ -5,13 +5,21 @@ Simple test for logging functionality
 
 import sys
 import os
+import logging
+
+# Configure logging for this test
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 def test_logging():
     """Test the logging functionality"""
-    print("🧪 Testing logging functionality...")
+    logger.info("🧪 Testing logging functionality...")
     
     try:
         from helpmesign.utils.logger import setup_logging, get_logger, set_log_level
@@ -26,34 +34,34 @@ def test_logging():
         }
         
         # Set up logging
-        logger = setup_logging(config)
-        print("✅ Logging setup completed")
+        app_logger = setup_logging(config)
+        logger.info("✅ Logging setup completed")
         
         # Test different log levels
-        logger.debug("This is a debug message")
-        logger.info("This is an info message")
-        logger.warning("This is a warning message")
-        logger.error("This is an error message")
+        app_logger.debug("This is a debug message")
+        app_logger.info("This is an info message")
+        app_logger.warning("This is a warning message")
+        app_logger.error("This is an error message")
         
-        print("✅ All log levels tested")
+        logger.info("✅ All log levels tested")
         
         # Test changing log level
         set_log_level("INFO")
-        logger.debug("This debug message should not appear")
-        logger.info("This info message should appear")
+        app_logger.debug("This debug message should not appear")
+        app_logger.info("This info message should appear")
         
-        print("✅ Log level change tested")
+        logger.info("✅ Log level change tested")
         
         # Test getting logger
         test_logger = get_logger("test.module")
         test_logger.info("Test logger working")
         
-        print("✅ Logger retrieval tested")
+        logger.info("✅ Logger retrieval tested")
         
         return True
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logger.error(f"❌ Error: {e}")
         import traceback
         traceback.print_exc()
         return False

@@ -94,6 +94,76 @@ HelpMeSign supports two environments:
 - **Development (`dev`)**: Default for development runs, includes debug information, larger window size, and detailed logging
 - **Production (`prod`)**: Default for built executables, optimized for end users with minimal debug output
 
+## Testing
+
+### Test Suite Overview
+
+HelpMeSign includes a comprehensive test suite with **191 tests** covering:
+
+- **Unit Tests**: Core logic, utilities, and component functionality
+- **Integration Tests**: End-to-end workflows and component interactions
+- **Mock Tests**: Error scenarios, boundary conditions, and edge cases
+- **Security Tests**: Configuration validation and tamper detection
+
+### Running Tests
+
+#### Basic Test Execution
+```bash
+# Run all tests
+python3 run_tests.py
+
+# Run specific test categories
+python3 run_tests.py --unit          # Unit tests only
+python3 run_tests.py --integration   # Integration tests only
+python3 run_tests.py --mocks         # Mock tests only
+
+# Verbose output
+python3 run_tests.py --verbose
+```
+
+#### Test Coverage Reporting
+
+HelpMeSign includes comprehensive code coverage reporting:
+
+```bash
+# Terminal coverage report
+python3 run_tests.py --coverage
+
+# HTML coverage report (generates htmlcov/ directory)
+python3 run_tests.py --coverage html
+
+# XML coverage report (generates coverage.xml)
+python3 run_tests.py --coverage xml
+```
+
+#### Current Coverage Status
+
+- **Overall Coverage**: 31% (855 missed statements out of 1244 total)
+- **Test Count**: 191 tests passing
+- **Coverage Focus**: Source code in `src/` directory only
+- **Excluded**: Tests, build artifacts, scripts, and configuration files
+
+**Coverage by Module:**
+- `language_manager.py`: 62% coverage
+- `logger.py`: 64% coverage  
+- `font_manager.py`: 33% coverage
+- `components.py`: 26% coverage
+- `app.py`: 18% coverage
+- `startup.py`: 18% coverage
+- `settings_dialog.py`: 19% coverage
+- `resource_manager.py`: 23% coverage
+
+*Note: Lower coverage in UI components is expected for GUI applications, as many code paths are only exercised during user interaction.*
+
+#### Using pytest (Alternative)
+```bash
+# Run with pytest
+python3 -m pytest tests/ -v
+
+# Run with coverage using pytest-cov
+python3 -m pytest tests/ --cov=src --cov-report=term --cov-report=html
+```
+
 ### macOS Menubar Issue and Solutions
 
 On macOS, when running the application directly through Python, the menubar may show "Python" instead of "HelpMeSign". This is a known issue with Qt applications on macOS. Several solutions are available:

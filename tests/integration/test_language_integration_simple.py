@@ -9,9 +9,25 @@ from unittest.mock import MagicMock, patch
 import sys
 import os
 
-# Import PySide6 components
-from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Qt
+# Try to import PySide6 components, handle missing dependencies gracefully
+try:
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import Qt
+    PYSIDE6_AVAILABLE = True
+except ImportError:
+    # Mock PySide6 components for CI environments
+    class QApplication:
+        def __init__(self, argv=None):
+            self.argv = argv or []
+        
+        @staticmethod
+        def instance():
+            return None
+    
+    class Qt:
+        pass
+    
+    PYSIDE6_AVAILABLE = False
 
 # Import our components
 from helpmesign.utils.language_manager import get_text, get_list, get_dict
@@ -24,10 +40,13 @@ class TestLanguageIntegrationSimple(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         # Create QApplication if it doesn't exist
-        if not QApplication.instance():
-            self.app = QApplication(sys.argv)
+        if PYSIDE6_AVAILABLE:
+            if not QApplication.instance():
+                self.app = QApplication(sys.argv)
+            else:
+                self.app = QApplication.instance()
         else:
-            self.app = QApplication.instance()
+            self.app = QApplication()
     
     def test_language_system_integration(self):
         """Test that language system works with PySide6 components"""
@@ -60,7 +79,11 @@ class TestLanguageIntegrationSimple(unittest.TestCase):
     def test_language_system_with_pyside6(self):
         """Test language system works alongside PySide6"""
         # Test that language functions work when QApplication is running
-        self.assertTrue(QApplication.instance() is not None)
+        if PYSIDE6_AVAILABLE:
+            self.assertTrue(QApplication.instance() is not None)
+        else:
+            # Skip this test if PySide6 is not available
+            self.skipTest("PySide6 not available in this environment")
         
         # Get some text
         text = get_text("ui.main_window.title", "Default Title")
@@ -106,10 +129,13 @@ class TestLanguageSystemBoundaryConditionsIntegration(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         # Create QApplication if it doesn't exist
-        if not QApplication.instance():
-            self.app = QApplication(sys.argv)
+        if PYSIDE6_AVAILABLE:
+            if not QApplication.instance():
+                self.app = QApplication(sys.argv)
+            else:
+                self.app = QApplication.instance()
         else:
-            self.app = QApplication.instance()
+            self.app = QApplication()
     
     def test_empty_strings_integration(self):
         """Test handling of empty strings in integration"""

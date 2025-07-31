@@ -41,8 +41,26 @@ def run_tests_with_coverage(test_pattern, output_format='term'):
     try:
         import coverage
         
-        # Start coverage measurement
-        cov = coverage.Coverage()
+        # Start coverage measurement with specific configuration
+        cov = coverage.Coverage(
+            source=['src'],
+            omit=[
+                '*/tests/*',
+                '*/venv/*',
+                '*/build/*',
+                '*/dist/*',
+                '*/__pycache__/*',
+                '*/pyscript/*',
+                '*/scripts/*',
+                'setup.py',
+                'main.py',
+                'main_prod.py',
+                'run_app.py',
+                'run_tests.py',
+                'build.py',
+                'setup_macos.py'
+            ]
+        )
         cov.start()
         
         # Run tests
