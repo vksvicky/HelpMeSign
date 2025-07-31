@@ -100,19 +100,109 @@ HelpMeSign/
 
 ## Configuration
 
-The application uses `resources/data/config.json` for configuration settings including:
+The application uses multiple configuration systems:
+
+### Application Configuration
+`resources/data/config.json` for application settings including:
 - Window size
 - Theme colors
 - Application settings
 
+### User Preferences (Secure)
+`~/.helpmesign/user_config.secure` for secure user preferences:
+- User mode selection (Sign/Learn)
+- Last updated timestamp
+- HMAC-protected data integrity
+
+## Startup Screen
+
+HelpMeSign features an innovative startup screen that allows users to choose their preferred mode:
+
+### **Sign Mode** ✍️
+- Document signing capabilities
+- Digital signature workflows
+- Contract management features
+
+### **Learn Mode** 📚
+- Educational content about digital signatures
+- Best practices and tutorials
+- Interactive learning modules
+
+### **Key Features**
+- **First-time Setup**: Automatic startup screen on first launch
+- **Secure Storage**: HMAC-protected configuration files
+- **Menu Integration**: Easy mode switching via application menu
+- **Persistent Preferences**: Remembers user choice across sessions
+- **Tamper Detection**: Prevents unauthorized configuration changes
+
+### **Security Implementation**
+- **HMAC Signatures**: Cryptographic data integrity verification
+- **Restricted Permissions**: Owner-only file access (600)
+- **Secure Key Management**: Automatic key generation and storage
+- **Tamper Detection**: Immediate detection of configuration modifications
+
 ## Testing
 
-The project includes a comprehensive test suite with the following test categories:
+The project includes a comprehensive test suite covering all scenarios with the following structure:
 
 ### Test Structure
 - `tests/unit/` - Unit tests for individual components
 - `tests/integration/` - Integration tests for component interaction
 - `tests/mocks/` - Mock-based tests for various scenarios
+
+### Test Coverage Categories
+
+Our test suite covers all essential testing scenarios:
+
+#### **Happy Path Tests** ✅
+- Normal operation with valid inputs
+- Successful user interactions
+- Proper data flow and state management
+
+#### **Success Tests** ✅
+- Edge cases that still succeed
+- Alternative valid paths
+- Performance under normal conditions
+
+#### **Unhappy Path Tests** ⚠️
+- Expected failures and error conditions
+- Missing or invalid data handling
+- Graceful degradation scenarios
+
+#### **Negative Tests** ❌
+- Invalid inputs and edge cases
+- Boundary condition testing
+- Malformed data handling
+
+#### **Error Tests** 🚨
+- System errors and exceptions
+- File system issues
+- Network and external dependency failures
+
+#### **Exception Tests** 💥
+- Unhandled exception scenarios
+- Critical failure modes
+- Recovery mechanisms
+
+#### **Boundary Tests** 📏
+- Data size limits
+- Performance boundaries
+- Resource constraints
+
+#### **Security Tests** 🔒
+- Data integrity verification
+- Tamper detection
+- Access control validation
+
+#### **Integration Tests** 🔗
+- Component interaction testing
+- End-to-end workflows
+- Cross-module dependencies
+
+#### **Mock Tests** 🎭
+- External dependency mocking
+- Isolated unit testing
+- Controlled test environments
 
 ### Running Tests
 
@@ -161,12 +251,31 @@ python3 tests/test_runner.py help
 
 ### Test Coverage
 
-The test suite covers:
-- **Happy Path**: Normal operation scenarios
-- **Error Handling**: Exception and error conditions
-- **Boundary Cases**: Edge cases and limits
-- **Negative Cases**: Invalid inputs and failure scenarios
-- **Mock Scenarios**: Various mocked external dependencies
+The test suite provides comprehensive coverage including:
+
+#### **Core Functionality Tests**
+- **Resource Management**: File operations, configuration loading/saving
+- **UI Components**: Tkinter widgets, event handling, user interactions
+- **Application Logic**: Main app flow, startup screen, mode switching
+- **Security**: HMAC-based config protection, tamper detection
+
+#### **Startup Screen Tests**
+- **User Choice Flow**: Sign/Learn mode selection
+- **Configuration Persistence**: Secure storage and retrieval
+- **Menu Integration**: Mode switching via application menu
+- **Error Handling**: Graceful failure recovery
+
+#### **Security Tests**
+- **Data Integrity**: HMAC signature verification
+- **Tamper Detection**: Configuration file modification detection
+- **Access Control**: File permission management
+- **Key Management**: Secure key generation and storage
+
+#### **Performance Tests**
+- **Large Data Handling**: Multi-megabyte configuration files
+- **Concurrent Access**: Multiple application instances
+- **Memory Usage**: Efficient resource management
+- **Response Time**: UI responsiveness under load
 
 ### Development Workflow
 

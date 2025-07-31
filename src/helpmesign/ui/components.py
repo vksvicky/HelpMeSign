@@ -142,6 +142,9 @@ class MainWindow:
         self.root = root
         self.root.title(title)
         
+        # Create menu bar
+        self.create_menu()
+        
         # Set up main frame
         self.main_frame = ttk.Frame(root, padding="20")
         self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -191,6 +194,66 @@ class MainWindow:
             self.app_icon = icon
         except Exception as e:
             print(f"Could not load app icon: {e}")
+    
+    def create_menu(self) -> None:
+        """Create the application menu bar"""
+        self.menu_bar = tk.Menu(self.root)
+        self.root.config(menu=self.menu_bar)
+        
+        # File menu
+        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="File", menu=self.file_menu)
+        self.file_menu.add_command(label="Clear All", command=self.clear_all)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Exit", command=self.root.quit)
+        
+        # Mode menu
+        self.mode_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Mode", menu=self.mode_menu)
+        self.mode_menu.add_command(label="Change Mode...", command=self.change_mode)
+        self.mode_menu.add_separator()
+        self.mode_menu.add_command(label="Sign Mode", command=lambda: self.set_mode("sign"))
+        self.mode_menu.add_command(label="Learn Mode", command=lambda: self.set_mode("learn"))
+        
+        # Help menu
+        self.help_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
+        self.help_menu.add_command(label="About", command=self.show_about)
+    
+    def clear_all(self) -> None:
+        """Clear all text areas"""
+        if hasattr(self, 'text_input_frame'):
+            self.text_input_frame.clear_text()
+        if hasattr(self, 'output_frame'):
+            self.output_frame.clear_text()
+    
+    def change_mode(self) -> None:
+        """Change user mode - to be implemented by parent"""
+        # This will be overridden by the main app
+        pass
+    
+    def set_mode(self, mode: str) -> None:
+        """Set user mode - to be implemented by parent"""
+        # This will be overridden by the main app
+        pass
+    
+    def show_about(self) -> None:
+        """Show about dialog"""
+        import tkinter.messagebox as messagebox
+        messagebox.showinfo(
+            "About HelpMeSign",
+            "HelpMeSign v1.0.0\n\n"
+            "A Python GUI application for digital signatures and learning.\n\n"
+            "Features:\n"
+            "• Document signing capabilities\n"
+            "• Educational content about digital signatures\n"
+            "• Secure configuration management\n"
+            "• Cross-platform support"
+        )
+    
+    def set_title(self, title: str) -> None:
+        """Set the window title"""
+        self.root.title(title)
     
     def bind_close_event(self, callback: Callable) -> None:
         """Bind window close event to callback"""
