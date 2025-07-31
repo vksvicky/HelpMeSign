@@ -1,6 +1,49 @@
 # HelpMeSign
 
-A simple python3 GUI application built with tkinter.
+A Python GUI application for Sign Language translation and learning, built with PySide (Qt for Python).
+
+## Framework Migration: Tkinter → PySide
+
+### Why PySide?
+
+HelpMeSign has been migrated from Tkinter to PySide for the following reasons:
+
+#### **Native Desktop Experience** 🖥️
+- **Native Look & Feel**: PySide provides platform-native UI components that integrate seamlessly with macOS, Windows, and Linux
+- **Professional Appearance**: Modern, polished interface that matches user expectations for desktop applications
+- **Better Window Management**: True dialog windows without unwanted menu bars or system integration issues
+
+#### **Enhanced User Experience** ✨
+- **Menu-less Dialogs**: PySide allows true modal dialogs without menu bars, solving the persistent Tkinter limitation on macOS
+- **Advanced Widgets**: Rich set of built-in widgets (segmented controls, modern buttons, proper layouts)
+- **Better Typography**: Superior font rendering and text handling capabilities
+- **Responsive Design**: Flexible layouts that adapt to different screen sizes and resolutions
+
+#### **Developer Experience** 🛠️
+- **Signal-Slot Architecture**: Clean, decoupled event handling system
+- **Qt Designer Support**: Visual UI design capabilities (optional)
+- **Comprehensive Documentation**: Extensive Qt documentation and community resources
+- **Cross-Platform Consistency**: Predictable behavior across all desktop platforms
+
+#### **Technical Advantages** ⚡
+- **Performance**: More efficient rendering and event handling
+- **Memory Management**: Better resource management and garbage collection
+- **Accessibility**: Built-in accessibility features and screen reader support
+- **Internationalization**: Native support for multiple languages and locales
+
+#### **Future-Proofing** 🔮
+- **Active Development**: PySide is actively maintained and regularly updated
+- **Modern Standards**: Supports modern UI/UX patterns and design systems
+- **Extensibility**: Easy integration with additional Qt modules and third-party libraries
+
+### Migration Benefits
+
+The migration to PySide resolves several critical issues that were encountered with Tkinter:
+
+1. **Menu Bar Limitations**: Tkinter on macOS always shows menu bars for dialog windows, which couldn't be disabled
+2. **Visual Inconsistencies**: Non-native appearance that didn't match platform conventions
+3. **Limited Widget Set**: Basic widgets that required custom implementation for modern UI elements
+4. **Cross-Platform Issues**: Inconsistent behavior between macOS, Windows, and Linux
 
 ## Features
 
@@ -11,23 +54,47 @@ A simple python3 GUI application built with tkinter.
 - Status bar
 - Keyboard shortcuts (Enter to process)
 - Resource management system
+- **Native desktop dialogs** (no unwanted menu bars)
+- **Modern UI components** (segmented controls, proper layouts)
+- **Cross-platform consistency** (macOS, Windows, Linux)
 
 ## Requirements
 
-- python3 3.x (tkinter comes built-in)
+- Python 3.8+
+- PySide6 (Qt for Python)
+
+## Installation
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Or install PySide6 directly
+pip install PySide6
+```
 
 ## Running the Application
 
+### Development vs Production Environments
+
+HelpMeSign supports two environments:
+
+- **Development (`dev`)**: Default for development runs, includes debug information, larger window size, and detailed logging
+- **Production (`prod`)**: Default for built executables, optimized for end users with minimal debug output
+
 ### Using the Application Runner Script (Recommended)
 ```bash
-# Run normally
+# Run in development mode (default)
 python3 run_app.py
 
-# Run in debug mode
-python3 run_app.py --debug
+# Run in production mode
+python3 run_app.py --env prod
 
-# Run with custom config
-python3 run_app.py --config custom_config.json
+# Run in development mode with debug logging
+python3 run_app.py --env dev --debug
+
+# Run in production mode with custom config
+python3 run_app.py --env prod --config custom_config.json
 
 # Get help
 python3 run_app.py --help
@@ -35,8 +102,11 @@ python3 run_app.py --help
 
 ### Alternative Methods
 ```bash
-# Run from root directory
+# Run from root directory (development mode by default)
 python3 main.py
+
+# Run with specific environment
+python3 main.py --env prod
 
 # Or install and run as package
 pip install -e .
@@ -62,13 +132,17 @@ HelpMeSign/
 │       ├── __init__.py
 │       ├── core/
 │       │   ├── __init__.py
-│       │   └── app.py              # Main application logic
+│       │   ├── app.py              # Main application logic
+│       │   └── startup.py          # Startup screen logic
 │       ├── ui/
 │       │   ├── __init__.py
-│       │   └── components.py       # UI components
+│       │   ├── components.py       # UI components
+│       │   └── settings_dialog.py  # Settings dialog
 │       ├── utils/
 │       │   ├── __init__.py
-│       │   └── resource_manager.py # Resource management
+│       │   ├── resource_manager.py # Resource management
+│       │   ├── logger.py           # Logging utilities
+│       │   └── font_manager.py     # Font management
 │       └── services/
 │           └── __init__.py         # Future services
 ├── scripts/                        # Build scripts
@@ -79,6 +153,7 @@ HelpMeSign/
 │   └── build_all.py                # Universal build script
 ├── resources/                      # Application resources
 │   ├── images/                     # Image files (icons, etc.)
+│   ├── fonts/                      # Font files
 │   └── data/                       # Data files (config, sample data, etc.)
 ├── tests/                          # Test suite
 ├── main.py                         # Application entry point
@@ -94,7 +169,7 @@ HelpMeSign/
 
 - **`src/helpmesign/`** - Main package directory
 - **`core/`** - Core application logic and business rules
-- **`ui/`** - User interface components and layouts
+- **`ui/`** - User interface components and layouts (PySide-based)
 - **`utils/`** - Utility functions and helper classes
 - **`services/`** - External service integrations (future)
 
@@ -298,6 +373,8 @@ This is particularly useful when:
 
 ## Building Executables
 
+All build scripts create **production-ready** executables that default to the `prod` environment for optimal end-user experience.
+
 ### macOS App Bundle
 
 To create a native macOS `.app` bundle:
@@ -311,7 +388,7 @@ python3 scripts/build_macos_app.py
 ```
 
 This will create:
-- `dist/HelpMeSign.app` - Native macOS application bundle
+- `dist/HelpMeSign.app` - Native macOS application bundle (production mode by default)
 - `HelpMeSign.dmg` - Optional DMG installer (if create-dmg is available)
 
 ### Windows 64-bit Executable
@@ -327,8 +404,25 @@ python3 scripts/build_windows_exe.py
 ```
 
 This will create:
-- `dist/HelpMeSign.exe` - 64-bit Windows executable
+- `dist/HelpMeSign.exe` - 64-bit Windows executable (production mode by default)
 - `HelpMeSign-Setup.exe` - Optional NSIS installer (if NSIS is available)
+
+### Linux Application
+
+To create a Linux application:
+
+```bash
+# Install build dependencies
+pip3 install pyinstaller
+
+# Build the application
+python3 scripts/build_linux_app.py
+```
+
+This will create:
+- `dist/HelpMeSign` - Linux executable (production mode by default)
+- `HelpMeSign-x86_64.AppImage` - Optional AppImage (if appimagetool is available)
+- `debian/helpmesign_1.0.0_amd64.deb` - Optional Debian package (if dpkg-deb is available)
 
 ### Universal Build
 
@@ -355,6 +449,12 @@ python3 scripts/build_all.py
 - pefile (for executable analysis)
 - NSIS (optional, for installer creation)
 
+#### Linux
+- Python 3.8+
+- PyInstaller
+- appimagetool (optional, for AppImage creation)
+- dpkg-deb (optional, for Debian package creation)
+
 ### Build Output
 
 After building, you'll find the executables in the `dist/` directory:
@@ -363,8 +463,11 @@ After building, you'll find the executables in the `dist/` directory:
 dist/
 ├── HelpMeSign.app/          # macOS app bundle
 ├── HelpMeSign.exe          # Windows executable
+├── HelpMeSign              # Linux executable
 ├── HelpMeSign.dmg          # macOS DMG installer (optional)
-└── HelpMeSign-Setup.exe    # Windows NSIS installer (optional)
+├── HelpMeSign-Setup.exe    # Windows NSIS installer (optional)
+├── HelpMeSign-x86_64.AppImage  # Linux AppImage (optional)
+└── debian/helpmesign_1.0.0_amd64.deb  # Linux Debian package (optional)
 ```
 
 ### Test Dependencies

@@ -1,86 +1,51 @@
 #!/usr/bin/env python3
 """
 Application runner script for HelpMeSign
-Provides command-line interface for running the application with various options
+Provides command-line interface for running the application
 """
 
 import sys
-import os
 import argparse
-import json
+import os
 from pathlib import Path
+from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QIcon
 
-# Add the src directory to the path so we can import our modules
+# Add the src directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from helpmesign.core.app import HelpMeSignApp, create_app
-import tkinter as tk
+from helpmesign.core.app import create_app
+from helpmesign.utils.logger import setup_logging, get_logger
+from helpmesign.utils.resource_manager import ResourceManager
+from helpmesign.utils.language_manager import get_text, get_list, get_dict
 
 
-def load_custom_config(config_path):
-    """Load custom configuration from file"""
-    try:
-        with open(config_path, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading config from {config_path}: {e}")
-        return None
-
-
-def setup_environment():
-    """Set up the environment for the application"""
-    # Ensure resources directory exists
-    resources_dir = Path("resources")
-    if not resources_dir.exists():
-        print("Creating resources directory...")
-        resources_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create subdirectories
-        (resources_dir / "images").mkdir(exist_ok=True)
-        (resources_dir / "data").mkdir(exist_ok=True)
-        
-        # Create default config if it doesn't exist
-        config_file = resources_dir / "data" / "config.json"
-        if not config_file.exists():
-            default_config = {
-                "app_name": "HelpMeSign",
-                "version": "1.0.0",
-                "window_size": {
-                    "width": 1024,
-                    "height": 1024
-                },
-                "theme": {
-                    "primary_color": "#3498db",
-                    "secondary_color": "#2ecc71"
-                },
-                "settings": {
-                    "auto_save": True,
-                    "debug_mode": False
-                }
-            }
-            with open(config_file, 'w') as f:
-                json.dump(default_config, f, indent=4)
-            print("Created default configuration file")
-
-
-def main():
-    """Main entry point for the application runner"""
+def parse_arguments():
+    """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="HelpMeSign Application Runner",
+        description="HelpMeSign - Sign Language Translation and Learning Application",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 run_app.py                    # Run normally
-  python3 run_app.py --debug            # Run in debug mode
-  python3 run_app.py --config my_config.json  # Use custom config
-  python3 run_app.py --help             # Show this help
+  python3 run_app.py                    # Run in dev mode (default)
+  python3 run_app.py --env dev          # Run in development mode
+  python3 run_app.py --env prod         # Run in production mode
+  python3 run_app.py --env dev --debug  # Run in dev mode with debug logging
+  python3 run_app.py --env prod --config custom.json  # Run in prod with custom config
         """
+    )
+    
+    parser.add_argument(
+        '--env',
+        choices=['dev', 'prod'],
+        default='dev',
+        help='Environment to run in (default: dev)'
     )
     
     parser.add_argument(
         '--debug',
         action='store_true',
-        help='Enable debug mode with verbose output'
+        help='Enable debug logging'
     )
     
     parser.add_argument(
@@ -95,44 +60,66 @@ Examples:
         version='HelpMeSign 1.0.0'
     )
     
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    """Main entry point"""
+    args = parse_arguments()
     
-    # Set up environment
-    setup_environment()
+    # Get logger
+    logger = get_logger("helpmesign.runner")
+    logger.info("Starting HelpMeSign application runner")
     
+    # Set up logging based on arguments
     if args.debug:
-        print("🔍 Debug mode enabled")
-        print(f"📁 Working directory: {os.getcwd()}")
-        print(f"🐍 Python version: {sys.version}")
-        print(f"📦 Resources directory: {Path('resources').absolute()}")
+        # Configure debug logging
+        import logging
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        logger.debug("Debug logging enabled")
     
-    # Load custom config if specified
-    custom_config = None
-    if args.config:
-        custom_config = load_custom_config(args.config)
-        if custom_config is None:
-            print("❌ Failed to load custom config, using default")
+    # Create Qt application
+    app = QApplication(sys.argv)
+    logger.debug("QApplication created")
+    
+    # Set application metadata (must be done before creating any windows)
+    app.setApplicationName(get_text("app.name"))
+    app.setApplicationVersion(get_text("app.version"))
+    app.setOrganizationName(get_text("app.organization"))
+    app.setOrganizationDomain(get_text("app.domain"))
+    logger.debug("Application metadata set")
+    
+    # Set application icon early
+    try:
+        resource_manager = ResourceManager()
+        icon_path = resource_manager.get_image_path('icon.png')
+        if resource_manager.resource_exists('image', 'icon.png'):
+            app.setWindowIcon(QIcon(icon_path))
+            logger.info(f"Application icon set successfully: {icon_path}")
+        else:
+            logger.warning("Application icon not found in resources")
+    except Exception as e:
+        logger.error(f"Could not set application icon: {e}")
     
     try:
-        if args.debug:
-            print("🚀 Starting HelpMeSign application...")
-        
         # Create and run the application
-        app = create_app()
+        logger.info(f"Creating application in {args.env} environment")
+        helpmesign_app = create_app(args.env)
+        helpmesign_app.run()
         
-        if args.debug:
-            print("✅ Application created successfully")
-            print("🖥️  Starting main loop...")
+        logger.info("Application started successfully")
         
-        app.run()
+        # Start the event loop
+        sys.exit(app.exec())
         
     except KeyboardInterrupt:
-        print("\n👋 Application interrupted by user")
+        logger.info("Application interrupted by user")
+        sys.exit(0)
     except Exception as e:
-        print(f"❌ Error starting application: {e}")
-        if args.debug:
-            import traceback
-            traceback.print_exc()
+        logger.error(f"Error running application: {e}")
         sys.exit(1)
 
 

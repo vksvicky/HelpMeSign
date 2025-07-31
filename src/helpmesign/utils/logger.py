@@ -14,9 +14,10 @@ from typing import Optional, Dict, Any
 class HelpMeSignLogger:
     """Centralized logging manager for HelpMeSign application"""
     
-    def __init__(self, name: str = "helpmesign", config: Optional[Dict[str, Any]] = None):
+    def __init__(self, name: str = "HelpMeSign", config: Optional[Dict[str, Any]] = None, environment: str = "dev"):
         self.name = name
         self.config = config or {}
+        self.environment = environment.lower()
         self.logger = None
         self._setup_logger()
     
@@ -25,21 +26,37 @@ class HelpMeSignLogger:
         # Create logger
         self.logger = logging.getLogger(self.name)
         
-        # Get log level from config or default to INFO
-        log_level_str = self.config.get('logging', {}).get('level', 'INFO').upper()
+        # Get log level based on environment
+        if self.environment == "prod":
+            # Production: Use config or default to INFO
+            log_level_str = self.config.get('logging', {}).get('level', 'INFO').upper()
+        else:
+            # Development: Use config or default to DEBUG
+            log_level_str = self.config.get('logging', {}).get('dev_level', 'DEBUG').upper()
+        
         log_level = getattr(logging, log_level_str, logging.INFO)
         self.logger.setLevel(log_level)
         
         # Clear any existing handlers
         self.logger.handlers.clear()
         
-        # Create formatters
-        detailed_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s'
-        )
-        simple_formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s'
-        )
+        # Create formatters based on environment
+        if self.environment == "prod":
+            # Production: Simple formatter
+            detailed_formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            simple_formatter = logging.Formatter(
+                '%(asctime)s - %(levelname)s - %(message)s'
+            )
+        else:
+            # Development: Detailed formatter with file and line info
+            detailed_formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s'
+            )
+            simple_formatter = logging.Formatter(
+                '%(asctime)s - %(levelname)s - %(message)s'
+            )
         
         # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
@@ -70,7 +87,7 @@ class HelpMeSignLogger:
                     self.logger.warning(f"Could not set up file logging: {e}")
         
         # Log startup information
-        self.logger.info(f"Logger initialized for '{self.name}' with level: {log_level_str}")
+        self.logger.info(f"Logger initialized for '{self.name}' with level: {log_level_str} in {self.environment} environment")
     
     def _get_log_file_path(self) -> Optional[Path]:
         """Get the log file path"""
@@ -79,10 +96,11 @@ class HelpMeSignLogger:
         if config_log_path:
             return Path(config_log_path)
         
-        # Default to user's home directory
+        # Default to user's home directory with environment suffix
         try:
             log_dir = Path.home() / ".helpmesign" / "logs"
-            return log_dir / f"{self.name}.log"
+            log_filename = f"{self.name}_{self.environment}.log"
+            return log_dir / log_filename
         except Exception:
             return None
     
@@ -98,75 +116,62 @@ class HelpMeSignLogger:
         # Update all handlers
         for handler in self.logger.handlers:
             handler.setLevel(log_level)
-        
-        self.logger.info(f"Log level changed to: {level.upper()}")
     
     def add_file_handler(self, file_path: str) -> None:
-        """Add a file handler to the logger"""
+        """Add an additional file handler"""
         try:
-            log_file = Path(file_path)
-            log_file.parent.mkdir(parents=True, exist_ok=True)
-            
-            file_handler = logging.handlers.RotatingFileHandler(
-                log_file,
-                maxBytes=1024 * 1024,
-                backupCount=5
-            )
+            file_handler = logging.FileHandler(file_path)
             file_handler.setLevel(self.logger.level)
-            file_handler.setFormatter(logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s'
-            ))
+            
+            # Use detailed formatter for file logging
+            if self.environment == "prod":
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                )
+            else:
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s'
+                )
+            
+            file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
             self.logger.info(f"Added file handler: {file_path}")
         except Exception as e:
-            self.logger.error(f"Failed to add file handler: {e}")
+            self.logger.error(f"Could not add file handler: {e}")
 
 
 # Global logger instance
-_logger_instance: Optional[HelpMeSignLogger] = None
+_logger_instance = None
 
-
-def get_logger(name: str = "helpmesign", config: Optional[Dict[str, Any]] = None) -> logging.Logger:
+def get_logger(name: str = "helpmesign", config: Optional[Dict[str, Any]] = None, environment: str = "dev") -> logging.Logger:
     """Get a logger instance"""
     global _logger_instance
-    
     if _logger_instance is None:
-        _logger_instance = HelpMeSignLogger(name, config)
-    
+        _logger_instance = HelpMeSignLogger(name, config, environment)
     return _logger_instance.get_logger()
 
-
-def setup_logging(config: Dict[str, Any]) -> logging.Logger:
+def setup_logging(config: Dict[str, Any], environment: str = "dev") -> logging.Logger:
     """Set up logging with configuration"""
     global _logger_instance
-    
-    _logger_instance = HelpMeSignLogger("helpmesign", config)
+    _logger_instance = HelpMeSignLogger("helpmesign", config, environment)
     return _logger_instance.get_logger()
 
-
 def set_log_level(level: str) -> None:
-    """Set the global log level"""
+    """Set the log level for the global logger"""
     if _logger_instance:
         _logger_instance.set_level(level)
 
-
-# Convenience functions for common logging patterns
 def log_function_entry(logger: logging.Logger, func_name: str, **kwargs) -> None:
     """Log function entry with parameters"""
     if logger.isEnabledFor(logging.DEBUG):
         params = ", ".join([f"{k}={v}" for k, v in kwargs.items()])
         logger.debug(f"Entering {func_name}({params})")
 
-
 def log_function_exit(logger: logging.Logger, func_name: str, result=None) -> None:
     """Log function exit with result"""
     if logger.isEnabledFor(logging.DEBUG):
-        if result is not None:
-            logger.debug(f"Exiting {func_name} -> {result}")
-        else:
-            logger.debug(f"Exiting {func_name}")
-
+        logger.debug(f"Exiting {func_name} -> {result}")
 
 def log_exception(logger: logging.Logger, message: str, exc_info=True) -> None:
     """Log an exception with full traceback"""
-    logger.exception(message, exc_info=exc_info) 
+    logger.error(message, exc_info=exc_info) 

@@ -1,47 +1,46 @@
-import tkinter as tk
 import sys
 from datetime import datetime
 from typing import Dict, Any, Optional
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QIcon
 
 from ..utils.resource_manager import ResourceManager
 from ..utils.logger import get_logger, setup_logging, log_function_entry, log_function_exit, log_exception
-from ..ui.components import MainWindow, StatusBar
-from .startup import show_startup_screen, get_user_mode, set_user_mode
+from ..utils.language_manager import get_text, get_list, get_dict
+from ..ui.components import MainWindow
+from ..ui.settings_dialog import show_settings_dialog
+from .startup import show_startup_screen, get_user_mode, set_user_mode, SecureConfigManager
 
 
 class HelpMeSignApp:
     """Main application class for HelpMeSign"""
     
-    def __init__(self, root: tk.Tk):
+    def __init__(self, environment: str = "dev"):
         """
         Initialize the HelpMeSign application
         
         Args:
-            root: Tkinter root window
+            environment: Environment to run in ("dev" or "prod")
         """
-        log_function_entry(get_logger(), "HelpMeSignApp.__init__", root=root)
+        self.environment = environment.lower()
+        log_function_entry(get_logger(), "HelpMeSignApp.__init__", environment=environment)
         
-        self.root = root
         self.resource_manager = ResourceManager()
         
-        # Load configuration
+        # Load configuration based on environment
         self.config = self.resource_manager.load_config()
         
-        # Set up logging
-        self.logger = setup_logging(self.config)
-        self.logger.info("Initializing HelpMeSign application")
+        # Set up logging based on environment
+        self.logger = setup_logging(self.config, environment=self.environment)
+        self.logger.info(f"Initializing HelpMeSign application in {self.environment} environment")
         
         # Initialize user mode
         self.user_mode = None
         
         # Create main window
-        self.main_window = MainWindow(root, title="HelpMeSign")
+        self.main_window = MainWindow(title=f"HelpMeSign ({self.environment.upper()})")
         self.logger.debug("Main window created")
-        
-        # Create status bar
-        self.status_bar = StatusBar(root)
-        self.status_bar.grid(row=1, column=0, sticky=(tk.W, tk.E))
-        self.logger.debug("Status bar created")
         
         # Set up application
         self.setup_application()
@@ -57,210 +56,259 @@ class HelpMeSignApp:
         # Set app icon if available
         self.set_app_icon()
         
-        # Set window size from config or default
-        window_width = self.config.get('window_size', {}).get('width', 1024)
-        window_height = self.config.get('window_size', {}).get('height', 1024)
-        self.main_window.set_window_size(window_width, window_height)
-        self.main_window.set_resizable(False)
+        # Set window size from config or default based on environment
+        if self.environment == "prod":
+            window_width = self.config.get('window_size', {}).get('width', 1024)
+            window_height = self.config.get('window_size', {}).get('height', 1024)
+        else:  # dev environment
+            window_width = self.config.get('dev_window_size', {}).get('width', 1200)
+            window_height = self.config.get('dev_window_size', {}).get('height', 800)
         
-        # Center the window
-        self.main_window.center_window()
+        self.main_window.resize(window_width, window_height)
+        
+        # Set window title based on environment
+        if self.environment == "prod":
+            title = get_text("ui.main_window.prod_title")
+        else:
+            title = get_text("ui.main_window.dev_title")
+        self.main_window.set_title(title)
         
         # Focus on input field
-        self.main_window.text_input_frame.focus_input()
+        self.main_window.focus_input()
     
     def setup_event_handlers(self) -> None:
         """Set up event handlers for UI components"""
-        # Bind text processing events
-        self.main_window.text_input_frame.bind_process(self.process_text)
-        self.main_window.text_input_frame.bind_clear(self.clear_text)
-        self.main_window.text_input_frame.bind_enter_key(self.process_text)
+        # Connect text processing signals
+        self.main_window.process_requested.connect(self.process_text)
+        self.main_window.clear_requested.connect(self.clear_text)
         
-        # Bind text processing shortcuts
-        self.main_window.text_input_frame.bind_shortcuts(self.process_text, self.clear_text)
+        # Connect settings signal
+        self.main_window.settings_requested.connect(self.show_settings)
         
-        # Bind window close event
-        self.main_window.bind_close_event(self.on_closing)
-        
-        # Bind menu events
-        self.main_window.change_mode = self.change_user_mode
-        self.main_window.set_mode = self.set_user_mode_from_menu
-        self.main_window.on_settings_mode_change = self.set_user_mode_from_menu
+        # Set initial mode
+        self.update_ui_for_mode(get_text("modes.sign_translate.name"))
     
     def set_app_icon(self) -> None:
         """Set the application icon if available"""
         try:
             icon_path = self.resource_manager.get_image_path('icon.png')
             if self.resource_manager.resource_exists('image', 'icon.png'):
+                # Set icon on the main window
                 self.main_window.set_icon(icon_path)
-                print("App icon loaded successfully")
+                
+                # Set icon on the QApplication for menubar and dock
+                app = QApplication.instance()
+                if app and app.windowIcon().isNull():
+                    app.setWindowIcon(QIcon(icon_path))
+                
+                self.logger.info("App icon loaded successfully")
+            else:
+                self.logger.warning("App icon not found")
         except Exception as e:
-            print(f"Could not load app icon: {e}")
+            self.logger.warning(f"Could not load app icon: {e}")
     
     def process_text(self) -> None:
-        """Process the entered text"""
-        text = self.main_window.text_input_frame.get_text().strip()
+        """Process the input text based on current mode"""
+        try:
+            input_text = self.main_window.get_input_text()
+            
+            if not input_text.strip():
+                self.main_window.set_output_text(get_text("ui.output.empty_message"))
+                return
+            
+            # Process based on current mode
+            if self.user_mode == get_text("modes.sign_translate.name"):
+                # Convert text to sign language representation
+                output = self.convert_to_sign_language(input_text)
+                self.main_window.set_output_text(output)
+                self.main_window.set_status(f"{get_text('ui.status.converted_prefix')}{input_text}{get_text('ui.status.converted_suffix')}")
+                
+            elif self.user_mode == get_text("modes.learn.name"):
+                # Educational mode - show sign language information
+                output = self.get_sign_language_info(input_text)
+                self.main_window.set_output_text(output)
+                self.main_window.set_status(f"{get_text('ui.status.learning_prefix')}{input_text}{get_text('ui.status.learning_suffix')}")
+                
+            else:
+                # Default to Sign & Translate
+                output = self.convert_to_sign_language(input_text)
+                self.main_window.set_output_text(output)
+                self.main_window.set_status(f"{get_text('ui.status.converted_prefix')}{input_text}{get_text('ui.status.converted_suffix')}")
+                
+        except Exception as e:
+            self.logger.error(f"Error processing text: {e}")
+            self.main_window.set_output_text(f"{get_text('ui.status.error_prefix')}{e}")
+    
+    def convert_to_sign_language(self, text: str) -> str:
+        """Convert text to sign language representation"""
+        # This is a placeholder implementation
+        # In a real application, this would use a sign language translation service
+        words = text.lower().split()
+        sign_representations = []
         
-        if text:
-            # Add timestamp and process the text
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            processed_text = f"[{timestamp}] Processed: {text}\n"
-            
-            # Add to output
-            self.main_window.output_frame.add_text(processed_text)
-            
-            # Clear input
-            self.main_window.text_input_frame.clear_text()
-            
-            # Update status
-            self.status_bar.set_status(f"Processed: {text}")
-        else:
-            self.status_bar.set_status("Please enter some text")
+        for word in words:
+            # Simple mapping for demonstration
+            if word in ["hello", "hi"]:
+                sign_representations.append(get_text("sign_language.conversion.hello"))
+            elif word in ["thank", "thanks", "thank you"]:
+                sign_representations.append(get_text("sign_language.conversion.thank_you"))
+            elif word in ["yes"]:
+                sign_representations.append(get_text("sign_language.conversion.yes"))
+            elif word in ["no"]:
+                sign_representations.append(get_text("sign_language.conversion.no"))
+            elif word in ["please"]:
+                sign_representations.append(get_text("sign_language.conversion.please"))
+            elif word in ["sorry"]:
+                sign_representations.append(get_text("sign_language.conversion.sorry"))
+            else:
+                sign_representations.append(f"{get_text('sign_language.conversion.spell_prefix')}{' '.join(word.upper())}")
+        
+        return "\n".join(sign_representations)
+    
+    def get_sign_language_info(self, text: str) -> str:
+        """Get educational information about sign language"""
+        # This is a placeholder implementation
+        # In a real application, this would provide educational content
+        basic_signs = get_dict("sign_language.learning.basic_signs")
+        tips = get_list("sign_language.learning.tips")
+        
+        result = f"{get_text('sign_language.learning.title_prefix')}{text}{get_text('sign_language.learning.title_suffix')}\n\n"
+        result += f"{get_text('sign_language.learning.basic_signs_title')}\n"
+        
+        for sign_name, sign_description in basic_signs.items():
+            result += f"• {sign_description}\n"
+        
+        result += f"\n{get_text('sign_language.learning.tips_title')}\n"
+        for tip in tips:
+            result += f"• {tip}\n"
+        
+        result += f"\n{get_text('sign_language.learning.practice_prefix')}{text}{get_text('sign_language.learning.practice_suffix')}"
+        
+        return result
     
     def clear_text(self) -> None:
-        """Clear the output text area"""
-        self.main_window.output_frame.clear_text()
-        self.main_window.text_input_frame.clear_text()
-        self.status_bar.set_status("Cleared")
-        self.main_window.text_input_frame.focus_input()
-    
-    def on_closing(self) -> None:
-        """Handle application closing"""
-        self.root.destroy()
-        sys.exit()
+        """Clear input and output text"""
+        self.main_window.clear_input()
+        self.main_window.clear_output()
+        self.main_window.set_status(get_text("ui.status.cleared"))
     
     def get_config(self) -> Dict[str, Any]:
         """Get the current configuration"""
-        return self.config.copy()
+        return self.config
     
     def save_config(self, config_data: Dict[str, Any]) -> bool:
         """Save configuration"""
-        success = self.resource_manager.save_config(config_data)
-        if success:
-            self.config = config_data
-        return success
+        try:
+            self.config.update(config_data)
+            return self.resource_manager.save_config(self.config)
+        except Exception as e:
+            self.logger.error(f"Error saving config: {e}")
+            return False
     
     def check_user_mode(self) -> None:
-        """Check user mode and show startup screen if needed"""
-        log_function_entry(self.logger, "check_user_mode")
-        
+        """Check if user mode is set and show startup screen if needed"""
         try:
-            # Try to get existing user mode
-            self.user_mode = get_user_mode()
-            self.logger.debug(f"Retrieved user mode: {self.user_mode}")
+            # Try to get user mode with environment-specific config
+            mode = get_user_mode(self.environment)
             
-            # If no user mode is set, show startup screen
-            if not self.user_mode:
-                self.logger.info("No user mode found, showing startup screen")
-                self.show_startup_screen()
+            if mode:
+                self.user_mode = mode
+                self.update_ui_for_mode(mode)
+                self.logger.info(f"User mode loaded: {mode}")
             else:
-                # Update status with current mode
-                mode_name = "Sign & Translate" if self.user_mode == "sign" else "Learn Sign Language"
-                self.status_bar.set_status(f"Current Mode: {mode_name}")
-                self.logger.info(f"User mode set to: {mode_name}")
-        except (Exception, ValueError) as e:
-            # Handle first-time run or any config errors gracefully
-            # Don't print error for first-time runs
-            if "Configuration file has been tampered with" not in str(e):
-                self.logger.warning(f"Config error: {e}")
-            self.user_mode = None
-            self.logger.info("Showing startup screen due to config error")
+                # No user mode set, show startup screen
+                self.logger.info("No user mode set, showing startup screen")
+                self.show_startup_screen()
+                
+        except Exception as e:
+            self.logger.warning(f"Error checking user mode: {e}")
+            # Show startup screen on error
             self.show_startup_screen()
-        
-        log_function_exit(self.logger, "check_user_mode")
     
     def show_startup_screen(self) -> None:
-        """Show the startup screen to get user choice"""
-        log_function_entry(self.logger, "show_startup_screen")
-        
-        # Don't hide main window - just show startup screen on top
-        self.logger.debug("Main window remains visible")
-        
-        # Show startup screen
-        self.logger.info("Showing startup screen")
-        choice = show_startup_screen(self.root)
-        self.logger.debug(f"Startup screen returned choice: {choice}")
-        
-        # Main window is already visible
-        self.logger.debug("Main window already visible")
-        
-        if choice:
-            self.user_mode = choice
-            mode_name = "Sign & Translate" if choice == "sign" else "Learn Sign Language"
-            self.status_bar.set_status(f"Current Mode: {mode_name}")
-            self.logger.info(f"User selected: {mode_name}")
+        """Show the startup screen for mode selection"""
+        try:
+            self.logger.info("Showing startup screen")
             
-            # Update UI based on mode
-            self.update_ui_for_mode(choice)
-        else:
-            # User cancelled, use default mode
-            self.user_mode = "sign"
-            self.status_bar.set_status("Current Mode: Sign & Translate (Default)")
-            self.logger.info("User cancelled, using default mode: Sign & Translate")
-            self.update_ui_for_mode("sign")
-        
-        log_function_exit(self.logger, "show_startup_screen")
+            # Show startup screen
+            mode = show_startup_screen()
+            
+            if mode:
+                self.user_mode = mode
+                set_user_mode(mode, self.environment)
+                self.update_ui_for_mode(mode)
+                self.logger.info(f"User mode set from startup screen: {mode}")
+            else:
+                # Default to Sign & Translate if no selection
+                self.user_mode = get_text("modes.sign_translate.name")
+                set_user_mode(self.user_mode, self.environment)
+                self.update_ui_for_mode(self.user_mode)
+                self.logger.info("No mode selected, using default: Sign & Translate")
+                
+        except Exception as e:
+            self.logger.error(f"Error showing startup screen: {e}")
+            # Default to Sign & Translate on error
+            self.user_mode = get_text("modes.sign_translate.name")
+            self.update_ui_for_mode(self.user_mode)
     
     def update_ui_for_mode(self, mode: str) -> None:
-        """Update UI based on selected mode"""
-        if mode == "sign":
-            # Sign & Translate mode UI updates
-            self.main_window.set_title("HelpMeSign - Sign & Translate")
-            self.logger.info("UI updated for Sign & Translate mode")
-            # Add sign-specific UI elements here
-        elif mode == "learn":
-            # Learn Sign Language mode UI updates
-            self.main_window.set_title("HelpMeSign - Learn Sign Language")
-            self.logger.info("UI updated for Learn Sign Language mode")
-            # Add learn-specific UI elements here
+        """Update the UI to reflect the current mode"""
+        try:
+            self.main_window.set_mode(mode)
+            self.main_window.set_status(f"Mode: {mode}")
+            self.logger.info(f"UI updated for mode: {mode}")
+        except Exception as e:
+            self.logger.error(f"Error updating UI for mode: {e}")
     
-    def change_user_mode(self) -> None:
-        """Allow user to change their mode via menu"""
-        self.show_startup_screen()
-    
-    def set_user_mode_from_menu(self, mode: str) -> None:
-        """Set user mode from menu selection"""
-        if mode in ['sign', 'learn']:
-            self.user_mode = mode
-            set_user_mode(mode)  # Save to secure config
-            self.update_ui_for_mode(mode)
+    def show_settings(self) -> None:
+        """Show the settings dialog"""
+        try:
+            current_mode = self.user_mode or "Sign & Translate"
             
-            # Update status
-            mode_name = "Sign & Translate" if mode == "sign" else "Learn Sign Language"
-            self.status_bar.set_status(f"Current Mode: {mode_name}")
-            
-            # Show confirmation
-            import tkinter.messagebox as messagebox
-            messagebox.showinfo(
-                "Mode Changed",
-                f"Switched to {mode_name}!\n\n"
-                "Your preference has been saved securely."
+            # Show settings dialog
+            selected_mode = show_settings_dialog(
+                parent=self.main_window,
+                current_mode=current_mode,
+                callback=self.set_user_mode_from_settings
             )
+            
+            if selected_mode:
+                self.user_mode = selected_mode
+                set_user_mode(selected_mode, self.environment)
+                self.update_ui_for_mode(selected_mode)
+                self.logger.info(f"User mode changed via settings: {selected_mode}")
+                
+        except Exception as e:
+            self.logger.error(f"Error showing settings: {e}")
+    
+    def set_user_mode_from_settings(self, mode: str) -> None:
+        """Handle mode change from settings dialog"""
+        try:
+            self.user_mode = mode
+            set_user_mode(mode, self.environment)
+            self.update_ui_for_mode(mode)
+            self.logger.info(f"User mode changed from settings: {mode}")
+        except Exception as e:
+            self.logger.error(f"Error setting user mode from settings: {e}")
     
     def get_user_mode(self) -> Optional[str]:
-        """Get current user mode"""
+        """Get the current user mode"""
         return self.user_mode
     
     def get_resource_info(self) -> Dict[str, Any]:
         """Get information about available resources"""
         return self.resource_manager.get_resource_info()
     
+    def show(self) -> None:
+        """Show the main window"""
+        self.main_window.show()
+    
     def run(self) -> None:
-        """Start the application main loop"""
-        self.root.mainloop()
+        """Run the application"""
+        self.show()
+        self.logger.info("Application started successfully")
 
 
-def create_app() -> HelpMeSignApp:
-    """Factory function to create the application"""
-    root = tk.Tk()
-    return HelpMeSignApp(root)
-
-
-def main():
-    """Main entry point for the application"""
-    app = create_app()
-    app.run()
-
-
-if __name__ == "__main__":
-    main() 
+def create_app(environment: str = "dev") -> HelpMeSignApp:
+    """Create and return a HelpMeSign application instance"""
+    return HelpMeSignApp(environment) 

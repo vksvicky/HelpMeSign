@@ -1,0 +1,254 @@
+{
+  "language": "en",
+  "region": "us",
+  "name": "American English",
+  "native_name": "American English",
+  "version": "1.0.0",
+  
+  "app": {
+    "name": "HelpMeSign",
+    "description": "Sign Language Translation and Learning Application",
+    "version": "1.0.0",
+    "organization": "CycleRunCode Club",
+    "domain": "https://cycleruncode.club"
+  },
+  
+  "startup": {
+    "title": "Welcome to HelpMeSign",
+    "subtitle": "Choose your preferred mode:",
+    "info_text": "You can change this setting later in the application preferences.",
+    "auto_close_message": "Auto-closing startup screen (no choice made)"
+  },
+  
+  "modes": {
+    "sign_translate": {
+      "name": "Sign & Translate",
+      "description": "Convert text to sign language symbols and gestures",
+      "button_text": "Sign & Translate",
+      "previous_choice_text": "Sign & Translate (Previous Choice)"
+    },
+    "learn": {
+      "name": "Learn Sign Language",
+      "description": "Educational mode for learning sign language vocabulary and grammar",
+      "button_text": "Learn Sign Language",
+      "previous_choice_text": "Learn Sign Language (Previous Choice)"
+    }
+  },
+  
+  "ui": {
+    "main_window": {
+      "title": "HelpMeSign",
+      "dev_title": "HelpMeSign (DEV)",
+      "prod_title": "HelpMeSign (PROD)"
+    },
+    "text_input": {
+      "placeholder": "Enter text to translate or learn...",
+      "label": "Input Text:",
+      "clear_button": "Clear",
+      "process_button": "Process",
+      "placeholder_alt": "Type your text here..."
+    },
+    "output": {
+      "label": "Output:",
+      "empty_message": "Please enter some text to process.",
+      "clear_button": "Clear Output",
+      "placeholder": "Processed text will appear here..."
+    },
+    "status": {
+      "default": "Ready",
+      "processing": "Processing...",
+      "cleared": "Text cleared",
+      "mode_prefix": "Mode: ",
+      "converted_prefix": "Converted '",
+      "converted_suffix": "' to sign language",
+      "learning_prefix": "Learning information for '",
+      "learning_suffix": "'",
+      "error_prefix": "Error processing text: "
+    }
+  },
+  
+  "menu": {
+    "helpmesign": {
+      "name": "HelpMeSign",
+      "about": "About HelpMeSign",
+      "preferences": "Preferences...",
+      "quit": "Quit HelpMeSign"
+    },
+    "file": {
+      "name": "File",
+      "new": "New",
+      "open": "Open...",
+      "save": "Save",
+      "save_as": "Save As...",
+      "close": "Close",
+      "quit": "Quit"
+    },
+    "edit": {
+      "name": "Edit",
+      "undo": "Undo",
+      "redo": "Redo",
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "select_all": "Select All",
+      "clear": "Clear"
+    },
+    "view": {
+      "name": "View",
+      "zoom_in": "Zoom In",
+      "zoom_out": "Zoom Out",
+      "actual_size": "Actual Size",
+      "fit_to_window": "Fit to Window"
+    },
+    "settings": {
+      "name": "Settings",
+      "preferences": "Preferences...",
+      "mode": "Mode"
+    },
+    "help": {
+      "name": "Help",
+      "help": "HelpMeSign Help",
+      "about": "About HelpMeSign"
+    }
+  },
+  
+  "settings": {
+    "title": "Settings",
+    "mode_section": "Application Mode",
+    "mode_label": "Select your preferred mode:",
+    "mode_sign_translate": "Sign & Translate",
+    "mode_learn": "Learn Sign Language",
+    "mode_description": "This setting determines how the application processes your input text.",
+    "buttons": {
+      "ok": "OK",
+      "cancel": "Cancel",
+      "apply": "Apply"
+    }
+  },
+  
+  "about": {
+    "title": "About HelpMeSign",
+    "description": "HelpMeSign is a desktop application for sign language translation and learning. It provides tools for converting text to sign language and educational content for learning sign language vocabulary and grammar.",
+    "version": "Version",
+    "copyright": "© 2024 HelpMeSign. All rights reserved.",
+    "website": "Website",
+    "support": "Support",
+    "content": "<h2>HelpMeSign</h2><p>A Python application for Sign Language translation and learning.</p><p>Built with PySide6 (Qt for Python)</p><p>Version 1.0.0</p>"
+  },
+  
+  "sign_language": {
+    "conversion": {
+      "hello": "👋 Wave hand",
+      "hi": "👋 Wave hand",
+      "thank": "🙏 Hand to chin, then forward",
+      "thanks": "🙏 Hand to chin, then forward",
+      "thank_you": "🙏 Hand to chin, then forward",
+      "yes": "👍 Nod head and fist",
+      "no": "👎 Shake head and index finger",
+      "please": "🤲 Flat hand, palm up, circular motion",
+      "sorry": "🤝 Fist over heart, circular motion",
+      "spell_prefix": "🤟 Spell: "
+    },
+    "learning": {
+      "title_prefix": "📚 Sign Language Learning: \"",
+      "title_suffix": "\"",
+      "basic_signs_title": "🤟 Basic Signs:",
+      "basic_signs": {
+        "hello": "Hello: Wave your hand",
+        "thank_you": "Thank you: Touch chin with fingertips, then move hand forward",
+        "yes": "Yes: Nod head while making a fist",
+        "no": "No: Shake head while pointing index finger"
+      },
+      "tips_title": "💡 Tips:",
+      "tips": [
+        "Always maintain eye contact",
+        "Use facial expressions to convey emotion",
+        "Keep movements clear and deliberate",
+        "Practice regularly for fluency"
+      ],
+      "practice_prefix": "🎯 Practice: Try signing \"",
+      "practice_suffix": "\" using the basic signs above!"
+    }
+  },
+  
+  "errors": {
+    "general": "An error occurred",
+    "file_not_found": "File not found",
+    "permission_denied": "Permission denied",
+    "invalid_input": "Invalid input",
+    "network_error": "Network error",
+    "unknown": "Unknown error"
+  },
+  
+  "messages": {
+    "success": "Success",
+    "warning": "Warning",
+    "error": "Error",
+    "info": "Information",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No"
+  },
+  
+  "shortcuts": {
+    "settings": "Settings...",
+    "quit": "Quit HelpMeSign",
+    "clear_all": "Clear All",
+    "close_window": "Close Window",
+    "help": "HelpMeSign Help",
+    "process_text": "Process Text",
+    "clear_input": "Clear Text Input"
+  },
+  
+  "os_shortcuts": {
+    "macos": {
+      "cmd": "⌘",
+      "option": "⌥",
+      "shift": "⇧",
+      "ctrl": "⌃",
+      "enter": "↵",
+      "delete": "⌫",
+      "escape": "⎋"
+    },
+    "windows": {
+      "cmd": "Ctrl",
+      "option": "Alt",
+      "shift": "Shift",
+      "ctrl": "Ctrl",
+      "enter": "Enter",
+      "delete": "Del",
+      "escape": "Esc"
+    },
+    "linux": {
+      "cmd": "Ctrl",
+      "option": "Alt",
+      "shift": "Shift",
+      "ctrl": "Ctrl",
+      "enter": "Enter",
+      "delete": "Del",
+      "escape": "Esc"
+    }
+  },
+  
+  "help": {
+    "title": "HelpMeSign Help",
+    "getting_started_title": "Getting Started",
+    "getting_started_steps": [
+      "1. Enter text in the input field",
+      "2. Press Enter or click \"Process\" to translate",
+      "3. View the output in the text area below",
+      "4. Use \"Clear\" to reset the application"
+    ],
+    "keyboard_shortcuts_title": "Keyboard Shortcuts",
+    "keyboard_shortcuts": {
+      "enter": "Enter - Process text",
+      "ctrl_enter": "Ctrl+Enter - Process text",
+      "ctrl_shift_k": "Ctrl+Shift+K - Clear all",
+      "ctrl_comma": "Ctrl+, - Open settings",
+      "f1": "F1 - Show help",
+      "ctrl_q": "Ctrl+Q - Quit application"
+    }
+  }
+} 

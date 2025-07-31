@@ -1,5 +1,5 @@
 # Core dependencies
-# No external dependencies required for the main application - using built-in tkinter
+PySide6>=6.5.0  # Qt for Python - GUI framework
 
 # Testing and development dependencies
 coverage>=6.0.0

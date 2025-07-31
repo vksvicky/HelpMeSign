@@ -1,42 +1,132 @@
 #!/usr/bin/env python3
 """
-Build script for creating a Windows 64-bit executable for HelpMeSign
-Uses PyInstaller to create a native Windows .exe file
+Build script for creating Windows executable using PyInstaller
 """
 
 import os
 import sys
-import shutil
 import subprocess
+import shutil
 import platform
 from pathlib import Path
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('build_windows.log')
+    ]
+)
+logger = logging.getLogger(__name__)
+
 
 def check_requirements():
-    """Check if required tools are installed"""
-    print("🔍 Checking requirements...")
+    """Check if all requirements are met"""
+    logger.info("🔍 Checking requirements...")
     
-    # Check if we're on Windows
+    # Check if running on Windows
     if platform.system() != 'Windows':
-        print("❌ This script must be run on Windows")
+        logger.error("❌ This script must be run on Windows")
         return False
     
     # Check Python version
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8+ is required")
+        logger.error("❌ Python 3.8+ is required")
         return False
     
-    print(f"✅ Python {sys.version_info.major}.{sys.version_info.minor} detected")
+    logger.info(f"✅ Python {sys.version_info.major}.{sys.version_info.minor} detected")
     
-    # Check if PyInstaller is installed
+    # Check PyInstaller
     try:
         import PyInstaller
-        print("✅ PyInstaller is installed")
+        logger.info("✅ PyInstaller is installed")
     except ImportError:
-        print("❌ PyInstaller is not installed. Installing...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], check=True)
-        print("✅ PyInstaller installed successfully")
+        logger.warning("❌ PyInstaller is not installed. Installing...")
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "PyInstaller"])
+            logger.info("✅ PyInstaller installed successfully")
+        except subprocess.CalledProcessError:
+            logger.error("❌ Failed to install PyInstaller")
+            return False
+    
+    # Check PySide6
+    try:
+        import PySide6
+        logger.info("✅ PySide6 is installed")
+    except ImportError:
+        logger.warning("❌ PySide6 is not installed. Installing...")
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "PySide6"])
+            logger.info("✅ PySide6 installed successfully")
+        except subprocess.CalledProcessError:
+            logger.error("❌ Failed to install PySide6")
+            return False
     
     return True
+
+
+def create_production_main():
+    """Create main_prod.py for production build"""
+    prod_main_content = '''#!/usr/bin/env python3
+"""
+Production entry point for HelpMeSign application
+"""
+import sys
+import os
+import argparse
+from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QIcon
+from PySide6.QtCore import QCoreApplication
+from src.helpmesign.core.app import create_app
+from src.helpmesign.utils.resource_manager import ResourceManager
+
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description="HelpMeSign - Sign Language Translation and Learning Application")
+    parser.add_argument('--env', choices=['dev', 'prod'], default='prod', help='Environment to run in (default: prod)')
+    return parser.parse_args()
+
+def main():
+    """Main entry point"""
+    args = parse_arguments()
+    
+    # Set application metadata
+    QCoreApplication.setApplicationName("HelpMeSign")
+    QCoreApplication.setApplicationVersion("1.0.0")
+    QCoreApplication.setOrganizationName("HelpMeSign")
+    QCoreApplication.setOrganizationDomain("helpmesign.com")
+    
+    # Create Qt application
+    app = QApplication(sys.argv)
+    
+    # Set application icon
+    try:
+        resource_manager = ResourceManager()
+        icon_path = resource_manager.get_image_path('icon.png')
+        if resource_manager.resource_exists('image', 'icon.png'):
+            app.setWindowIcon(QIcon(icon_path))
+    except Exception:
+        pass  # Icon not critical for production
+    
+    # Create and run the application
+    helpmesign_app = create_app(args.env)
+    helpmesign_app.run()
+    
+    # Start the event loop
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
+'''
+    
+    with open('main_prod.py', 'w') as f:
+        f.write(prod_main_content)
+    
+    logger.info("✅ Created main_prod.py for production build")
+
 
 def create_spec_file():
     """Create PyInstaller spec file"""
@@ -45,37 +135,32 @@ def create_spec_file():
 block_cipher = None
 
 a = Analysis(
-    ['main.py'],
+    ['main_prod.py'],
     pathex=[],
     binaries=[],
     datas=[
-        ('resources/images/icon.png', 'resources/images'),
         ('resources/data/config.json', 'resources/data'),
         ('resources/data/sample_data.txt', 'resources/data'),
-        ('README.md', '.'),
-        ('LICENSE', '.'),
+        ('resources/images/icon.png', 'resources/images'),
+        ('resources/fonts/Roboto-Regular.ttf', 'resources/fonts'),
+        ('resources/fonts/Roboto-Bold.ttf', 'resources/fonts'),
+        ('resources/fonts/Roboto-Light.ttf', 'resources/fonts'),
+        ('resources/fonts/Roboto-Medium.ttf', 'resources/fonts'),
+        ('resources/fonts/Roboto-Thin.ttf', 'resources/fonts'),
     ],
     hiddenimports=[
+        'PySide6.QtCore',
+        'PySide6.QtGui', 
+        'PySide6.QtWidgets',
         'helpmesign',
         'helpmesign.core',
         'helpmesign.ui',
         'helpmesign.utils',
-        'helpmesign.services',
-        'tkinter',
-        'tkinter.ttk',
-        'json',
-        'pathlib',
-        'datetime',
-        'sys',
-        'os',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[
-        'matplotlib', 'numpy', 'scipy', 'pandas', 'PIL', 'Pillow',
-        'requests', 'psutil', 'coverage', 'pytest', 'unittest',
-    ],
+    excludes=['tkinter', 'test', 'distutils'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -112,100 +197,97 @@ exe = EXE(
     with open('HelpMeSign.spec', 'w') as f:
         f.write(spec_content)
     
-    print("✅ Created HelpMeSign.spec")
+    logger.info("✅ Created HelpMeSign.spec")
 
-def clean_build_dirs():
-    """Clean previous build directories"""
-    print("🧹 Cleaning previous build directories...")
+
+def clean_build_directories():
+    """Clean build and dist directories"""
+    logger.info("🧹 Cleaning build directories...")
     
     dirs_to_clean = ['build', 'dist', '__pycache__']
+    files_to_clean = ['main_prod.py', 'HelpMeSign.spec']
+    
     for dir_name in dirs_to_clean:
         if os.path.exists(dir_name):
             shutil.rmtree(dir_name)
-            print(f"✅ Cleaned {dir_name}")
+            logger.info(f"✅ Cleaned {dir_name}")
     
-    # Clean .pyc files
-    for root, dirs, files in os.walk('.'):
-        for file in files:
-            if file.endswith('.pyc'):
-                os.remove(os.path.join(root, file))
-    
-    # Clean PyInstaller cache
-    cache_dir = os.path.expanduser('~/.cache/pyinstaller')
-    if os.path.exists(cache_dir):
-        shutil.rmtree(cache_dir)
-        print("✅ Cleaned PyInstaller cache")
-    
-    print("✅ Build directories cleaned")
+    for file_name in files_to_clean:
+        if os.path.exists(file_name):
+            os.remove(file_name)
+            logger.info(f"✅ Cleaned {file_name}")
 
-def build_exe():
+
+def build_executable():
     """Build the Windows executable"""
-    print("🔨 Building Windows executable...")
-    
     try:
-        # Run PyInstaller
-        subprocess.run([
-            sys.executable, '-m', 'PyInstaller',
-            '--clean',
-            '--noconfirm',
-            'HelpMeSign.spec'
-        ], check=True)
+        logger.info("🔨 Building Windows executable...")
         
-        print("✅ Windows executable built successfully!")
+        # Run PyInstaller
+        subprocess.check_call([sys.executable, '-m', 'PyInstaller', 'HelpMeSign.spec'])
+        
+        logger.info("✅ Executable built successfully")
         return True
         
     except subprocess.CalledProcessError as e:
-        print(f"❌ Build failed: {e}")
+        logger.error(f"❌ Build failed: {e}")
         return False
 
-def verify_exe():
-    """Verify the built executable"""
-    print("🔍 Verifying built executable...")
+
+def verify_executable():
+    """Verify the executable was created correctly"""
+    logger.info("🔍 Verifying executable...")
     
     exe_path = "dist/HelpMeSign.exe"
     if not os.path.exists(exe_path):
-        print("❌ Executable not found")
+        logger.error("❌ Executable not found")
         return False
     
-    print(f"✅ Executable found at: {exe_path}")
-    
-    # Check executable size
+    # Check file size
     exe_size = os.path.getsize(exe_path)
     exe_size_mb = exe_size / (1024 * 1024)
-    print(f"📦 Executable size: {exe_size_mb:.1f} MB")
+    logger.info(f"📦 Executable size: {exe_size_mb:.1f} MB")
     
-    # Check if it's 64-bit
+    # Try to get version info (Windows-specific)
     try:
-        import pefile
-        pe = pefile.PE(exe_path)
-        if pe.OPTIONAL_HEADER.Magic == 0x20b:  # PE32+
-            print("✅ 64-bit executable confirmed")
-        else:
-            print("⚠️  Executable is 32-bit")
+        import win32api
+        info = win32api.GetFileVersionInfo(exe_path, "\\")
+        version = f"{info['FileVersionMS'] >> 16}.{info['FileVersionMS'] & 0xFFFF}.{info['FileVersionLS'] >> 16}.{info['FileVersionLS'] & 0xFFFF}"
+        logger.info(f"✅ Executable version: {version}")
     except ImportError:
-        print("⚠️  pefile not available, cannot verify architecture")
+        logger.warning("⚠️  pywin32 not available, skipping version check")
+    except Exception:
+        logger.warning("⚠️  Could not get version info")
     
+    logger.info("✅ Executable verification passed")
     return True
 
+
 def create_installer():
-    """Create an NSIS installer (optional)"""
-    print("📦 Creating NSIS installer...")
+    """Create NSIS installer"""
+    logger.info("📦 Creating installer...")
     
-    # Create NSIS script
-    nsis_script = '''!include "MUI2.nsh"
+    try:
+        # Check if NSIS is available
+        subprocess.run(['makensis', '/VERSION'], check=True, capture_output=True)
+        
+        # Create NSIS script
+        nsis_script = '''!define APP_NAME "HelpMeSign"
+!define APP_VERSION "1.0.0"
+!define APP_PUBLISHER "HelpMeSign"
+!define APP_EXE "HelpMeSign.exe"
 
-; Basic settings
-Name "HelpMeSign"
+!include "MUI2.nsh"
+
+Name "${APP_NAME}"
 OutFile "HelpMeSign-Setup.exe"
-InstallDir "$PROGRAMFILES64\\HelpMeSign"
-RequestExecutionLevel admin
+InstallDir "$PROGRAMFILES\\${APP_NAME}"
+InstallDirRegKey HKCU "Software\\${APP_NAME}" ""
 
-; Interface settings
 !define MUI_ABORTWARNING
-!define MUI_ICON "resources\\images\\icon.png"
-!define MUI_UNICON "resources\\images\\icon.png"
+!define MUI_ICON "resources\\images\\icon.ico"
+!define MUI_UNICON "resources\\images\\icon.ico"
 
-; Pages
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
@@ -215,106 +297,88 @@ RequestExecutionLevel admin
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 
-; Languages
 !insertmacro MUI_LANGUAGE "English"
 
-Section "HelpMeSign" SecMain
+Section "Main Application" SecMain
     SetOutPath "$INSTDIR"
-    File "dist\\HelpMeSign.exe"
-    File "README.md"
-    File "LICENSE"
+    File "dist\\${APP_EXE}"
     
-    ; Create uninstaller
+    WriteRegStr HKCU "Software\\${APP_NAME}" "" $INSTDIR
     WriteUninstaller "$INSTDIR\\Uninstall.exe"
     
-    ; Create start menu shortcut
-    CreateDirectory "$SMPROGRAMS\\HelpMeSign"
-    CreateShortCut "$SMPROGRAMS\\HelpMeSign\\HelpMeSign.lnk" "$INSTDIR\\HelpMeSign.exe"
-    CreateShortCut "$SMPROGRAMS\\HelpMeSign\\Uninstall.lnk" "$INSTDIR\\Uninstall.exe"
+    CreateDirectory "$SMPROGRAMS\\${APP_NAME}"
+    CreateShortCut "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk" "$INSTDIR\\${APP_EXE}"
+    CreateShortCut "$DESKTOP\\${APP_NAME}.lnk" "$INSTDIR\\${APP_EXE}"
     
-    ; Create desktop shortcut
-    CreateShortCut "$DESKTOP\\HelpMeSign.lnk" "$INSTDIR\\HelpMeSign.exe"
-    
-    ; Registry entries
-    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign" "DisplayName" "HelpMeSign"
-    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign" "UninstallString" "$INSTDIR\\Uninstall.exe"
-    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign" "DisplayIcon" "$INSTDIR\\HelpMeSign.exe"
-    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign" "Publisher" "HelpMeSign"
-    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign" "DisplayVersion" "1.0.0"
-    WriteRegDWORD HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign" "NoModify" 1
-    WriteRegDWORD HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign" "NoRepair" 1
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_NAME}" "DisplayName" "${APP_NAME}"
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_NAME}" "UninstallString" "$INSTDIR\\Uninstall.exe"
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_NAME}" "DisplayVersion" "${APP_VERSION}"
+    WriteRegStr HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_NAME}" "Publisher" "${APP_PUBLISHER}"
 SectionEnd
 
 Section "Uninstall"
-    ; Remove files
-    Delete "$INSTDIR\\HelpMeSign.exe"
-    Delete "$INSTDIR\\README.md"
-    Delete "$INSTDIR\\LICENSE"
+    Delete "$INSTDIR\\${APP_EXE}"
     Delete "$INSTDIR\\Uninstall.exe"
-    
-    ; Remove shortcuts
-    Delete "$SMPROGRAMS\\HelpMeSign\\HelpMeSign.lnk"
-    Delete "$SMPROGRAMS\\HelpMeSign\\Uninstall.lnk"
-    RMDir "$SMPROGRAMS\\HelpMeSign"
-    Delete "$DESKTOP\\HelpMeSign.lnk"
-    
-    ; Remove directory
     RMDir "$INSTDIR"
     
-    ; Remove registry entries
-    DeleteRegKey HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\HelpMeSign"
+    Delete "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk"
+    RMDir "$SMPROGRAMS\\${APP_NAME}"
+    Delete "$DESKTOP\\${APP_NAME}.lnk"
+    
+    DeleteRegKey HKCU "Software\\${APP_NAME}"
+    DeleteRegKey HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_NAME}"
 SectionEnd
 '''
-    
-    with open('installer.nsi', 'w') as f:
-        f.write(nsis_script)
-    
-    print("✅ Created installer.nsi")
-    
-    try:
-        # Check if NSIS is available
-        subprocess.run(['makensis', '/VERSION'], check=True, capture_output=True)
         
-        # Create installer
-        subprocess.run(['makensis', 'installer.nsi'], check=True)
+        with open('installer.nsi', 'w') as f:
+            f.write(nsis_script)
         
-        print("✅ NSIS installer created successfully!")
+        # Run NSIS
+        subprocess.check_call(['makensis', 'installer.nsi'])
+        
+        logger.info("✅ Installer created successfully")
         return True
         
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("⚠️  NSIS not available, skipping installer creation")
-        print("💡 Install NSIS: https://nsis.sourceforge.io/Download")
+        logger.warning("⚠️  NSIS not found, skipping installer creation")
+        logger.info("💡 Install NSIS: https://nsis.sourceforge.io/Download")
         return False
+
 
 def main():
     """Main build process"""
-    print("🪟 Building HelpMeSign for Windows")
-    print("=" * 50)
+    logger.info("🚀 Starting Windows executable build process...")
+    logger.info("=" * 50)
     
     # Check requirements
     if not check_requirements():
         sys.exit(1)
     
     # Clean previous builds
-    clean_build_dirs()
+    clean_build_directories()
+    
+    # Create production main
+    create_production_main()
     
     # Create spec file
     create_spec_file()
     
     # Build executable
-    if not build_exe():
+    if not build_executable():
         sys.exit(1)
     
     # Verify executable
-    if not verify_exe():
+    if not verify_executable():
         sys.exit(1)
     
     # Create installer (optional)
     create_installer()
     
-    print("\n🎉 Windows build completed successfully!")
-    print("📁 Executable location: dist/HelpMeSign.exe")
-    print("💡 To run: dist\\HelpMeSign.exe")
+    logger.info("\n" + "=" * 50)
+    logger.info("🎉 Build completed successfully!")
+    logger.info(f"📦 Executable: dist/HelpMeSign.exe")
+    logger.info("💡 To run: dist\\HelpMeSign.exe")
+
 
 if __name__ == "__main__":
     main() 

@@ -9,7 +9,15 @@ import os
 import argparse
 import subprocess
 import unittest
+import logging
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Add the src directory to the path so we can import our modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -27,7 +35,7 @@ def check_coverage_available():
 def run_tests_with_coverage(test_pattern, output_format='term'):
     """Run tests with coverage reporting"""
     if not check_coverage_available():
-        print("⚠️  Coverage module not available. Install with: pip install coverage")
+        logger.warning("⚠️  Coverage module not available. Install with: pip install coverage")
         return False
     
     try:
@@ -49,17 +57,17 @@ def run_tests_with_coverage(test_pattern, output_format='term'):
         
         if output_format == 'html':
             cov.html_report(directory='htmlcov')
-            print(f"📊 HTML coverage report generated in htmlcov/")
+            logger.info(f"📊 HTML coverage report generated in htmlcov/")
         elif output_format == 'xml':
             cov.xml_report(outfile='coverage.xml')
-            print(f"📊 XML coverage report generated as coverage.xml")
+            logger.info(f"📊 XML coverage report generated as coverage.xml")
         else:
             cov.report()
         
         return result.wasSuccessful()
         
     except Exception as e:
-        print(f"❌ Error running tests with coverage: {e}")
+        logger.error(f"❌ Error running tests with coverage: {e}")
         return False
 
 
@@ -153,30 +161,30 @@ Examples:
         test_pattern = 'test_*.py'
         test_category = 'all'
     
-    print(f"🧪 Running HelpMeSign Tests ({test_category})")
-    print("=" * 50)
+    logger.info(f"🧪 Running HelpMeSign Tests ({test_category})")
+    logger.info("=" * 50)
     
     # Check if tests directory exists
     if not os.path.exists('tests'):
-        print("❌ Tests directory not found")
+        logger.error("❌ Tests directory not found")
         sys.exit(1)
     
     # Run tests
     success = False
     
     if args.coverage:
-        print(f"📊 Running tests with {args.coverage} coverage reporting...")
+        logger.info(f"📊 Running tests with {args.coverage} coverage reporting...")
         success = run_tests_with_coverage(test_pattern, args.coverage)
     else:
-        print("🔍 Running tests...")
+        logger.info("🔍 Running tests...")
         success = run_tests_without_coverage(test_pattern, args.verbose)
     
     # Print summary
-    print("\n" + "=" * 50)
+    logger.info("=" * 50)
     if success:
-        print("✅ All tests passed!")
+        logger.info("✅ All tests passed!")
     else:
-        print("❌ Some tests failed!")
+        logger.error("❌ Some tests failed!")
         sys.exit(1)
 
 

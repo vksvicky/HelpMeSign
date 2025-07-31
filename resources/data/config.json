@@ -14,7 +14,7 @@
         "accent_color": "#e74c3c"
     },
     "ui": {
-        "font_family": "Arial",
+        "font_family": "Roboto",
         "font_size": 12,
         "button_padding": 10,
         "margin": 20
