@@ -2,6 +2,18 @@
 
 A Python GUI application for Sign Language translation and learning, built with PySide (Qt for Python).
 
+## 📚 Documentation
+
+This project includes comprehensive documentation covering various aspects of the application:
+
+- **[Framework Migration Guide](docs/PYSIDE_MIGRATION_SUMMARY.md)** - Complete migration from Tkinter to PySide6
+- **[Environment Support](docs/ENVIRONMENT_SUPPORT.md)** - Development and production environment configuration
+- **[Internationalization (i18n)](docs/INTERNATIONALIZATION.md)** - Multi-language support system
+- **[Secure Configuration System](docs/SECURE_CONFIG_SYSTEM.md)** - Tamper-proof user configuration
+- **[Logging System](docs/LOGGING_SUMMARY.md)** - Centralized logging and debugging
+- **[Fonts and Icon Management](docs/FONTS_AND_ICON_FIXES.md)** - Resource management and display
+- **[GitHub Setup](docs/GITHUB_SETUP.md)** - Repository configuration and workflows
+
 ## Framework Migration: Tkinter → PySide
 
 ### Why PySide?
@@ -82,6 +94,90 @@ HelpMeSign supports two environments:
 - **Development (`dev`)**: Default for development runs, includes debug information, larger window size, and detailed logging
 - **Production (`prod`)**: Default for built executables, optimized for end users with minimal debug output
 
+### macOS Menubar Issue and Solutions
+
+On macOS, when running the application directly through Python, the menubar may show "Python" instead of "HelpMeSign". This is a known issue with Qt applications on macOS. Several solutions are available:
+
+#### **Solution 1: Use the Launcher Script (Recommended for Development)**
+```bash
+# Use the provided launcher script
+./run_helpmesign.sh
+
+# Or run with your virtual environment
+clear && source venv/bin/activate && ./run_helpmesign.sh
+```
+
+#### **Solution 2: Build as macOS App Bundle (Recommended for Production)**
+```bash
+# Build the application as a proper macOS .app bundle
+python3 scripts/build_macos_app.py
+
+# The built app will show "HelpMeSign" in the menubar
+```
+
+#### **Solution 3: Use Virtual Environment with run_app.py**
+```bash
+# Your current method (may show "Python" in menubar)
+clear && source venv/bin/activate && python3 run_app.py
+```
+
+The menubar issue is resolved in the built app bundle because it includes a proper `Info.plist` file with the correct application name.
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- Virtual environment (recommended)
+
+### Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd HelpMeSign
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Run the Application
+```bash
+# Development mode (your preferred method)
+clear && source venv/bin/activate && python3 run_app.py
+
+# Or use the launcher script for macOS menubar fix
+./run_helpmesign.sh
+
+# Production mode
+python3 run_app.py --env prod
+```
+
+## 📋 Current Status
+
+✅ **Completed Features:**
+- Full PySide6 migration from Tkinter
+- Internationalization (i18n) system with JSON language files
+- Secure configuration system with system-derived keys
+- Environment support (dev/prod)
+- Comprehensive logging system
+- Modern UI with segmented controls
+- Cross-platform compatibility
+- Build scripts for macOS, Windows, and Linux
+- Complete test suite with unit, mock, and integration tests
+
+✅ **Recent Fixes:**
+- macOS menubar application name issue
+- Window title environment display
+- Font loading and application icon
+- All print statements replaced with logger calls
+
+🔄 **In Progress:**
+- Final testing and validation
+- Documentation updates
+
 ### Using the Application Runner Script (Recommended)
 ```bash
 # Run in development mode (default)
@@ -99,6 +195,34 @@ python3 run_app.py --env prod --config custom_config.json
 # Get help
 python3 run_app.py --help
 ```
+
+### macOS Menubar Issue and Solutions
+
+On macOS, when running the application directly with Python, the menubar may show "Python" instead of "HelpMeSign". This is a known limitation of running Python applications directly on macOS.
+
+#### Solutions:
+
+1. **Use the Launcher Script (Quick Fix)**:
+   ```bash
+   # Use the provided launcher script
+   ./run_helpmesign.sh
+   ```
+   This script creates a temporary symbolic link to Python with the correct application name.
+
+2. **Build as macOS App Bundle (Recommended)**:
+   ```bash
+   # Build the application as a proper macOS app bundle
+   python3 scripts/build_macos_app.py
+   ```
+   This creates a `.app` bundle that will show "HelpMeSign" in the menubar.
+
+3. **Run the Built App**:
+   ```bash
+   # Run the built application
+   open dist/HelpMeSign.app
+   ```
+
+The built app bundle is the most reliable solution as it includes the proper Info.plist configuration with the correct application name.
 
 ### Alternative Methods
 ```bash

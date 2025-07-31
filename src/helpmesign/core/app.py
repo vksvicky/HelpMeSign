@@ -67,10 +67,7 @@ class HelpMeSignApp:
         self.main_window.resize(window_width, window_height)
         
         # Set window title based on environment
-        if self.environment == "prod":
-            title = get_text("ui.main_window.prod_title")
-        else:
-            title = get_text("ui.main_window.dev_title")
+        title = get_text("ui.main_window.title")
         self.main_window.set_title(title)
         
         # Focus on input field

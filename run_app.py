@@ -23,7 +23,7 @@ from helpmesign.utils.language_manager import get_text, get_list, get_dict
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="HelpMeSign - Sign Language Translation and Learning Application",
+        description=get_text("app.description"),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -86,10 +86,24 @@ def main():
     logger.debug("QApplication created")
     
     # Set application metadata (must be done before creating any windows)
-    app.setApplicationName(get_text("app.name"))
+    app_name = get_text("app.name")
+    app.setApplicationName(app_name)
     app.setApplicationVersion(get_text("app.version"))
     app.setOrganizationName(get_text("app.organization"))
     app.setOrganizationDomain(get_text("app.domain"))
+    app.setApplicationDisplayName(app_name)
+    
+    # macOS-specific fix for menubar app name
+    if sys.platform == "darwin":
+        # Set the process name to match the application name
+        # This helps with the menubar display on macOS
+        try:
+            import ctypes
+            ctypes.CDLL('libc.dylib').setproctitle(app_name.encode('utf-8'))
+        except:
+            # Fallback if ctypes approach fails
+            pass
+    
     logger.debug("Application metadata set")
     
     # Set application icon early

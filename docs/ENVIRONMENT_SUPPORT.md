@@ -179,7 +179,7 @@ from src.helpmesign.core.app import main
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="HelpMeSign - Sign Language Translation and Learning Application",
+        description="Sign Language Translation and Learning Application",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

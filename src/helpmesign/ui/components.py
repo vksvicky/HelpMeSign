@@ -244,13 +244,64 @@ class MainWindow(QMainWindow):
         self.text_input_frame.process_requested.connect(self.process_requested.emit)
         self.text_input_frame.clear_requested.connect(self.clear_requested.emit)
     
+
+    
     def setup_menu(self):
         """Set up the application menu bar"""
         menubar = self.menuBar()
         
+        # CRITICAL FIX: Set native menu bar BEFORE creating menus
+        if platform.system().lower() == "darwin":
+            menubar.setNativeMenuBar(True)
+            # On macOS, the first menu becomes the application menu
+            # DON'T set a custom name - let Qt use the application name
+            app_menu = menubar.addMenu("")  # Empty string lets Qt use app name
+            # DO NOT call app_menu.setTitle() - this overrides the app name!
+        else:
+            app_menu = menubar.addMenu(get_text("menu.file.name"))
+        
+        # About action
+        about_action = QAction(get_text("menu.helpmesign.about"), self)
+        about_action.triggered.connect(self.show_about)
+        app_menu.addAction(about_action)
+        
+        app_menu.addSeparator()
+        
+        # Quit action
+        quit_action = QAction(get_text("menu.file.quit"), self)
+        quit_action.setShortcut(QKeySequence("Ctrl+Q"))
+        quit_action.triggered.connect(self.close)
+        app_menu.addAction(quit_action)
+        
+        # Settings menu
+        settings_menu = menubar.addMenu(get_text("menu.settings.name"))
+        
+        # Preferences action
+        preferences_action = QAction(get_text("menu.settings.preferences"), self)
+        preferences_action.setShortcut(QKeySequence("Ctrl+,"))
+        preferences_action.triggered.connect(self.settings_requested.emit)
+        settings_menu.addAction(preferences_action)
+        
+        # Help menu
+        help_menu = menubar.addMenu(get_text("menu.help.name"))
+        
+        # Help action
+        help_action = QAction(get_text("menu.help.help"), self)
+        help_action.setShortcut(QKeySequence("F1"))
+        help_action.triggered.connect(self.show_help)
+        help_menu.addAction(help_action)
+        
+        # Force the application name to be used in the menu
+        from PySide6.QtCore import QCoreApplication
+        app_name = get_text("app.name")
+        QCoreApplication.setApplicationName(app_name)
+        
         # HelpMeSign menu (macOS) / File menu (Windows/Linux)
         if platform.system().lower() == "darwin":
-            app_menu = menubar.addMenu(get_text("menu.helpmesign.name"))
+            # On macOS, the first menu becomes the application menu
+            # DON'T set a custom name - let Qt use the application name
+            app_menu = menubar.addMenu("")  # Empty string lets Qt use app name
+            # DO NOT call app_menu.setTitle() - this overrides the app name!
         else:
             app_menu = menubar.addMenu(get_text("menu.file.name"))
         

@@ -85,7 +85,7 @@ from src.helpmesign.utils.resource_manager import ResourceManager
 
 def parse_arguments():
     """Parse command line arguments"""
-    parser = argparse.ArgumentParser(description="HelpMeSign - Sign Language Translation and Learning Application")
+    parser = argparse.ArgumentParser(description="Sign Language Translation and Learning Application")
     parser.add_argument('--env', choices=['dev', 'prod'], default='prod', help='Environment to run in (default: prod)')
     return parser.parse_args()
 

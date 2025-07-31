@@ -74,9 +74,7 @@ Each language file contains a structured JSON object with the following sections
   
   "ui": {
     "main_window": {
-      "title": "HelpMeSign",
-      "dev_title": "HelpMeSign (DEV)",
-      "prod_title": "HelpMeSign (PROD)"
+      "title": "HelpMeSign"
     },
     "text_input": {
       "placeholder": "Enter text to translate or learn...",

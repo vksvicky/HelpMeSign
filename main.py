@@ -7,10 +7,6 @@ import sys
 import argparse
 import os
 
-# Set application metadata before importing Qt
-os.environ['QT_MAC_WANTS_LAYER'] = '1'  # Force layer-backed views on macOS
-os.environ['QT_MAC_DISABLE_ICON'] = '0'  # Enable icons on macOS
-
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QCoreApplication
@@ -24,12 +20,15 @@ if sys.platform == "darwin":  # macOS
     os.environ['APP_NAME'] = get_text("app.name")
     os.environ['CFBundleName'] = get_text("app.name")
     os.environ['CFBundleDisplayName'] = get_text("app.name")
+    os.environ['QT_MAC_WANTS_LAYER'] = '1'
+    os.environ['QT_MAC_DISABLE_ICON'] = '0'
+    os.environ['QT_MAC_APP_NAME'] = get_text("app.name")
 
 
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="HelpMeSign - Sign Language Translation and Learning Application",
+        description=get_text("app.description"),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -63,23 +62,65 @@ def main():
     logger = get_logger("helpmesign.main")
     logger.info("Starting HelpMeSign application")
     
-    # Set application name before creating QApplication
-    QCoreApplication.setApplicationName(get_text("app.name"))
+    # Set application name in environment before creating QApplication
+    app_name = get_text("app.name")
+    os.environ['QT_MAC_APP_NAME'] = app_name
+    
+    # Create Qt application first
+    app = QApplication(sys.argv)
+    
+    # Set application metadata after QApplication creation
+    app_name = get_text("app.name")
+    QCoreApplication.setApplicationName(app_name)
     QCoreApplication.setApplicationVersion(get_text("app.version"))
     QCoreApplication.setOrganizationName(get_text("app.organization"))
     QCoreApplication.setOrganizationDomain(get_text("app.domain"))
     
-    logger.debug("Application metadata set")
+    # Set the application name in the app object as well
+    app.setApplicationName(app_name)
+    app.setApplicationDisplayName(app_name)
     
-    # Create Qt application
-    app = QApplication(sys.argv)
+    logger.debug("Application metadata set")
     logger.debug("QApplication created")
+    
+    # # Set additional properties for macOS
+    # if sys.platform == "darwin":  # macOS
+    #     app.setAttribute(QApplication.AA_EnableHighDpiScaling, True)
+    #     app.setAttribute(QApplication.AA_UseHighDpiPixmaps, True)
+    #     logger.debug("macOS-specific attributes set")
+    
+    # # Set application icon early
+    # try:
+    #     resource_manager = ResourceManager()
+    #     icon_path = resource_manager.get_image_path('icon.png')
+    #     if resource_manager.resource_exists('image', 'icon.png'):
+    #         app.setWindowIcon(QIcon(icon_path))
+    #         logger.info(f"Application icon set successfully: {icon_path}")
+    #     else:
+    #         logger.warning("Application icon not found in resources")
+    # except Exception as e:
+    #     logger.error(f"Could not set application icon: {e}")
     
     # Set additional properties for macOS
     if sys.platform == "darwin":  # macOS
         app.setAttribute(QApplication.AA_DontShowIconsInMenus, False)
         app.setAttribute(QApplication.AA_EnableHighDpiScaling, True)
         app.setAttribute(QApplication.AA_UseHighDpiPixmaps, True)
+        app.setAttribute(QApplication.AA_MacDontSwapCtrlAndCmd, True)
+        
+        # Force the application name in the menu bar
+        try:
+            from PySide6.QtCore import QTimer
+            def set_menu_name():
+                # This ensures the menu name is set after the app is fully initialized
+                app.setApplicationDisplayName(app_name)
+                QCoreApplication.setApplicationName(app_name)
+            
+            # Delay slightly to ensure proper initialization
+            QTimer.singleShot(0, set_menu_name)
+        except Exception as e:
+            logger.warning(f"Could not set delayed menu name: {e}")
+        
         logger.debug("macOS-specific attributes set")
     
     # Set application icon early
