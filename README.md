@@ -207,6 +207,19 @@ The test suite is designed to work in CI environments where GUI libraries may no
 - Headless environment support
 - Automated formatting checks (Black + isort)
 - Comprehensive test coverage reporting
+- Safe import testing for GUI components
+
+**CI Import Testing:**
+```bash
+# Test safe import pattern (recommended for CI)
+python3 ci_import_test.py
+
+# Or use the comprehensive test
+python3 test_ci_import.py
+
+# Direct import will fail in CI (expected behavior)
+python3 -c "from src.helpmesign.core.app import HelpMeSignApp"
+```
 
 ### Code Quality and CI Compatibility
 

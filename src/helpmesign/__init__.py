@@ -15,6 +15,7 @@ def get_app():
     """Get the HelpMeSignApp class if PySide6 is available"""
     try:
         from .core.app import HelpMeSignApp
+
         return HelpMeSignApp
     except ImportError:
         return None

@@ -105,7 +105,7 @@ jobs:
     
     - name: Test application startup
       run: |
-        python -c "from src.helpmesign.core.app import HelpMeSignApp; print('✅ Application imports successfully')"
+        python ci_import_test.py
     
     - name: Run basic functionality test
       run: |

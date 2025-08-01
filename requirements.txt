@@ -2,9 +2,9 @@
 PySide6>=6.6.0,<6.7.0  # Qt for Python - GUI framework (compatible with Python 3.8+)
 
 # Testing and development dependencies
-coverage>=7.10.1
-requests>=2.32.4
-psutil>=7.0.0
+coverage>=6.10.1
+requests>=2.25.4
+psutil>=5.8.0
 
 # Optional dependencies for enhanced functionality
 # Pillow>=9.0.0  # For advanced image processing (commented out as not currently used)
