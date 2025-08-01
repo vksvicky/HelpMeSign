@@ -17,6 +17,7 @@ from ..utils.logger import (
     setup_logging,
 )
 from ..utils.resource_manager import ResourceManager
+from ..utils.theme_manager import apply_theme, get_theme_manager
 from .startup import (
     SecureConfigManager,
     get_user_mode,
@@ -64,7 +65,7 @@ class HelpMeSignApp:
 
         # Show startup screen if no user mode is set
         self.check_user_mode()
-        
+
         # Apply saved theme and font settings
         self.apply_theme_and_font_settings()
 
@@ -313,10 +314,10 @@ class HelpMeSignApp:
             # Update user mode
             self.user_mode = mode
             self.update_ui_for_mode(mode)
-            
+
             # Apply theme and font size changes
             self.apply_theme_and_font_settings()
-            
+
             self.logger.info(f"Settings applied: mode={mode}")
         except Exception as e:
             self.logger.error(f"Error applying settings: {e}")
@@ -324,20 +325,100 @@ class HelpMeSignApp:
     def apply_theme_and_font_settings(self) -> None:
         """Apply theme and font size settings to the UI"""
         try:
-            from .startup import get_theme, get_font_size
-            
+            from PySide6.QtWidgets import QApplication
+
+            from .startup import get_font_size, get_theme
+
             # Get current settings
             theme = get_theme(self.environment)
             font_size = get_font_size(self.environment)
-            
-            # Apply theme (placeholder for future implementation)
-            self.logger.info(f"Theme setting: {theme}")
-            
+
+            # Apply theme to QApplication
+            app = QApplication.instance()
+            if app and isinstance(app, QApplication):
+                success = apply_theme(theme, app)
+                if success:
+                    self.logger.info(f"Theme applied successfully: {theme}")
+
+                    # Update main window styling
+                    self._update_main_window_theme()
+                else:
+                    self.logger.error(f"Failed to apply theme: {theme}")
+            else:
+                self.logger.warning(
+                    "No QApplication instance found for theme application"
+                )
+
             # Apply font size (placeholder for future implementation)
             self.logger.info(f"Font size setting: {font_size}")
-            
+
         except Exception as e:
             self.logger.error(f"Error applying theme and font settings: {e}")
+
+    def _update_main_window_theme(self) -> None:
+        """Update main window styling to match current theme"""
+        try:
+            from ..utils.theme_manager import get_theme_color, get_theme_style
+
+            # Apply theme styles to main window
+            main_window_style = get_theme_style("main_window")
+            if main_window_style:
+                self.main_window.setStyleSheet(main_window_style)
+
+            # Update specific components
+            self._update_input_fields_theme()
+            self._update_buttons_theme()
+
+            self.logger.info("Main window theme updated")
+
+        except Exception as e:
+            self.logger.error(f"Error updating main window theme: {e}")
+
+    def _update_input_fields_theme(self) -> None:
+        """Update input field styling to match current theme"""
+        try:
+            from ..utils.theme_manager import get_theme_style
+
+            input_style = get_theme_style("input_field")
+            if input_style:
+                # Apply to text input and output areas
+                if hasattr(self.main_window, "text_input_frame"):
+                    if hasattr(self.main_window.text_input_frame, "text_input"):
+                        self.main_window.text_input_frame.text_input.setStyleSheet(
+                            input_style
+                        )
+
+                if hasattr(self.main_window, "output_frame"):
+                    if hasattr(self.main_window.output_frame, "text_output"):
+                        self.main_window.output_frame.text_output.setStyleSheet(
+                            input_style
+                        )
+
+        except Exception as e:
+            self.logger.error(f"Error updating input fields theme: {e}")
+
+    def _update_buttons_theme(self) -> None:
+        """Update button styling to match current theme"""
+        try:
+            from ..utils.theme_manager import get_theme_style
+
+            primary_button_style = get_theme_style("button_primary")
+            secondary_button_style = get_theme_style("button_secondary")
+
+            if primary_button_style and hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "process_button"):
+                    self.main_window.text_input_frame.process_button.setStyleSheet(
+                        primary_button_style
+                    )
+
+            if secondary_button_style and hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "clear_button"):
+                    self.main_window.text_input_frame.clear_button.setStyleSheet(
+                        secondary_button_style
+                    )
+
+        except Exception as e:
+            self.logger.error(f"Error updating buttons theme: {e}")
 
     def set_user_mode_from_settings(self, mode: str) -> None:
         """Handle mode change from settings dialog"""

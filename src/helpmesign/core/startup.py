@@ -482,7 +482,9 @@ class SecureConfigManager:
         try:
             config = self.load_config() or {}
             return {
-                "user_mode": config.get("user_mode", get_text("modes.sign_translate.name")),
+                "user_mode": config.get(
+                    "user_mode", get_text("modes.sign_translate.name")
+                ),
                 "theme": config.get("theme", "Light"),
                 "font_size": config.get("font_size", 12),
             }

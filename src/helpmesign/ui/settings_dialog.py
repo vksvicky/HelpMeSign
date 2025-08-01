@@ -28,9 +28,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..core.startup import get_all_settings, save_all_settings
 from ..utils.font_manager import get_body_font, get_button_font, get_heading_font
 from ..utils.language_manager import get_dict, get_list, get_text
-from ..core.startup import get_all_settings, save_all_settings
+from ..utils.logger import get_logger
+from ..utils.theme_manager import apply_theme, get_theme_manager
 
 
 class ModernSegmentedControl(QFrame):
@@ -189,11 +191,17 @@ class SettingsDialog(QDialog):
     # Signal emitted when settings are applied
     settings_applied = Signal(str)
 
-    def __init__(self, parent=None, current_mode: str = "Sign & Translate", environment: str = "dev"):
+    def __init__(
+        self,
+        parent=None,
+        current_mode: str = "Sign & Translate",
+        environment: str = "dev",
+    ):
         super().__init__(parent)
         self.current_mode = current_mode
         self.environment = environment
         self.current_settings = get_all_settings(environment)
+        self.logger = get_logger("helpmesign.settings")
         self.setup_ui()
         self.load_current_settings()
         self.setup_behavior()
@@ -663,26 +671,67 @@ class SettingsDialog(QDialog):
             lambda value: self.font_size_label.setText(f"{value}px")
         )
 
+        # Connect theme combo box for real-time preview
+        self.theme_combo.currentTextChanged.connect(self._on_theme_changed)
+
         layout.addWidget(theme_group)
         layout.addWidget(font_group)
         layout.addStretch()
         return tab
+
+    def _on_theme_changed(self, theme_name: str) -> None:
+        """Handle theme change in real-time"""
+        try:
+            from PySide6.QtWidgets import QApplication
+
+            # Apply theme immediately for preview
+            app = QApplication.instance()
+            if app and isinstance(app, QApplication):
+                success = apply_theme(theme_name, app)
+                if success:
+                    # Update dialog styling to match new theme
+                    self._update_dialog_theme(theme_name)
+                else:
+                    self.logger.error(f"Failed to apply theme preview: {theme_name}")
+            else:
+                self.logger.warning("No QApplication instance found for theme preview")
+
+        except Exception as e:
+            self.logger.error(f"Error applying theme preview: {e}")
+
+    def _update_dialog_theme(self, theme_name: str) -> None:
+        """Update dialog styling to match the selected theme"""
+        try:
+            from ..utils.theme_manager import get_theme_style
+
+            # Apply dialog theme
+            dialog_style = get_theme_style("dialog")
+            if dialog_style:
+                self.setStyleSheet(dialog_style)
+
+            # Apply tab widget theme
+            tab_style = get_theme_style("tab_widget")
+            if tab_style:
+                self.tab_widget.setStyleSheet(tab_style)
+
+        except Exception as e:
+            self.logger.error(f"Error updating dialog theme: {e}")
 
     def load_current_settings(self):
         """Load current settings and initialize UI controls"""
         # Set mode
         saved_mode = self.current_settings.get("user_mode", self.current_mode)
         self.segmented_control.set_selection(saved_mode)
-        
+
         # Set theme
         saved_theme = self.current_settings.get("theme", "Light")
         self.theme_combo.setCurrentText(saved_theme)
-        
+
         # Set font size
         saved_font_size = self.current_settings.get("font_size", 12)
         self.font_slider.setValue(saved_font_size)
         self.font_size_label.setText(f"{saved_font_size}px")
-        
+
         # Update description
         self.update_description(saved_mode)
 
@@ -713,12 +762,12 @@ class SettingsDialog(QDialog):
         # Reset mode to Sign & Translate
         default_mode = get_text("modes.sign_translate.name")
         self.segmented_control.set_selection(default_mode)
-        
+
         # Reset appearance settings
         self.theme_combo.setCurrentText("Light")
         self.font_slider.setValue(12)
         self.font_size_label.setText("12px")
-        
+
         # Update description
         self.update_description(default_mode)
 
@@ -730,7 +779,7 @@ class SettingsDialog(QDialog):
             "theme": self.theme_combo.currentText(),
             "font_size": self.font_slider.value(),
         }
-        
+
         # Save settings to config
         if save_all_settings(new_settings, self.environment):
             # Emit signal with new mode
@@ -739,11 +788,12 @@ class SettingsDialog(QDialog):
         else:
             # Show error message if save failed
             from PySide6.QtWidgets import QMessageBox
+
             QMessageBox.critical(
                 self,
                 "Error",
                 "Failed to save settings. Please try again.",
-                QMessageBox.StandardButton.Ok
+                QMessageBox.StandardButton.Ok,
             )
 
     def get_selected_mode(self) -> str:
