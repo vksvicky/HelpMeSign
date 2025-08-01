@@ -3,9 +3,9 @@
 Simple test for logging functionality
 """
 
-import sys
-import os
 import logging
+import os
+import sys
 
 # Configure logging for this test
 logging.basicConfig(
@@ -22,7 +22,7 @@ def test_logging():
     logger.info("🧪 Testing logging functionality...")
 
     try:
-        from helpmesign.utils.logger import setup_logging, get_logger, set_log_level
+        from helpmesign.utils.logger import get_logger, set_log_level, setup_logging
 
         # Test config
         config = {

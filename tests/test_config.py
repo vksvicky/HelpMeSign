@@ -3,8 +3,8 @@ Test configuration and utilities for HelpMeSign tests
 """
 
 import os
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
 
 # Test configuration
@@ -103,8 +103,8 @@ def assert_file_content(file_path, expected_content):
 
 def create_mock_tkinter_root():
     """Create a mock tkinter root window for testing"""
-    from unittest.mock import MagicMock
     import tkinter as tk
+    from unittest.mock import MagicMock
 
     mock_root = MagicMock(spec=tk.Tk)
     mock_root.winfo_screenwidth.return_value = 1920

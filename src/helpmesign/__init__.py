@@ -6,11 +6,15 @@ __version__ = "1.0.0"
 __author__ = "HelpMeSign Team"
 __description__ = "A simple Python GUI application built with PySide6"
 
-# Try to import PySide6-dependent modules, but handle missing dependencies gracefully
-try:
-    from .core.app import HelpMeSignApp
+# Don't import PySide6-dependent modules at package level
+# This prevents import errors in CI environments where GUI libraries are not available
+__all__ = []
 
-    __all__ = ["HelpMeSignApp"]
-except ImportError:
-    # In CI environments or when PySide6 is not available, don't import GUI components
-    __all__ = []
+
+def get_app():
+    """Get the HelpMeSignApp class if PySide6 is available"""
+    try:
+        from .core.app import HelpMeSignApp
+        return HelpMeSignApp
+    except ImportError:
+        return None

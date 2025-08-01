@@ -3,33 +3,33 @@ Startup screen module for HelpMeSign
 Handles user choice between sign and learn modes
 """
 
-import os
-import sys
-import json
+import getpass
 import hashlib
 import hmac
+import json
+import os
 import platform
-import getpass
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QFrame,
-    QSizePolicy,
     QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
 )
-from PySide6.QtCore import Qt, Signal, QTimer
-from PySide6.QtGui import QFont, QPixmap
 
+from ..utils.font_manager import get_button_font, get_heading_font, get_title_font
+from ..utils.language_manager import get_dict, get_list, get_text
 from ..utils.logger import get_logger
-from ..utils.font_manager import get_title_font, get_heading_font, get_button_font
-from ..utils.language_manager import get_text, get_list, get_dict
 
 
 class StartupScreen(QDialog):

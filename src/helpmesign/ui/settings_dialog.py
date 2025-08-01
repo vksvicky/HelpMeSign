@@ -4,22 +4,24 @@ Settings dialog for HelpMeSign application
 Follows macOS design patterns
 """
 
+from typing import Callable, Optional
+
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QDialog,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QButtonGroup,
     QRadioButton,
-    QFrame,
     QSizePolicy,
+    QVBoxLayout,
 )
-from PySide6.QtCore import Qt, Signal, QSize
-from PySide6.QtGui import QFont, QPainter, QColor, QPen, QBrush
-from typing import Optional, Callable
-from ..utils.font_manager import get_heading_font, get_body_font, get_button_font
-from ..utils.language_manager import get_text, get_list, get_dict
+
+from ..utils.font_manager import get_body_font, get_button_font, get_heading_font
+from ..utils.language_manager import get_dict, get_list, get_text
 
 
 class SegmentedControl(QFrame):

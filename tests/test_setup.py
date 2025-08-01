@@ -3,8 +3,8 @@ Test setup for HelpMeSign tests
 Handles PySide6 initialization and language system setup
 """
 
-import sys
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 # Try to import PySide6, but handle missing dependencies gracefully

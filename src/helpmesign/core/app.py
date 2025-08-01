@@ -1,26 +1,27 @@
 import sys
 from datetime import datetime
-from typing import Dict, Any, Optional
-from PySide6.QtWidgets import QApplication
+from typing import Any, Dict, Optional
+
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QApplication
 
-from ..utils.resource_manager import ResourceManager
-from ..utils.logger import (
-    get_logger,
-    setup_logging,
-    log_function_entry,
-    log_function_exit,
-    log_exception,
-)
-from ..utils.language_manager import get_text, get_list, get_dict
 from ..ui.components import MainWindow
 from ..ui.settings_dialog import show_settings_dialog
+from ..utils.language_manager import get_dict, get_list, get_text
+from ..utils.logger import (
+    get_logger,
+    log_exception,
+    log_function_entry,
+    log_function_exit,
+    setup_logging,
+)
+from ..utils.resource_manager import ResourceManager
 from .startup import (
-    show_startup_screen,
+    SecureConfigManager,
     get_user_mode,
     set_user_mode,
-    SecureConfigManager,
+    show_startup_screen,
 )
 
 

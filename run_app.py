@@ -14,7 +14,6 @@ from PySide6.QtGui import QIcon
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from helpmesign.core.app import create_app
 from helpmesign.utils.logger import setup_logging, get_logger
 from helpmesign.utils.resource_manager import ResourceManager
 from helpmesign.utils.language_manager import get_text, get_list, get_dict
@@ -121,7 +120,16 @@ def main():
     try:
         # Create and run the application
         logger.info(f"Creating application in {args.env} environment")
-        helpmesign_app = create_app(args.env)
+        
+        # Get the app class safely
+        from helpmesign import get_app
+        HelpMeSignApp = get_app()
+        
+        if HelpMeSignApp is None:
+            logger.error("PySide6 is not available. Cannot create application.")
+            sys.exit(1)
+        
+        helpmesign_app = HelpMeSignApp(args.env)
         helpmesign_app.run()
         
         logger.info("Application started successfully")

@@ -4,23 +4,23 @@ Simple unit tests for the language system
 Tests core functionality with proper mocking
 """
 
-import unittest
-from unittest.mock import MagicMock, patch
 import json
-import tempfile
 import os
+import tempfile
+import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 # Import the language manager - handle missing PySide6 gracefully
 try:
     from helpmesign.utils.language_manager import (
-        get_text,
-        get_list,
-        get_dict,
         change_language,
+        detect_system_language,
         get_available_languages,
         get_current_language_info,
-        detect_system_language,
+        get_dict,
+        get_list,
+        get_text,
     )
 
     LANGUAGE_MANAGER_AVAILABLE = True

@@ -4,7 +4,7 @@ Very simple startup screen test
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox, ttk
 
 
 def create_simple_startup():

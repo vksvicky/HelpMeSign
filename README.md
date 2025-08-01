@@ -164,6 +164,83 @@ python3 -m pytest tests/ -v
 python3 -m pytest tests/ --cov=src --cov-report=term --cov-report=html
 ```
 
+### Code Quality and Formatting
+
+HelpMeSign uses automated code formatting tools to maintain consistent code style:
+
+#### Black (Code Formatter)
+```bash
+# Format code
+black src/ tests/
+
+# Check formatting
+black --check src/ tests/
+```
+
+#### isort (Import Sorter)
+```bash
+# Sort imports
+isort src/ tests/
+
+# Check import sorting
+isort --check-only src/ tests/
+```
+
+#### Combined Formatting
+```bash
+# Format and sort imports (recommended workflow)
+isort --profile black src/ tests/
+black src/ tests/
+```
+
+### CI/CD Compatibility
+
+The test suite is designed to work in CI environments where GUI libraries may not be available:
+
+- **Conditional Imports**: PySide6-dependent modules are imported only when needed
+- **Mock Components**: Tests use mocked GUI components when PySide6 is unavailable
+- **Graceful Degradation**: Application gracefully handles missing GUI dependencies
+- **Cross-Platform Testing**: Tests run on Linux, macOS, and Windows CI environments
+
+**CI Environment Support:**
+- Python 3.8+ compatibility
+- Headless environment support
+- Automated formatting checks (Black + isort)
+- Comprehensive test coverage reporting
+
+### Code Quality and CI Compatibility
+
+#### Code Formatting
+
+HelpMeSign uses **Black** and **isort** for consistent code formatting:
+
+```bash
+# Format code with Black
+black src/ tests/
+
+# Sort imports with isort
+isort src/ tests/
+
+# Check formatting without making changes
+black --check src/ tests/
+isort --check-only src/ tests/
+```
+
+#### CI Environment Compatibility
+
+The test suite is designed to work in CI environments where GUI libraries (PySide6) may not be available:
+
+- **Conditional Imports**: PySide6 imports are wrapped in try/except blocks
+- **Mock Components**: GUI components are mocked when PySide6 is unavailable
+- **Headless Testing**: Tests can run without display server requirements
+- **Cross-Platform**: Compatible with Python 3.8+ and various CI platforms
+
+#### Python Version Compatibility
+
+- **Minimum**: Python 3.8
+- **Recommended**: Python 3.11+
+- **PySide6**: Compatible with versions 6.0.0 - 6.6.3.1 for Python 3.8
+
 ### CI Compatibility
 
 HelpMeSign tests are designed to run in CI environments where GUI libraries may not be available:

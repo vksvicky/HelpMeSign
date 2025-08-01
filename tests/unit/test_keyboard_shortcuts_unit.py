@@ -4,9 +4,9 @@ Unit tests for Keyboard Shortcuts functionality
 Tests pure logic without importing real modules
 """
 
+import platform
 import unittest
 from unittest.mock import MagicMock
-import platform
 
 
 class TestOSShortcutsLogic(unittest.TestCase):

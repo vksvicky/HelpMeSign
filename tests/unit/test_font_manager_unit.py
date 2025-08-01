@@ -4,9 +4,9 @@ Unit tests for Font Manager functionality
 Tests pure logic without importing real modules
 """
 
+import platform
 import unittest
 from unittest.mock import MagicMock, patch
-import platform
 
 
 class TestFontManagerLogic(unittest.TestCase):

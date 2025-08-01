@@ -5,34 +5,35 @@ UI Components for HelpMeSign Application
 
 import os
 import platform
-from typing import Optional, Callable
+from typing import Callable, Optional
+
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QAction, QFont, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
+    QFrame,
     QGridLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
-    QTextEdit,
-    QPushButton,
-    QFrame,
-    QMessageBox,
+    QMainWindow,
     QMenuBar,
-    QSizePolicy,
+    QMessageBox,
+    QPushButton,
     QScrollArea,
+    QSizePolicy,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, Signal, QSize
-from PySide6.QtGui import QFont, QIcon, QKeySequence, QAction, QShortcut
 
 from ..utils.font_manager import (
-    get_label_font,
-    get_input_font,
-    get_button_font,
     get_body_font,
+    get_button_font,
+    get_input_font,
+    get_label_font,
     get_small_font,
 )
-from ..utils.language_manager import get_text, get_list, get_dict
+from ..utils.language_manager import get_dict, get_list, get_text
 
 
 def get_os_shortcuts():

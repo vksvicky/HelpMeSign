@@ -4,8 +4,9 @@ Handles loading and managing Roboto fonts across the application
 """
 
 import os
-from typing import Optional, Dict, Any
 import platform
+from typing import Any, Dict, Optional
+
 from PySide6.QtGui import QFont, QFontDatabase
 
 from .logger import get_logger

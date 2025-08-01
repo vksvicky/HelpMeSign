@@ -2,8 +2,8 @@
 Pytest configuration for HelpMeSign tests
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add the src directory to the Python path

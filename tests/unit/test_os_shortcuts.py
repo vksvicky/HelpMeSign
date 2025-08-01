@@ -3,10 +3,10 @@
 Test script to demonstrate OS-specific keyboard shortcuts
 """
 
+import logging
+import os
 import platform
 import sys
-import os
-import logging
 
 # Configure logging
 logging.basicConfig(

@@ -4,15 +4,15 @@ Simple integration tests for the language system
 Tests integration with PySide6 components without causing segmentation faults
 """
 
+import os
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
-import sys
-import os
 
 # Try to import PySide6 components, handle missing dependencies gracefully
 try:
-    from PySide6.QtWidgets import QApplication
     from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
 
     PYSIDE6_AVAILABLE = True
 except (ImportError, OSError):
@@ -34,13 +34,13 @@ except (ImportError, OSError):
 # Import our components - handle missing PySide6 gracefully
 try:
     # Import language manager functions directly
-    import sys
     import os
+    import sys
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-    from helpmesign.utils.language_manager import get_text, get_list, get_dict
     from helpmesign.ui.components import get_os_shortcuts
+    from helpmesign.utils.language_manager import get_dict, get_list, get_text
 
     COMPONENTS_AVAILABLE = True
 except (ImportError, OSError):

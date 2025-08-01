@@ -10,7 +10,6 @@ import os
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QCoreApplication
-from src.helpmesign.core.app import create_app
 from src.helpmesign.utils.resource_manager import ResourceManager
 from src.helpmesign.utils.logger import get_logger
 from src.helpmesign.utils.language_manager import get_text, get_list, get_dict
@@ -137,7 +136,16 @@ def main():
     
     # Create and run the application
     logger.info(f"Creating application in {args.env} environment")
-    helpmesign_app = create_app(args.env)
+    
+    # Get the app class safely
+    from src.helpmesign import get_app
+    HelpMeSignApp = get_app()
+    
+    if HelpMeSignApp is None:
+        logger.error("PySide6 is not available. Cannot create application.")
+        sys.exit(1)
+    
+    helpmesign_app = HelpMeSignApp(args.env)
     helpmesign_app.run()
     
     logger.info("Application started successfully")

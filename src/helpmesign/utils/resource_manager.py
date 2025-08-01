@@ -3,10 +3,10 @@ Resource Manager for HelpMeSign Application
 Handles loading and managing application resources (config, images, etc.)
 """
 
-import os
 import json
+import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 from .logger import get_logger
 

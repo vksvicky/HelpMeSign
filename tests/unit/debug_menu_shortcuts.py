@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Debug script to test menu accelerators"""
 
+import platform
 import tkinter as tk
 from tkinter import ttk
-import platform
 
 
 def get_os_shortcuts():
