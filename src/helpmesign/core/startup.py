@@ -435,6 +435,75 @@ class SecureConfigManager:
             self.logger.error(f"Could not set user mode: {e}")
             return False
 
+    def get_theme(self) -> str:
+        """Get user's preferred theme"""
+        try:
+            config = self.load_config()
+            if config:
+                return config.get("theme", "Light")
+            return "Light"
+        except Exception as e:
+            self.logger.warning(f"Could not get theme: {e}")
+            return "Light"
+
+    def set_theme(self, theme: str) -> bool:
+        """Set user's preferred theme"""
+        try:
+            config = self.load_config() or {}
+            config["theme"] = theme
+            return self.save_config(config)
+        except Exception as e:
+            self.logger.error(f"Could not set theme: {e}")
+            return False
+
+    def get_font_size(self) -> int:
+        """Get user's preferred font size"""
+        try:
+            config = self.load_config()
+            if config:
+                return config.get("font_size", 12)
+            return 12
+        except Exception as e:
+            self.logger.warning(f"Could not get font size: {e}")
+            return 12
+
+    def set_font_size(self, font_size: int) -> bool:
+        """Set user's preferred font size"""
+        try:
+            config = self.load_config() or {}
+            config["font_size"] = font_size
+            return self.save_config(config)
+        except Exception as e:
+            self.logger.error(f"Could not set font size: {e}")
+            return False
+
+    def get_all_settings(self) -> Dict[str, Any]:
+        """Get all user settings"""
+        try:
+            config = self.load_config() or {}
+            return {
+                "user_mode": config.get("user_mode", get_text("modes.sign_translate.name")),
+                "theme": config.get("theme", "Light"),
+                "font_size": config.get("font_size", 12),
+            }
+        except Exception as e:
+            self.logger.warning(f"Could not get all settings: {e}")
+            return {
+                "user_mode": get_text("modes.sign_translate.name"),
+                "theme": "Light",
+                "font_size": 12,
+            }
+
+    def save_all_settings(self, settings: Dict[str, Any]) -> bool:
+        """Save all user settings"""
+        try:
+            config = self.load_config() or {}
+            config.update(settings)
+            return self.save_config(config)
+        except Exception as e:
+            self.logger.error(f"Could not save all settings: {e}")
+            return False
+
     def get_timestamp(self) -> str:
         """Get current timestamp"""
         return datetime.now().isoformat()
@@ -476,4 +545,74 @@ def set_user_mode(mode: str, environment: str = "dev") -> bool:
     except Exception as e:
         logger = get_logger("helpmesign.startup")
         logger.error(f"Error setting user mode: {e}")
+        return False
+
+
+def get_theme(environment: str = "dev") -> str:
+    """Get user's preferred theme"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.get_theme()
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error getting theme: {e}")
+        return "Light"
+
+
+def set_theme(theme: str, environment: str = "dev") -> bool:
+    """Set user's preferred theme"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.set_theme(theme)
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error setting theme: {e}")
+        return False
+
+
+def get_font_size(environment: str = "dev") -> int:
+    """Get user's preferred font size"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.get_font_size()
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error getting font size: {e}")
+        return 12
+
+
+def set_font_size(font_size: int, environment: str = "dev") -> bool:
+    """Set user's preferred font size"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.set_font_size(font_size)
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error setting font size: {e}")
+        return False
+
+
+def get_all_settings(environment: str = "dev") -> Dict[str, Any]:
+    """Get all user settings"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.get_all_settings()
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error getting all settings: {e}")
+        return {
+            "user_mode": get_text("modes.sign_translate.name"),
+            "theme": "Light",
+            "font_size": 12,
+        }
+
+
+def save_all_settings(settings: Dict[str, Any], environment: str = "dev") -> bool:
+    """Save all user settings"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.save_all_settings(settings)
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error saving all settings: {e}")
         return False

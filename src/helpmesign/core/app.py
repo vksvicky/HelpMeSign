@@ -64,6 +64,9 @@ class HelpMeSignApp:
 
         # Show startup screen if no user mode is set
         self.check_user_mode()
+        
+        # Apply saved theme and font settings
+        self.apply_theme_and_font_settings()
 
         log_function_exit(get_logger(), "HelpMeSignApp.__init__")
 
@@ -292,17 +295,49 @@ class HelpMeSignApp:
             selected_mode = show_settings_dialog(
                 parent=self.main_window,
                 current_mode=current_mode,
-                callback=self.set_user_mode_from_settings,
+                callback=self.handle_settings_changed,
+                environment=self.environment,
             )
 
             if selected_mode:
                 self.user_mode = selected_mode
-                set_user_mode(selected_mode, self.environment)
                 self.update_ui_for_mode(selected_mode)
                 self.logger.info(f"User mode changed via settings: {selected_mode}")
 
         except Exception as e:
             self.logger.error(f"Error showing settings: {e}")
+
+    def handle_settings_changed(self, mode: str) -> None:
+        """Handle all settings changes from settings dialog"""
+        try:
+            # Update user mode
+            self.user_mode = mode
+            self.update_ui_for_mode(mode)
+            
+            # Apply theme and font size changes
+            self.apply_theme_and_font_settings()
+            
+            self.logger.info(f"Settings applied: mode={mode}")
+        except Exception as e:
+            self.logger.error(f"Error applying settings: {e}")
+
+    def apply_theme_and_font_settings(self) -> None:
+        """Apply theme and font size settings to the UI"""
+        try:
+            from .startup import get_theme, get_font_size
+            
+            # Get current settings
+            theme = get_theme(self.environment)
+            font_size = get_font_size(self.environment)
+            
+            # Apply theme (placeholder for future implementation)
+            self.logger.info(f"Theme setting: {theme}")
+            
+            # Apply font size (placeholder for future implementation)
+            self.logger.info(f"Font size setting: {font_size}")
+            
+        except Exception as e:
+            self.logger.error(f"Error applying theme and font settings: {e}")
 
     def set_user_mode_from_settings(self, mode: str) -> None:
         """Handle mode change from settings dialog"""
