@@ -102,6 +102,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install black isort
     
     - name: Test application startup
       run: |
@@ -109,13 +110,12 @@ jobs:
     
     - name: Run basic functionality test
       run: |
-        python -c "
-        import sys
-        sys.path.insert(0, 'src')
-        from helpmesign.utils.resource_manager import ResourceManager
-        rm = ResourceManager()
-        print('✅ ResourceManager works correctly')
-        "
+        python test_ci_import.py
+    
+    - name: Check code formatting
+      run: |
+        black --check src/ tests/
+        isort --check-only src/ tests/
 
   security:
     runs-on: ubuntu-latest
