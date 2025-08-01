@@ -329,6 +329,7 @@ class HelpMeSignApp:
                 current_mode=current_mode,
                 callback=self.handle_settings_changed,
                 environment=self.environment,
+                main_window=self.main_window,
             )
 
             # Handle the result

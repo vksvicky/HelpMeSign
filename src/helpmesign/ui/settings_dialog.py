@@ -207,10 +207,12 @@ class SettingsDialog(QDialog):
         parent=None,
         current_mode: str = "Sign & Translate",
         environment: str = "dev",
+        main_window=None,
     ):
         super().__init__(parent)
         self.current_mode = current_mode
         self.environment = environment
+        self.main_window = main_window
         self.current_settings = get_all_settings(environment)
         self.logger = get_logger("helpmesign.settings")
 
@@ -219,7 +221,7 @@ class SettingsDialog(QDialog):
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
 
         self.setup_ui()
-        self.load_current_settings()
+        self.load_current_settings()  # New call
         self.setup_behavior()
 
     def setup_ui(self):
@@ -686,6 +688,10 @@ class SettingsDialog(QDialog):
                     # Update all segmented controls to match the new theme
                     self._update_all_segmented_controls(theme_name)
 
+                    # Update main window immediately for theme preview
+                    if self.main_window:
+                        self._update_main_window_preview(theme_name)
+
                     self.logger.info(f"Theme preview applied: {theme_name}")
                 else:
                     self.logger.error(f"Failed to apply theme preview: {theme_name}")
@@ -887,16 +893,65 @@ class SettingsDialog(QDialog):
             self.logger.error(f"Error in accept: {e}")
             super().accept()
 
+    def _update_main_window_preview(self, theme_name: str) -> None:
+        """Update main window styling for theme preview"""
+        try:
+            from ..utils.theme_manager import get_theme_style
+
+            # Apply theme styles to main window
+            main_window_style = get_theme_style("main_window")
+            if main_window_style:
+                self.main_window.setStyleSheet(main_window_style)
+
+            # Update input fields
+            input_style = get_theme_style("input_field")
+            if input_style:
+                if hasattr(self.main_window, "text_input_frame"):
+                    if hasattr(self.main_window.text_input_frame, "text_input"):
+                        self.main_window.text_input_frame.text_input.setStyleSheet(
+                            input_style
+                        )
+                if hasattr(self.main_window, "output_frame"):
+                    if hasattr(self.main_window.output_frame, "text_output"):
+                        self.main_window.output_frame.text_output.setStyleSheet(
+                            input_style
+                        )
+
+            # Update buttons
+            primary_button_style = get_theme_style("button_primary")
+            secondary_button_style = get_theme_style("button_secondary")
+
+            if primary_button_style and hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "process_button"):
+                    self.main_window.text_input_frame.process_button.setStyleSheet(
+                        primary_button_style
+                    )
+
+            if secondary_button_style and hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "clear_button"):
+                    self.main_window.text_input_frame.clear_button.setStyleSheet(
+                        secondary_button_style
+                    )
+
+            # Force update of the main window
+            self.main_window.update()
+            self.main_window.repaint()
+
+            self.logger.debug(f"Main window theme preview updated for: {theme_name}")
+        except Exception as e:
+            self.logger.error(f"Error updating main window theme preview: {e}")
+
 
 def show_settings_dialog(
     parent=None,
     current_mode: str = "Sign & Translate",
     callback: Optional[Callable[[str], None]] = None,
     environment: str = "dev",
+    main_window=None,
 ) -> Optional[str]:
     """Show the settings dialog and return the selected mode"""
     try:
-        dialog = SettingsDialog(parent, current_mode, environment)
+        dialog = SettingsDialog(parent, current_mode, environment, main_window)
 
         # Connect the callback if provided
         if callback:
