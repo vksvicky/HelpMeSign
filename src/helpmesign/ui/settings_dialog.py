@@ -48,6 +48,11 @@ class ModernSegmentedControl(QFrame):
         self.setFixedHeight(40)
         self.setMouseTracking(True)
 
+        # Initialize logger
+        from ..utils.logger import get_logger
+
+        self.logger = get_logger("helpmesign.segmented_control")
+
         # Get theme-aware colors
         self._update_colors()
 
@@ -59,30 +64,40 @@ class ModernSegmentedControl(QFrame):
             theme_manager = get_theme_manager()
             current_theme = theme_manager.get_current_theme()
 
+            # Debug logging
+            self.logger.debug(
+                f"ModernSegmentedControl: Current theme detected as: {current_theme}"
+            )
+
             if current_theme == "Dark":
-                # Dark theme colors
-                self.bg_color = "#334155"  # Dark gray background
+                # Dark theme colors - dark backgrounds
+                self.bg_color = "#1e293b"  # Dark background to match dialog
                 self.selected_bg = "#3b82f6"  # Blue for selected
                 self.selected_text = "#ffffff"  # White text for selected
-                self.unselected_bg = "#475569"  # Slightly lighter gray for unselected
+                self.unselected_bg = "#334155"  # Dark gray for unselected
                 self.unselected_text = "#cbd5e1"  # Light gray text for unselected
-                self.hover_bg = "#64748b"  # Lighter gray for hover
+                self.hover_bg = "#475569"  # Lighter gray for hover
                 self.border_color = "#475569"  # Border color
+                self.logger.debug("ModernSegmentedControl: Applied dark theme colors")
             else:
-                # Light theme colors (default)
-                self.bg_color = "#f1f5f9"  # Light gray background
+                # Light theme colors - light backgrounds
+                self.bg_color = "#ffffff"  # White background to match dialog
                 self.selected_bg = "#3b82f6"  # Blue for selected
                 self.selected_text = "#ffffff"  # White text for selected
-                self.unselected_bg = "#ffffff"  # White for unselected
+                self.unselected_bg = "#f1f5f9"  # Light gray for unselected
                 self.unselected_text = "#64748b"  # Gray text for unselected
                 self.hover_bg = "#e2e8f0"  # Light gray for hover
                 self.border_color = "#d1d5db"  # Border color
-        except Exception:
+                self.logger.debug("ModernSegmentedControl: Applied light theme colors")
+        except Exception as e:
             # Fallback colors if theme manager fails
-            self.bg_color = "#f1f5f9"
+            self.logger.error(
+                f"ModernSegmentedControl: Error getting theme, using fallback: {e}"
+            )
+            self.bg_color = "#ffffff"
             self.selected_bg = "#3b82f6"
             self.selected_text = "#ffffff"
-            self.unselected_bg = "#ffffff"
+            self.unselected_bg = "#f1f5f9"
             self.unselected_text = "#64748b"
             self.hover_bg = "#e2e8f0"
             self.border_color = "#d1d5db"
@@ -208,58 +223,104 @@ class SettingsDialog(QDialog):
         self.setup_behavior()
 
     def setup_ui(self):
-        """Set up the modern settings dialog UI"""
+        """Set up the settings dialog UI"""
+        # Set window properties
         self.setWindowTitle("Settings")
-        self.setModal(True)
-        self.setFixedSize(600, 460)  # Reduced height since we removed subtitle
+        self.setFixedSize(600, 460)
+        self.setModal(False)
+
+        # Apply initial theme styling
+        self._apply_initial_theme()
+
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Header frame (minimal)
+        header_frame = QFrame()
+        header_frame.setFixedHeight(20)
+        header_frame.setContentsMargins(20, 10, 20, 10)
+        main_layout.addWidget(header_frame)
+
+        # Content frame
+        content_frame = QFrame()
+        content_layout = QVBoxLayout(content_frame)
+        content_layout.setContentsMargins(20, 0, 20, 20)
+        content_layout.setSpacing(20)
+
+        # Tab widget
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(self.create_general_tab(), "General")
+        self.tab_widget.addTab(self.create_appearance_tab(), "Appearance")
+        content_layout.addWidget(self.tab_widget)
+
+        # Footer frame
+        footer_frame = QFrame()
+        footer_layout = QHBoxLayout(footer_frame)
+        footer_layout.setContentsMargins(20, 0, 20, 20)
+        footer_layout.setSpacing(12)
+
+        # Reset button
+        self.reset_button = QPushButton("Reset to Defaults")
+        self.reset_button.clicked.connect(self.reset_to_defaults)
+        footer_layout.addWidget(self.reset_button)
+
+        footer_layout.addStretch()
+
+        # Cancel and Save buttons
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.clicked.connect(self.reject)
+        self.ok_button = QPushButton("Save Changes")
+        self.ok_button.setObjectName("primary")  # For primary button styling
+        self.ok_button.clicked.connect(self.apply_settings)
+        footer_layout.addWidget(self.cancel_button)
+        footer_layout.addWidget(self.ok_button)
+
+        main_layout.addWidget(content_frame)
+        main_layout.addWidget(footer_frame)
+
+    def _apply_initial_theme(self):
+        """Apply the current theme styling to the dialog"""
+        try:
+            from ..utils.theme_manager import get_theme_manager
+
+            theme_manager = get_theme_manager()
+            current_theme = theme_manager.get_current_theme()
+
+            self.logger.debug(
+                f"Settings dialog: Initial theme detected as: {current_theme}"
+            )
+
+            # Apply theme-specific styling
+            if current_theme == "Dark":
+                self.logger.debug("Settings dialog: Applying dark theme")
+                self._apply_dark_theme()
+            else:
+                self.logger.debug("Settings dialog: Applying light theme")
+                self._apply_light_theme()
+
+            # Update GroupBox styling
+            self._update_group_box_styling(current_theme)
+
+            # Update all segmented controls to match the initial theme
+            self._update_all_segmented_controls(current_theme)
+
+        except Exception as e:
+            self.logger.error(f"Error applying initial theme: {e}")
+            # Fallback to light theme
+            self.logger.debug("Settings dialog: Falling back to light theme")
+            self._apply_light_theme()
+
+    def _apply_light_theme(self):
+        """Apply light theme styling"""
+        self.logger.debug("Applying light theme styling to settings dialog")
         self.setStyleSheet(
             """
             QDialog {
                 background-color: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-radius: 16px;
+                color: #1e293b;
             }
-        """
-        )
-
-        # Main layout
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        # Header - simplified without subtitle
-        header_frame = QFrame()
-        header_frame.setStyleSheet(
-            """
-            QFrame {
-                background-color: #f8fafc;
-                border-bottom: 1px solid #e2e8f0;
-                border-top-left-radius: 16px;
-                border-top-right-radius: 16px;
-            }
-        """
-        )
-        header_frame.setFixedHeight(20)  # Minimal height since we removed subtitle
-
-        layout.addWidget(header_frame)
-
-        # Content area with tabs
-        content_frame = QFrame()
-        content_frame.setStyleSheet(
-            """
-            QFrame {
-                background-color: #ffffff;
-            }
-        """
-        )
-        content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(24, 24, 24, 24)
-        content_layout.setSpacing(24)
-
-        # Tab widget
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet(
-            """
             QTabWidget::pane {
                 border: none;
                 background-color: #ffffff;
@@ -272,6 +333,8 @@ class SettingsDialog(QDialog):
                 border-top-left-radius: 8px;
                 border-top-right-radius: 8px;
                 font-weight: 500;
+                font-size: 14px;
+                border: none;
             }
             QTabBar::tab:selected {
                 background-color: #ffffff;
@@ -282,50 +345,37 @@ class SettingsDialog(QDialog):
                 background-color: #e2e8f0;
                 color: #475569;
             }
-        """
-        )
-
-        # General tab
-        general_tab = self.create_general_tab()
-        self.tab_widget.addTab(general_tab, "General")
-
-        # Appearance tab
-        appearance_tab = self.create_appearance_tab()
-        self.tab_widget.addTab(appearance_tab, "Appearance")
-
-        content_layout.addWidget(self.tab_widget)
-        layout.addWidget(content_frame)
-
-        # Footer with buttons
-        footer_frame = QFrame()
-        footer_frame.setStyleSheet(
-            """
-            QFrame {
-                background-color: #f8fafc;
-                border-top: 1px solid #e2e8f0;
-                border-bottom-left-radius: 16px;
-                border-bottom-right-radius: 16px;
+            QGroupBox {
+                font-weight: 600;
+                color: #1e293b;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-top: 12px;
+                padding-top: 16px;
+                background-color: #ffffff !important;
+                font-size: 14px;
             }
-        """
-        )
-        footer_frame.setFixedHeight(80)
-
-        footer_layout = QHBoxLayout(footer_frame)
-        footer_layout.setContentsMargins(24, 20, 24, 20)
-        footer_layout.setSpacing(12)
-
-        # Reset to defaults button
-        self.reset_button = QPushButton("Reset to Defaults")
-        self.reset_button.setFont(get_button_font())
-        self.reset_button.setFixedSize(120, 36)
-        self.reset_button.setStyleSheet(
-            """
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 8px 0 8px;
+                background-color: #ffffff !important;
+                color: #1e293b;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QGroupBox * {
+                background-color: #ffffff !important;
+            }
             QPushButton {
                 background-color: #f1f5f9;
                 color: #64748b;
                 border: 1px solid #d1d5db;
                 border-radius: 8px;
                 font-weight: 500;
+                padding: 10px 20px;
+                font-size: 14px;
+                min-width: 100px;
             }
             QPushButton:hover {
                 background-color: #e2e8f0;
@@ -334,64 +384,142 @@ class SettingsDialog(QDialog):
             QPushButton:pressed {
                 background-color: #cbd5e1;
             }
-        """
-        )
-        self.reset_button.clicked.connect(self.reset_to_defaults)
-        footer_layout.addWidget(self.reset_button)
-
-        footer_layout.addStretch()
-
-        # Cancel button
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.setFont(get_button_font())
-        self.cancel_button.setFixedSize(80, 36)
-        self.cancel_button.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #f1f5f9;
-                color: #64748b;
-                border: 1px solid #d1d5db;
-                border-radius: 8px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background-color: #e2e8f0;
-                color: #475569;
-            }
-            QPushButton:pressed {
-                background-color: #cbd5e1;
-            }
-        """
-        )
-        self.cancel_button.clicked.connect(self.reject)
-        footer_layout.addWidget(self.cancel_button)
-
-        # OK button
-        self.ok_button = QPushButton("Save Changes")
-        self.ok_button.setFont(get_button_font())
-        self.ok_button.setDefault(True)
-        self.ok_button.setFixedSize(100, 36)
-        self.ok_button.setStyleSheet(
-            """
-            QPushButton {
+            QPushButton#primary {
                 background-color: #3b82f6;
                 color: white;
                 border: none;
-                border-radius: 8px;
-                font-weight: 500;
             }
-            QPushButton:hover {
+            QPushButton#primary:hover {
                 background-color: #2563eb;
             }
-            QPushButton:pressed {
+            QPushButton#primary:pressed {
                 background-color: #1d4ed8;
+            }
+            QLabel {
+                color: #1e293b;
+            }
+            QSlider::groove:horizontal {
+                border: 1px solid #d1d5db;
+                height: 8px;
+                background: #f1f5f9;
+                border-radius: 4px;
+            }
+            QSlider::handle:horizontal {
+                background: #3b82f6;
+                border: 2px solid #3b82f6;
+                width: 18px;
+                margin: -5px 0;
+                border-radius: 9px;
+            }
+            QSlider::sub-page:horizontal {
+                background: #3b82f6;
+                border-radius: 4px;
             }
         """
         )
-        self.ok_button.clicked.connect(self.apply_settings)
-        footer_layout.addWidget(self.ok_button)
+        self.logger.debug("Light theme styling applied successfully")
 
-        layout.addWidget(footer_frame)
+    def _apply_dark_theme(self):
+        """Apply dark theme styling"""
+        self.setStyleSheet(
+            """
+            QDialog {
+                background-color: #1e293b;
+                color: #f8fafc;
+            }
+            QTabWidget::pane {
+                border: none;
+                background-color: #1e293b;
+            }
+            QTabBar::tab {
+                background-color: #334155;
+                color: #cbd5e1;
+                padding: 12px 24px;
+                margin-right: 4px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                font-weight: 500;
+                font-size: 14px;
+                border: none;
+            }
+            QTabBar::tab:selected {
+                background-color: #1e293b;
+                color: #f8fafc;
+                border-bottom: 2px solid #3b82f6;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #475569;
+                color: #f1f5f9;
+            }
+            QGroupBox {
+                font-weight: 600;
+                color: #f8fafc;
+                border: 1px solid #475569;
+                border-radius: 12px;
+                margin-top: 12px;
+                padding-top: 16px;
+                background-color: #1e293b;
+                font-size: 14px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 8px 0 8px;
+                background-color: #1e293b;
+                color: #f8fafc;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QPushButton {
+                background-color: #334155;
+                color: #cbd5e1;
+                border: 1px solid #475569;
+                border-radius: 8px;
+                font-weight: 500;
+                padding: 10px 20px;
+                font-size: 14px;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #475569;
+                color: #f1f5f9;
+            }
+            QPushButton:pressed {
+                background-color: #64748b;
+            }
+            QPushButton#primary {
+                background-color: #3b82f6;
+                color: white;
+                border: none;
+            }
+            QPushButton#primary:hover {
+                background-color: #60a5fa;
+            }
+            QPushButton#primary:pressed {
+                background-color: #2563eb;
+            }
+            QLabel {
+                color: #f8fafc;
+            }
+            QSlider::groove:horizontal {
+                border: 1px solid #475569;
+                height: 8px;
+                background: #334155;
+                border-radius: 4px;
+            }
+            QSlider::handle:horizontal {
+                background: #3b82f6;
+                border: 2px solid #3b82f6;
+                width: 18px;
+                margin: -5px 0;
+                border-radius: 9px;
+            }
+            QSlider::sub-page:horizontal {
+                background: #3b82f6;
+                border-radius: 4px;
+            }
+        """
+        )
 
     def create_general_tab(self):
         """Create the General settings tab"""
@@ -402,27 +530,7 @@ class SettingsDialog(QDialog):
 
         # Application Mode section
         mode_group = QGroupBox("Application Mode")
-        mode_group.setStyleSheet(
-            """
-            QGroupBox {
-                font-weight: 600;
-                color: #1e293b;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                margin-top: 12px;
-                padding-top: 16px;
-                background-color: #ffffff;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 16px;
-                padding: 0 8px 0 8px;
-                background-color: #ffffff;
-                color: #1e293b;
-                font-size: 14px;
-            }
-        """
-        )
+        # Remove hardcoded styling - let theme-based styling take over
 
         mode_layout = QVBoxLayout(mode_group)
         mode_layout.setContentsMargins(20, 20, 20, 20)
@@ -478,7 +586,7 @@ class SettingsDialog(QDialog):
 
         # Theme Group
         theme_group = QGroupBox("Theme")
-        theme_group.setStyleSheet(get_theme_manager().get_theme_style("group_box"))
+        # Remove hardcoded styling - let theme-based styling take over
         theme_layout = QVBoxLayout(theme_group)
         theme_layout.setContentsMargins(16, 20, 16, 16)
         theme_layout.setSpacing(12)
@@ -493,82 +601,31 @@ class SettingsDialog(QDialog):
 
         # Theme description
         self.theme_description = QLabel("Choose your preferred theme")
-        self.theme_description.setStyleSheet(
-            """
-            QLabel {
-                color: #64748b;
-                font-size: 14px;
-                padding: 8px 0;
-            }
-        """
-        )
+        # Remove hardcoded styling - let theme-based styling take over
         theme_layout.addWidget(self.theme_description)
 
         # Font Size Group
         font_group = QGroupBox("Font Size")
-        font_group.setStyleSheet(get_theme_manager().get_theme_style("group_box"))
+        # Remove hardcoded styling - let theme-based styling take over
         font_layout = QVBoxLayout(font_group)
         font_layout.setContentsMargins(16, 20, 16, 16)
         font_layout.setSpacing(12)
 
         # Font size label
         font_label = QLabel("Adjust text size:")
-        font_label.setStyleSheet(
-            """
-            QLabel {
-                color: #1e293b;
-                font-size: 14px;
-                font-weight: 500;
-                padding: 8px 0;
-            }
-        """
-        )
+        # Remove hardcoded styling - let theme-based styling take over
         font_layout.addWidget(font_label)
 
         # Font size slider
         self.font_slider = QSlider(Qt.Orientation.Horizontal)
         self.font_slider.setRange(10, 20)
         self.font_slider.setValue(12)
-        self.font_slider.setStyleSheet(
-            """
-            QSlider::groove:horizontal {
-                border: 1px solid #d1d5db;
-                height: 8px;
-                background: #f1f5f9;
-                border-radius: 4px;
-            }
-            QSlider::handle:horizontal {
-                background: #3b82f6;
-                border: 2px solid #3b82f6;
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                margin: -6px 0;
-            }
-            QSlider::handle:horizontal:hover {
-                background: #2563eb;
-                border-color: #2563eb;
-            }
-            QSlider::sub-page:horizontal {
-                background: #3b82f6;
-                border-radius: 4px;
-            }
-        """
-        )
+        # Remove hardcoded styling - let theme-based styling take over
         font_layout.addWidget(self.font_slider)
 
         # Font size value label
         self.font_size_label = QLabel("12px")
-        self.font_size_label.setStyleSheet(
-            """
-            QLabel {
-                color: #64748b;
-                font-size: 14px;
-                padding: 8px 0;
-                margin-top: 4px;
-            }
-        """
-        )
+        # Remove hardcoded styling - let theme-based styling take over
         self.font_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         font_layout.addWidget(self.font_size_label)
 
@@ -585,28 +642,75 @@ class SettingsDialog(QDialog):
         layout.addStretch()
         return tab
 
+    def _update_group_box_styling(self, theme_name: str) -> None:
+        """Update GroupBox styling based on the current theme"""
+        try:
+            from ..utils.theme_manager import get_theme_manager
+
+            theme_manager = get_theme_manager()
+            group_box_style = theme_manager.get_theme_style("group_box")
+
+            # Find all GroupBox widgets in the dialog and update their styling
+            for group_box in self.findChildren(QGroupBox):
+                group_box.setStyleSheet(group_box_style)
+
+            self.logger.debug(f"Updated GroupBox styling for theme: {theme_name}")
+        except Exception as e:
+            self.logger.error(f"Error updating GroupBox styling: {e}")
+
     def _on_theme_changed(self, theme_name: str) -> None:
         """Handle theme change in real-time"""
         try:
             from PySide6.QtWidgets import QApplication
 
-            # Apply theme immediately for preview
             app = QApplication.instance()
             if app and isinstance(app, QApplication):
                 success = apply_theme(theme_name, app)
                 if success:
                     # Update dialog styling to match new theme
-                    self._update_dialog_theme(theme_name)
+                    if theme_name == "Dark":
+                        self._apply_dark_theme()
+                    else:
+                        self._apply_light_theme()
+
+                    # Update GroupBox styling
+                    self._update_group_box_styling(theme_name)
+
                     # Update theme description based on selection
                     self._update_theme_description(theme_name)
+
+                    # Force update of the dialog
+                    self.update()
+                    self.repaint()
+
+                    # Update all segmented controls to match the new theme
+                    self._update_all_segmented_controls(theme_name)
+
+                    self.logger.info(f"Theme preview applied: {theme_name}")
                 else:
                     self.logger.error(f"Failed to apply theme preview: {theme_name}")
-            else:
-                self.logger.warning("No QApplication instance found for theme preview")
 
         except Exception as e:
             self.logger.error(f"Error applying theme preview: {e}")
-            # Don't crash the app - just log the error
+
+    def _update_all_segmented_controls(self, theme_name: str) -> None:
+        """Update all segmented controls to match the current theme"""
+        try:
+            # Update mode selection segmented control
+            if hasattr(self, "segmented_control"):
+                self.segmented_control._update_colors()
+                self.segmented_control.update()
+                self.segmented_control.repaint()
+
+            # Update theme selection segmented control
+            if hasattr(self, "theme_control"):
+                self.theme_control._update_colors()
+                self.theme_control.update()
+                self.theme_control.repaint()
+
+            self.logger.debug(f"Updated all segmented controls for theme: {theme_name}")
+        except Exception as e:
+            self.logger.error(f"Error updating segmented controls: {e}")
 
     def _update_theme_description(self, theme_name: str) -> None:
         """Update theme description based on selected theme"""
@@ -621,7 +725,7 @@ class SettingsDialog(QDialog):
     def _update_dialog_theme(self, theme_name: str) -> None:
         """Update dialog styling to match the selected theme"""
         try:
-            from ..utils.theme_manager import get_theme_style
+            from ..utils.theme_manager import get_theme_color, get_theme_style
 
             # Apply dialog theme
             dialog_style = get_theme_style("dialog")
@@ -632,6 +736,35 @@ class SettingsDialog(QDialog):
             tab_style = get_theme_style("tab_widget")
             if tab_style:
                 self.tab_widget.setStyleSheet(tab_style)
+
+            # Apply group box styling
+            group_box_style = get_theme_style("group_box")
+            if group_box_style:
+                # Apply to all group boxes in the dialog
+                for child in self.findChildren(QGroupBox):
+                    child.setStyleSheet(group_box_style)
+
+            # Apply button styling
+            primary_button_style = get_theme_style("button_primary")
+            secondary_button_style = get_theme_style("button_secondary")
+
+            if primary_button_style and hasattr(self, "ok_button"):
+                self.ok_button.setStyleSheet(primary_button_style)
+
+            if secondary_button_style:
+                if hasattr(self, "cancel_button"):
+                    self.cancel_button.setStyleSheet(secondary_button_style)
+                if hasattr(self, "reset_button"):
+                    self.reset_button.setStyleSheet(secondary_button_style)
+
+            # Update segmented control colors
+            if hasattr(self, "segmented_control"):
+                self.segmented_control._update_colors()
+                self.segmented_control.update()
+
+            if hasattr(self, "theme_control"):
+                self.theme_control._update_colors()
+                self.theme_control.update()
 
         except Exception as e:
             self.logger.error(f"Error updating dialog theme: {e}")

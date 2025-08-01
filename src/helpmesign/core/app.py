@@ -402,6 +402,10 @@ class HelpMeSignApp:
             self._update_input_fields_theme()
             self._update_buttons_theme()
 
+            # Force update of the main window
+            self.main_window.update()
+            self.main_window.repaint()
+
             self.logger.info("Main window theme updated")
 
         except Exception as e:

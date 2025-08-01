@@ -57,6 +57,10 @@ class ThemeManager:
                         background-color: #ffffff;
                         border: 1px solid #e2e8f0;
                         border-radius: 16px;
+                        color: #1e293b;
+                    }
+                    QDialog QLabel {
+                        color: #1e293b;
                     }
                 """,
                 "button_primary": """
@@ -66,13 +70,19 @@ class ThemeManager:
                         border: none;
                         border-radius: 8px;
                         font-weight: 500;
-                        padding: 8px 16px;
+                        padding: 10px 20px;
+                        font-size: 14px;
+                        min-width: 100px;
                     }
                     QPushButton:hover {
                         background-color: #2563eb;
                     }
                     QPushButton:pressed {
                         background-color: #1d4ed8;
+                    }
+                    QPushButton:disabled {
+                        background-color: #94a3b8;
+                        color: #cbd5e1;
                     }
                 """,
                 "button_secondary": """
@@ -82,7 +92,9 @@ class ThemeManager:
                         border: 1px solid #d1d5db;
                         border-radius: 8px;
                         font-weight: 500;
-                        padding: 8px 16px;
+                        padding: 10px 20px;
+                        font-size: 14px;
+                        min-width: 100px;
                     }
                     QPushButton:hover {
                         background-color: #e2e8f0;
@@ -90,6 +102,11 @@ class ThemeManager:
                     }
                     QPushButton:pressed {
                         background-color: #cbd5e1;
+                    }
+                    QPushButton:disabled {
+                        background-color: #f8fafc;
+                        color: #cbd5e1;
+                        border-color: #e2e8f0;
                     }
                 """,
                 "input_field": """
@@ -114,6 +131,7 @@ class ThemeManager:
                         margin-top: 12px;
                         padding-top: 16px;
                         background-color: #ffffff;
+                        font-size: 14px;
                     }
                     QGroupBox::title {
                         subcontrol-origin: margin;
@@ -122,6 +140,7 @@ class ThemeManager:
                         background-color: #ffffff;
                         color: #1e293b;
                         font-size: 14px;
+                        font-weight: 600;
                     }
                 """,
                 "tab_widget": """
@@ -138,6 +157,7 @@ class ThemeManager:
                         border-top-right-radius: 8px;
                         font-weight: 500;
                         font-size: 14px;
+                        border: none;
                     }
                     QTabBar::tab:selected {
                         background-color: #ffffff;
@@ -184,6 +204,10 @@ class ThemeManager:
                         background-color: #1e293b;
                         border: 1px solid #334155;
                         border-radius: 16px;
+                        color: #f8fafc;
+                    }
+                    QDialog QLabel {
+                        color: #f8fafc;
                     }
                 """,
                 "button_primary": """
@@ -193,13 +217,19 @@ class ThemeManager:
                         border: none;
                         border-radius: 8px;
                         font-weight: 500;
-                        padding: 8px 16px;
+                        padding: 10px 20px;
+                        font-size: 14px;
+                        min-width: 100px;
                     }
                     QPushButton:hover {
                         background-color: #60a5fa;
                     }
                     QPushButton:pressed {
                         background-color: #2563eb;
+                    }
+                    QPushButton:disabled {
+                        background-color: #94a3b8;
+                        color: #cbd5e1;
                     }
                 """,
                 "button_secondary": """
@@ -209,7 +239,9 @@ class ThemeManager:
                         border: 1px solid #475569;
                         border-radius: 8px;
                         font-weight: 500;
-                        padding: 8px 16px;
+                        padding: 10px 20px;
+                        font-size: 14px;
+                        min-width: 100px;
                     }
                     QPushButton:hover {
                         background-color: #475569;
@@ -217,6 +249,11 @@ class ThemeManager:
                     }
                     QPushButton:pressed {
                         background-color: #64748b;
+                    }
+                    QPushButton:disabled {
+                        background-color: #f8fafc;
+                        color: #cbd5e1;
+                        border-color: #e2e8f0;
                     }
                 """,
                 "input_field": """
@@ -241,6 +278,7 @@ class ThemeManager:
                         margin-top: 12px;
                         padding-top: 16px;
                         background-color: #1e293b;
+                        font-size: 14px;
                     }
                     QGroupBox::title {
                         subcontrol-origin: margin;
@@ -249,6 +287,7 @@ class ThemeManager:
                         background-color: #1e293b;
                         color: #f8fafc;
                         font-size: 14px;
+                        font-weight: 600;
                     }
                 """,
                 "tab_widget": """
@@ -265,6 +304,7 @@ class ThemeManager:
                         border-top-right-radius: 8px;
                         font-weight: 500;
                         font-size: 14px;
+                        border: none;
                     }
                     QTabBar::tab:selected {
                         background-color: #1e293b;
@@ -301,6 +341,9 @@ class ThemeManager:
             if app:
                 self._apply_to_application(app, theme)
 
+                # Force application update
+                app.processEvents()
+
             return True
 
         except Exception as e:
@@ -335,6 +378,25 @@ class ThemeManager:
         palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
 
         app.setPalette(palette)
+
+        # Force refresh of all widgets
+        self._refresh_all_widgets(app)
+
+    def _refresh_all_widgets(self, app: QApplication) -> None:
+        """Force refresh all widgets to apply theme changes"""
+        try:
+            # Get all top-level widgets
+            for widget in app.topLevelWidgets():
+                if widget.isVisible():
+                    widget.update()
+                    widget.repaint()
+
+                    # Also update child widgets
+                    for child in widget.findChildren(QWidget):
+                        child.update()
+                        child.repaint()
+        except Exception as e:
+            self.logger.error(f"Error refreshing widgets: {e}")
 
     def get_theme_style(self, component: str) -> str:
         """Get style for a specific component"""
