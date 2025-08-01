@@ -6,7 +6,7 @@ Handles loading and managing application resources (config, images, etc.)
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from .logger import get_logger
 
@@ -102,14 +102,16 @@ class ResourceManager:
 
     def get_resource_info(self) -> Dict[str, Any]:
         """Get information about available resources"""
-        info = {"base_path": str(self.base_path), "resources": {}}
+        info: Dict[str, Any] = {"base_path": str(self.base_path), "resources": {}}
 
         resources_dir = self.base_path / "resources"
         if resources_dir.exists():
             for resource_type in ["images", "data", "fonts"]:
                 type_dir = resources_dir / resource_type
                 if type_dir.exists():
-                    files = [f.name for f in type_dir.iterdir() if f.is_file()]
+                    files: List[str] = [
+                        f.name for f in type_dir.iterdir() if f.is_file()
+                    ]
                     info["resources"][resource_type] = files
                 else:
                     info["resources"][resource_type] = []

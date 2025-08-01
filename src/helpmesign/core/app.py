@@ -52,7 +52,7 @@ class HelpMeSignApp:
         )
 
         # Initialize user mode
-        self.user_mode = None
+        self.user_mode: Optional[str] = None
 
         # Create main window
         self.main_window = MainWindow(title=f"HelpMeSign ({self.environment.upper()})")
@@ -111,8 +111,8 @@ class HelpMeSignApp:
 
                 # Set icon on the QApplication for menubar and dock
                 app = QApplication.instance()
-                if app and app.windowIcon().isNull():
-                    app.setWindowIcon(QIcon(icon_path))
+                if app and hasattr(app, "windowIcon") and app.windowIcon().isNull():
+                    app.setWindowIcon(QIcon(icon_path))  # type: ignore
 
                 self.logger.info("App icon loaded successfully")
             else:
@@ -123,17 +123,17 @@ class HelpMeSignApp:
     def process_text(self) -> None:
         """Process the input text based on current mode"""
         try:
-            input_text = self.main_window.get_input_text()
+            input_text = self.main_window.get_input_text()  # type: ignore
 
             if not input_text.strip():
-                self.main_window.set_output_text(get_text("ui.output.empty_message"))
+                self.main_window.set_output_text(get_text("ui.output.empty_message"))  # type: ignore
                 return
 
             # Process based on current mode
             if self.user_mode == get_text("modes.sign_translate.name"):
                 # Convert text to sign language representation
                 output = self.convert_to_sign_language(input_text)
-                self.main_window.set_output_text(output)
+                self.main_window.set_output_text(output)  # type: ignore
                 self.main_window.set_status(
                     f"{get_text('ui.status.converted_prefix')}{input_text}{get_text('ui.status.converted_suffix')}"
                 )
@@ -141,7 +141,7 @@ class HelpMeSignApp:
             elif self.user_mode == get_text("modes.learn.name"):
                 # Educational mode - show sign language information
                 output = self.get_sign_language_info(input_text)
-                self.main_window.set_output_text(output)
+                self.main_window.set_output_text(output)  # type: ignore
                 self.main_window.set_status(
                     f"{get_text('ui.status.learning_prefix')}{input_text}{get_text('ui.status.learning_suffix')}"
                 )
@@ -149,14 +149,14 @@ class HelpMeSignApp:
             else:
                 # Default to Sign & Translate
                 output = self.convert_to_sign_language(input_text)
-                self.main_window.set_output_text(output)
+                self.main_window.set_output_text(output)  # type: ignore
                 self.main_window.set_status(
                     f"{get_text('ui.status.converted_prefix')}{input_text}{get_text('ui.status.converted_suffix')}"
                 )
 
         except Exception as e:
             self.logger.error(f"Error processing text: {e}")
-            self.main_window.set_output_text(f"{get_text('ui.status.error_prefix')}{e}")
+            self.main_window.set_output_text(f"{get_text('ui.status.error_prefix')}{e}")  # type: ignore
 
     def convert_to_sign_language(self, text: str) -> str:
         """Convert text to sign language representation"""
@@ -211,8 +211,8 @@ class HelpMeSignApp:
 
     def clear_text(self) -> None:
         """Clear input and output text"""
-        self.main_window.clear_input()
-        self.main_window.clear_output()
+        self.main_window.clear_input()  # type: ignore
+        self.main_window.clear_output()  # type: ignore
         self.main_window.set_status(get_text("ui.status.cleared"))
 
     def get_config(self) -> Dict[str, Any]:

@@ -8,7 +8,7 @@ import locale
 import os
 import platform
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .logger import get_logger
 
@@ -27,8 +27,8 @@ class LanguageManager:
         self.language = language.lower()
         self.region = region.lower()
         self.logger = get_logger("helpmesign.language")
-        self.current_language_data = {}
-        self.fallback_language_data = {}
+        self.current_language_data: Dict[str, Any] = {}
+        self.fallback_language_data: Dict[str, Any] = {}
 
         # Load language data
         self._load_language_data()
@@ -128,7 +128,9 @@ class LanguageManager:
                         else:
                             self.logger.warning(f"Text key not found: {key_path}")
                             return default
-                    return fallback_value
+                    return (
+                        str(fallback_value) if fallback_value is not None else default
+                    )
 
             return str(value) if value is not None else default
 
@@ -136,7 +138,7 @@ class LanguageManager:
             self.logger.error(f"Error getting text for key '{key_path}': {e}")
             return default
 
-    def get_list(self, key_path: str, default: List[str] = None) -> List[str]:
+    def get_list(self, key_path: str, default: Optional[List[str]] = None) -> List[str]:
         """
         Get localized list by key path
 
@@ -188,7 +190,9 @@ class LanguageManager:
             self.logger.error(f"Error getting list for key '{key_path}': {e}")
             return default
 
-    def get_dict(self, key_path: str, default: Dict[str, Any] = None) -> Dict[str, Any]:
+    def get_dict(
+        self, key_path: str, default: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         Get localized dictionary by key path
 
@@ -274,7 +278,7 @@ class LanguageManager:
         Returns:
             List of language dictionaries with language, region, name, and native_name
         """
-        languages = []
+        languages: List[Dict[str, str]] = []
         languages_dir = (
             Path(__file__).resolve().parent.parent.parent.parent
             / "resources"
@@ -318,7 +322,7 @@ class LanguageManager:
             "version": self.current_language_data.get("version", ""),
         }
 
-    def detect_system_language(self) -> tuple[str, str]:
+    def detect_system_language(self) -> Tuple[str, str]:
         """
         Detect system language and region
 
@@ -366,12 +370,12 @@ def get_text(key_path: str, default: str = "") -> str:
     return get_language_manager().get_text(key_path, default)
 
 
-def get_list(key_path: str, default: List[str] = None) -> List[str]:
+def get_list(key_path: str, default: Optional[List[str]] = None) -> List[str]:
     """Get localized list by key path"""
     return get_language_manager().get_list(key_path, default)
 
 
-def get_dict(key_path: str, default: Dict[str, Any] = None) -> Dict[str, Any]:
+def get_dict(key_path: str, default: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Get localized dictionary by key path"""
     return get_language_manager().get_dict(key_path, default)
 
@@ -391,6 +395,6 @@ def get_current_language_info() -> Dict[str, str]:
     return get_language_manager().get_current_language_info()
 
 
-def detect_system_language() -> tuple[str, str]:
+def detect_system_language() -> Tuple[str, str]:
     """Detect system language and region"""
     return get_language_manager().detect_system_language()

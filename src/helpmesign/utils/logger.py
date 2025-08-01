@@ -23,7 +23,7 @@ class HelpMeSignLogger:
         self.name = name
         self.config = config or {}
         self.environment = environment.lower()
-        self.logger = None
+        self.logger: logging.Logger
         self._setup_logger()
 
     def _setup_logger(self) -> None:

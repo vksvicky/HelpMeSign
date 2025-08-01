@@ -207,6 +207,21 @@ The test suite is designed to work in CI environments where GUI libraries may no
 - Headless environment support
 - Automated formatting checks (Black + isort)
 - Comprehensive test coverage reporting
+- Safe import testing with `ci_import_test.py` and `test_ci_import.py`
+
+### CI/CD Pipeline
+
+The GitHub Actions workflow includes:
+
+1. **Multi-Python Testing**: Tests on Python 3.8, 3.9, 3.10, 3.11, 3.12
+2. **Cross-Platform Build Testing**: Ubuntu, macOS, Windows
+3. **Code Quality Checks**: Black, isort, flake8, mypy
+4. **Security Scanning**: Bandit, Safety
+5. **Safe Import Testing**: Uses conditional imports to avoid GUI dependency issues
+
+**CI Test Scripts:**
+- `ci_import_test.py`: Simple one-liner test for safe imports
+- `test_ci_import.py`: Comprehensive CI-safe import testing
 - Safe import testing for GUI components
 
 **CI Import Testing:**

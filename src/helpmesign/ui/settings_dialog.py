@@ -287,7 +287,7 @@ def show_settings_dialog(
     if callback:
         dialog.settings_applied.connect(callback)
 
-    if dialog.exec() == QDialog.Accepted:
+    if dialog.exec() == QDialog.DialogCode.Accepted:
         return dialog.get_selected_mode()
     else:
         return None

@@ -446,7 +446,7 @@ def show_startup_screen(parent=None) -> Optional[str]:
         dialog = StartupScreen(parent)
         result = dialog.exec()
 
-        if result == QDialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             # Get the choice from the signal
             return dialog.property("user_choice")
         return None

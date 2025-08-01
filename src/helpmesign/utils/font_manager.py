@@ -79,7 +79,7 @@ class FontManager:
         self,
         family: str = "Roboto",
         size: int = 10,
-        weight: int = QFont.Normal,
+        weight: int = QFont.Normal,  # type: ignore
         italic: bool = False,
     ) -> QFont:
         """Get a QFont object for Qt widgets"""
@@ -91,45 +91,45 @@ class FontManager:
                 family = "Arial" if platform.system() == "Windows" else "Helvetica"
 
         font = QFont(family, size)
-        font.setWeight(weight)
+        font.setWeight(weight)  # type: ignore
         font.setItalic(italic)
         return font
 
     def get_title_font(self) -> QFont:
         """Get font for titles"""
-        return self.get_font("Roboto", 20, QFont.Bold)
+        return self.get_font("Roboto", 20, QFont.Bold)  # type: ignore
 
     def get_heading_font(self) -> QFont:
         """Get font for headings"""
-        return self.get_font("Roboto", 16, QFont.Bold)
+        return self.get_font("Roboto", 16, QFont.Bold)  # type: ignore
 
     def get_subheading_font(self) -> QFont:
         """Get font for subheadings"""
-        return self.get_font("Roboto", 14, QFont.Bold)
+        return self.get_font("Roboto", 14, QFont.Bold)  # type: ignore
 
     def get_body_font(self) -> QFont:
         """Get font for body text"""
-        return self.get_font("Roboto", 12, QFont.Normal)
+        return self.get_font("Roboto", 12, QFont.Normal)  # type: ignore
 
     def get_small_font(self) -> QFont:
         """Get font for small text"""
-        return self.get_font("Roboto", 10, QFont.Normal)
+        return self.get_font("Roboto", 10, QFont.Normal)  # type: ignore
 
     def get_button_font(self) -> QFont:
         """Get font for buttons"""
-        return self.get_font("Roboto", 11, QFont.Bold)
+        return self.get_font("Roboto", 11, QFont.Bold)  # type: ignore
 
     def get_label_font(self) -> QFont:
         """Get font for labels"""
-        return self.get_font("Roboto", 11, QFont.Normal)
+        return self.get_font("Roboto", 11, QFont.Normal)  # type: ignore
 
     def get_input_font(self) -> QFont:
         """Get font for input fields"""
-        return self.get_font("Roboto", 11, QFont.Normal)
+        return self.get_font("Roboto", 11, QFont.Normal)  # type: ignore
 
     def get_menu_font(self) -> QFont:
         """Get font for menu items"""
-        return self.get_font("Roboto", 11, QFont.Normal)
+        return self.get_font("Roboto", 11, QFont.Normal)  # type: ignore
 
 
 # Global font manager instance
@@ -147,7 +147,7 @@ def get_font_manager() -> FontManager:
 def get_font(
     family: str = "Roboto",
     size: int = 10,
-    weight: int = QFont.Normal,
+    weight: int = QFont.Normal,  # type: ignore
     italic: bool = False,
 ) -> QFont:
     """Get a QFont object for Qt widgets"""
