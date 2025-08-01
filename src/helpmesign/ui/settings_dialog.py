@@ -70,14 +70,14 @@ class ModernSegmentedControl(QFrame):
             )
 
             if current_theme == "Dark":
-                # Dark theme colors - dark backgrounds
-                self.bg_color = "#1e293b"  # Dark background to match dialog
-                self.selected_bg = "#3b82f6"  # Blue for selected
+                # Dark theme colors - macOS-style dark backgrounds
+                self.bg_color = "#1c1c1e"  # macOS dark background
+                self.selected_bg = "#0a84ff"  # macOS blue for selected
                 self.selected_text = "#ffffff"  # White text for selected
-                self.unselected_bg = "#334155"  # Dark gray for unselected
-                self.unselected_text = "#cbd5e1"  # Light gray text for unselected
-                self.hover_bg = "#475569"  # Lighter gray for hover
-                self.border_color = "#475569"  # Border color
+                self.unselected_bg = "#2c2c2e"  # macOS dark secondary for unselected
+                self.unselected_text = "#ebebf5"  # Light gray text for unselected
+                self.hover_bg = "#3a3a3c"  # macOS dark tertiary for hover
+                self.border_color = "#38383a"  # Dark border color
                 self.logger.debug("ModernSegmentedControl: Applied dark theme colors")
             else:
                 # Light theme colors - light backgrounds
@@ -424,16 +424,16 @@ class SettingsDialog(QDialog):
         self.setStyleSheet(
             """
             QDialog {
-                background-color: #1e293b;
-                color: #f8fafc;
+                background-color: #1c1c1e;
+                color: #ffffff;
             }
             QTabWidget::pane {
                 border: none;
-                background-color: #1e293b;
+                background-color: #1c1c1e;
             }
             QTabBar::tab {
-                background-color: #334155;
-                color: #cbd5e1;
+                background-color: #2c2c2e;
+                color: #ebebf5;
                 padding: 12px 24px;
                 margin-right: 4px;
                 border-top-left-radius: 8px;
@@ -443,37 +443,37 @@ class SettingsDialog(QDialog):
                 border: none;
             }
             QTabBar::tab:selected {
-                background-color: #1e293b;
-                color: #f8fafc;
-                border-bottom: 2px solid #3b82f6;
+                background-color: #1c1c1e;
+                color: #ffffff;
+                border-bottom: 2px solid #0a84ff;
             }
             QTabBar::tab:hover:!selected {
-                background-color: #475569;
-                color: #f1f5f9;
+                background-color: #3a3a3c;
+                color: #ffffff;
             }
             QGroupBox {
                 font-weight: 600;
-                color: #f8fafc;
-                border: 1px solid #475569;
+                color: #ffffff;
+                border: 1px solid #38383a;
                 border-radius: 12px;
                 margin-top: 12px;
                 padding-top: 16px;
-                background-color: #1e293b;
+                background-color: #1c1c1e;
                 font-size: 14px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 left: 16px;
                 padding: 0 8px 0 8px;
-                background-color: #1e293b;
-                color: #f8fafc;
+                background-color: #1c1c1e;
+                color: #ffffff;
                 font-size: 14px;
                 font-weight: 600;
             }
             QPushButton {
-                background-color: #334155;
-                color: #cbd5e1;
-                border: 1px solid #475569;
+                background-color: #2c2c2e;
+                color: #ebebf5;
+                border: 1px solid #48484a;
                 border-radius: 8px;
                 font-weight: 500;
                 padding: 10px 20px;
@@ -481,41 +481,41 @@ class SettingsDialog(QDialog):
                 min-width: 100px;
             }
             QPushButton:hover {
-                background-color: #475569;
-                color: #f1f5f9;
+                background-color: #3a3a3c;
+                color: #ffffff;
             }
             QPushButton:pressed {
-                background-color: #64748b;
+                background-color: #48484a;
             }
             QPushButton#primary {
-                background-color: #3b82f6;
+                background-color: #0a84ff;
                 color: white;
                 border: none;
             }
             QPushButton#primary:hover {
-                background-color: #60a5fa;
+                background-color: #409cff;
             }
             QPushButton#primary:pressed {
-                background-color: #2563eb;
+                background-color: #0056d6;
             }
             QLabel {
-                color: #f8fafc;
+                color: #ffffff;
             }
             QSlider::groove:horizontal {
-                border: 1px solid #475569;
+                border: 1px solid #48484a;
                 height: 8px;
-                background: #334155;
+                background: #2c2c2e;
                 border-radius: 4px;
             }
             QSlider::handle:horizontal {
-                background: #3b82f6;
-                border: 2px solid #3b82f6;
+                background: #0a84ff;
+                border: 2px solid #0a84ff;
                 width: 18px;
                 margin: -5px 0;
                 border-radius: 9px;
             }
             QSlider::sub-page:horizontal {
-                background: #3b82f6;
+                background: #0a84ff;
                 border-radius: 4px;
             }
         """
