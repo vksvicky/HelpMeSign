@@ -104,11 +104,7 @@ jobs:
         pip install -r requirements.txt
         pip install black isort
     
-    - name: Test application startup
-      run: |
-        python ci_import_test.py
-    
-    - name: Run basic functionality test
+    - name: Test CI-safe imports
       run: |
         python test_ci_import.py
     

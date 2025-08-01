@@ -207,7 +207,7 @@ The test suite is designed to work in CI environments where GUI libraries may no
 - Headless environment support
 - Automated formatting checks (Black + isort)
 - Comprehensive test coverage reporting
-- Safe import testing with `ci_import_test.py` and `test_ci_import.py`
+- Safe import testing with `test_ci_import.py`
 
 ### CI/CD Pipeline
 
@@ -220,16 +220,12 @@ The GitHub Actions workflow includes:
 5. **Safe Import Testing**: Uses conditional imports to avoid GUI dependency issues
 
 **CI Test Scripts:**
-- `ci_import_test.py`: Simple one-liner test for safe imports
 - `test_ci_import.py`: Comprehensive CI-safe import testing
 - Safe import testing for GUI components
 
 **CI Import Testing:**
 ```bash
-# Test safe import pattern (recommended for CI)
-python3 ci_import_test.py
-
-# Or use the comprehensive test
+# comprehensive test
 python3 test_ci_import.py
 
 # Direct import will fail in CI (expected behavior)

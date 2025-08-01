@@ -20,17 +20,17 @@ def test_safe_import():
         app_class = get_app()
         
         if app_class is None:
-            print("✅ Safe import working correctly - PySide6 not available (expected in CI)")
+            print("[OK] Safe import working correctly - PySide6 not available (expected in CI)")
             return True
         else:
-            print("✅ Safe import working correctly - PySide6 available")
+            print("[OK] Safe import working correctly - PySide6 available")
             return True
             
     except ImportError as e:
-        print(f"❌ Import error: {e}")
+        print(f"[ERROR] Import error: {e}")
         return False
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"[ERROR] Unexpected error: {e}")
         return False
 
 def test_utility_imports():
@@ -41,19 +41,19 @@ def test_utility_imports():
         from helpmesign.utils.logger import get_logger
         from helpmesign.utils.resource_manager import ResourceManager
         
-        print("✅ Utility modules import successfully")
+        print("[OK] Utility modules import successfully")
         return True
         
     except ImportError as e:
-        print(f"❌ Utility import error: {e}")
+        print(f"[ERROR] Utility import error: {e}")
         return False
     except Exception as e:
-        print(f"❌ Unexpected utility error: {e}")
+        print(f"[ERROR] Unexpected utility error: {e}")
         return False
 
 def main():
     """Main test function"""
-    print("🧪 Testing HelpMeSign CI-safe imports...")
+    print("[INFO] Testing HelpMeSign CI-safe imports...")
     print("=" * 50)
     
     # Test utility imports first
@@ -64,10 +64,10 @@ def main():
     
     print("=" * 50)
     if utility_ok and app_ok:
-        print("✅ All CI import tests passed!")
+        print("[OK] All CI import tests passed!")
         sys.exit(0)
     else:
-        print("❌ Some CI import tests failed!")
+        print("[ERROR] Some CI import tests failed!")
         sys.exit(1)
 
 if __name__ == "__main__":
