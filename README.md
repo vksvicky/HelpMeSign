@@ -164,6 +164,80 @@ python3 -m pytest tests/ -v
 python3 -m pytest tests/ --cov=src --cov-report=term --cov-report=html
 ```
 
+### CI Compatibility
+
+HelpMeSign tests are designed to run in CI environments where GUI libraries may not be available:
+
+- **Conditional Imports**: Tests gracefully handle missing PySide6 dependencies
+- **Mock Components**: GUI components are mocked when PySide6 is unavailable
+- **Headless Testing**: All tests can run without display requirements
+- **Cross-Platform**: Tests work on Linux, macOS, and Windows CI runners
+
+### Code Quality
+
+#### Formatting
+HelpMeSign uses Black for code formatting:
+
+```bash
+# Format code
+black src/ tests/
+
+# Check formatting
+black --check src/ tests/
+```
+
+#### Linting
+```bash
+# Install development dependencies
+pip install black flake8 mypy
+
+# Run linting
+flake8 src/ tests/
+mypy src/
+```
+
+#### CI Environment Compatibility
+
+The test suite is designed to work in both local development and CI environments:
+
+- **Local Development**: Full PySide6 GUI support with all features available
+- **CI Environments**: Graceful fallback with mocked GUI components when PySide6 dependencies are unavailable
+- **Headless Testing**: Tests automatically detect missing GUI libraries and use appropriate mocks
+- **Cross-Platform**: Tests work on macOS, Windows, and Linux CI runners
+
+**Key Features:**
+- Conditional PySide6 imports with fallback mocks
+- Automatic detection of missing GUI libraries (`libEGL.so.1`, etc.)
+- Comprehensive error handling for both `ImportError` and `OSError`
+- Mock implementations for all GUI-dependent functionality
+
+### Test Categories
+
+#### Unit Tests (`tests/unit/`)
+- **Core Logic**: Application initialization, configuration management, text processing
+- **Utilities**: Font management, language system, resource management, logging
+- **UI Components**: Segmented controls, keyboard shortcuts, component behavior
+- **Security**: Secure configuration, tamper detection, encryption validation
+
+#### Integration Tests (`tests/integration/`)
+- **Application Integration**: End-to-end application workflows
+- **Component Interaction**: UI component communication and data flow
+- **Language System**: Internationalization with PySide6 components
+- **Startup Process**: Configuration loading and user mode selection
+
+#### Mock Tests (`tests/mocks/`)
+- **Error Scenarios**: File system errors, network failures, memory issues
+- **Boundary Conditions**: Large data, empty inputs, edge cases
+- **Security Scenarios**: Permission errors, tamper detection, validation failures
+- **Performance Testing**: Concurrent access, resource monitoring
+
+### Test Quality Metrics
+
+- **Test Types**: Unit, Integration, Mock, Security
+- **Coverage Areas**: Happy path, error handling, boundary conditions, security validation
+- **CI Compatibility**: Tests run in headless environments without GUI dependencies
+- **Mock Support**: Comprehensive mocking for external dependencies and error scenarios
+
 ### macOS Menubar Issue and Solutions
 
 On macOS, when running the application directly through Python, the menubar may show "Python" instead of "HelpMeSign". This is a known issue with Qt applications on macOS. Several solutions are available:

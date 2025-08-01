@@ -15,8 +15,14 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QFrame, QSizePolicy, QMessageBox
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QFrame,
+    QSizePolicy,
+    QMessageBox,
 )
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont, QPixmap
@@ -28,81 +34,84 @@ from ..utils.language_manager import get_text, get_list, get_dict
 
 class StartupScreen(QDialog):
     """Startup screen with user choice functionality"""
-    
+
     # Signal emitted when user makes a choice
     choice_made = Signal(str)
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.logger = get_logger("helpmesign.startup")
         self.logger.info("Initializing startup screen")
-        
+
         # Set window properties
         self.setWindowTitle(get_text("startup.title"))
         self.setFixedSize(500, 400)
         self.setWindowFlags(Qt.Dialog | Qt.WindowStaysOnTopHint)
-        
+
         # Setup UI
         self.setup_ui()
         self.setup_behavior()
-        
+
         # Load previous choice
         self.load_previous_choice()
-        
+
         self.logger.debug("Startup screen initialized")
-    
+
     def setup_ui(self):
         """Setup the user interface"""
         layout = QVBoxLayout()
         layout.setSpacing(20)
         layout.setContentsMargins(30, 30, 30, 30)
-        
+
         # Title
         title_label = QLabel(get_text("startup.title"))
         title_label.setFont(get_title_font())
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
         layout.addWidget(title_label)
-        
+
         # Subtitle
         subtitle_label = QLabel(get_text("startup.subtitle"))
         subtitle_label.setFont(get_heading_font())
         subtitle_label.setAlignment(Qt.AlignCenter)
         subtitle_label.setStyleSheet("color: #7f8c8d; margin-bottom: 20px;")
         layout.addWidget(subtitle_label)
-        
+
         # Mode selection buttons
         self.create_mode_buttons(layout)
-        
+
         # Info text
         info_label = QLabel(get_text("startup.info_text"))
         info_label.setAlignment(Qt.AlignCenter)
         info_label.setStyleSheet("color: #95a5a6; font-size: 11px; margin-top: 20px;")
         layout.addWidget(info_label)
-        
+
         self.setLayout(layout)
-    
+
     def create_mode_buttons(self, layout):
         """Create mode selection buttons"""
         # Container for buttons
         button_container = QFrame()
-        button_container.setStyleSheet("""
+        button_container.setStyleSheet(
+            """
             QFrame {
                 background-color: #f8f9fa;
                 border: 2px solid #e9ecef;
                 border-radius: 10px;
                 padding: 20px;
             }
-        """)
-        
+        """
+        )
+
         button_layout = QVBoxLayout()
         button_layout.setSpacing(15)
-        
+
         # Sign & Translate mode
         sign_translate_btn = QPushButton(get_text("modes.sign_translate.button_text"))
         sign_translate_btn.setFont(get_button_font())
         sign_translate_btn.setFixedHeight(50)
-        sign_translate_btn.setStyleSheet("""
+        sign_translate_btn.setStyleSheet(
+            """
             QPushButton {
                 background-color: #3498db;
                 color: white;
@@ -116,15 +125,17 @@ class StartupScreen(QDialog):
             QPushButton:pressed {
                 background-color: #21618c;
             }
-        """)
+        """
+        )
         sign_translate_btn.clicked.connect(lambda: self.make_choice("sign_translate"))
         button_layout.addWidget(sign_translate_btn)
-        
+
         # Learn mode
         learn_btn = QPushButton(get_text("modes.learn.button_text"))
         learn_btn.setFont(get_button_font())
         learn_btn.setFixedHeight(50)
-        learn_btn.setStyleSheet("""
+        learn_btn.setStyleSheet(
+            """
             QPushButton {
                 background-color: #27ae60;
                 color: white;
@@ -138,27 +149,28 @@ class StartupScreen(QDialog):
             QPushButton:pressed {
                 background-color: #1e8449;
             }
-        """)
+        """
+        )
         learn_btn.clicked.connect(lambda: self.make_choice("learn"))
         button_layout.addWidget(learn_btn)
-        
+
         button_container.setLayout(button_layout)
         layout.addWidget(button_container)
-        
+
         # Store button references for highlighting
         self.sign_translate_btn = sign_translate_btn
         self.learn_btn = learn_btn
-    
+
     def setup_behavior(self):
         """Setup dialog behavior"""
         # Center on screen
         self.center_on_screen()
-        
+
         # Auto-close after 30 seconds if no choice made
         self.auto_close_timer = QTimer()
         self.auto_close_timer.timeout.connect(self.auto_close)
         self.auto_close_timer.start(30000)  # 30 seconds
-    
+
     def center_on_screen(self):
         """Center the dialog on the screen"""
         screen = self.screen()
@@ -166,7 +178,7 @@ class StartupScreen(QDialog):
         x = (screen_geometry.width() - self.width()) // 2
         y = (screen_geometry.height() - self.height()) // 2
         self.move(x, y)
-    
+
     def load_previous_choice(self):
         """Load and highlight previous user choice"""
         try:
@@ -177,11 +189,12 @@ class StartupScreen(QDialog):
                 self.logger.debug(f"Previous mode loaded: {previous_mode}")
         except Exception as e:
             self.logger.warning(f"Could not load previous choice: {e}")
-    
+
     def highlight_previous_choice(self, mode: str):
         """Highlight the previously selected mode"""
         if mode == "sign_translate":
-            self.sign_translate_btn.setStyleSheet("""
+            self.sign_translate_btn.setStyleSheet(
+                """
                 QPushButton {
                     background-color: #2980b9;
                     color: white;
@@ -192,10 +205,14 @@ class StartupScreen(QDialog):
                 QPushButton:hover {
                     background-color: #21618c;
                 }
-            """)
-            self.sign_translate_btn.setText(get_text("modes.sign_translate.previous_choice_text"))
+            """
+            )
+            self.sign_translate_btn.setText(
+                get_text("modes.sign_translate.previous_choice_text")
+            )
         elif mode == "learn":
-            self.learn_btn.setStyleSheet("""
+            self.learn_btn.setStyleSheet(
+                """
                 QPushButton {
                     background-color: #229954;
                     color: white;
@@ -206,37 +223,38 @@ class StartupScreen(QDialog):
                 QPushButton:hover {
                     background-color: #1e8449;
                 }
-            """)
+            """
+            )
             self.learn_btn.setText(get_text("modes.learn.previous_choice_text"))
-    
+
     def make_choice(self, choice: str):
         """Handle user choice"""
         try:
             # Stop auto-close timer
             self.auto_close_timer.stop()
-            
+
             # Save choice
             config_manager = SecureConfigManager()
             if config_manager.set_user_mode(choice):
                 self.logger.info(f"User choice saved: {choice}")
             else:
                 self.logger.warning("Failed to save user choice")
-            
+
             # Emit signal
             self.choice_made.emit(choice)
-            
+
             # Close dialog
             self.accept()
-            
+
         except Exception as e:
             self.logger.error(f"Error handling user choice: {e}")
             QMessageBox.critical(self, "Error", f"Failed to save your choice: {e}")
-    
+
     def auto_close(self):
         """Auto-close dialog if no choice made"""
         self.logger.info(get_text("startup.auto_close_message"))
         self.reject()
-    
+
     def get_timestamp(self) -> str:
         """Get current timestamp"""
         return datetime.now().isoformat()
@@ -244,16 +262,16 @@ class StartupScreen(QDialog):
 
 class SecureConfigManager:
     """Secure configuration manager with system-derived key protection"""
-    
+
     def __init__(self, environment: str = "dev"):
         self.config_dir = Path.home() / ".helpmesign"
         self.config_file = self.config_dir / "user_config.secure"
         self.environment = environment.lower()
         self.logger = get_logger("helpmesign.config")
-        
+
         # Ensure config directory exists with secure permissions
         self.config_dir.mkdir(mode=0o700, exist_ok=True)
-    
+
     def _derive_secret_key(self) -> bytes:
         """
         Derive secret key from system/user-specific data
@@ -261,120 +279,128 @@ class SecureConfigManager:
         """
         # Get system-specific identifiers
         system_info = [
-            platform.system(),           # OS (Windows, Darwin, Linux)
-            platform.machine(),          # Architecture (x86_64, arm64, etc.)
-            platform.node(),             # Hostname
-            getpass.getuser(),           # Username
-            str(Path.home()),            # Home directory path
-            self.environment,            # Environment (dev/prod)
-            get_text("app.name"),                # Application identifier
-            self._get_mac_address(),     # MAC address for machine uniqueness
+            platform.system(),  # OS (Windows, Darwin, Linux)
+            platform.machine(),  # Architecture (x86_64, arm64, etc.)
+            platform.node(),  # Hostname
+            getpass.getuser(),  # Username
+            str(Path.home()),  # Home directory path
+            self.environment,  # Environment (dev/prod)
+            get_text("app.name"),  # Application identifier
+            self._get_mac_address(),  # MAC address for machine uniqueness
         ]
-        
+
         # Create a unique salt for this system/user
-        salt = "|".join(system_info).encode('utf-8')
-        
+        salt = "|".join(system_info).encode("utf-8")
+
         # Use PBKDF2 to derive a key from the salt
         # This makes it computationally expensive to brute force
         import hashlib
+
         key = hashlib.pbkdf2_hmac(
-            'sha256',
+            "sha256",
             salt,
             salt,  # Use salt as both password and salt
             iterations=100000,  # High iteration count for security
-            dklen=32  # 32 bytes for SHA-256
+            dklen=32,  # 32 bytes for SHA-256
         )
-        
+
         self.logger.debug("Secret key derived from system data")
         return key
-    
+
     def _get_mac_address(self) -> str:
         """Get the primary MAC address of the machine"""
         try:
             import uuid
+
             # Get the MAC address as a hex string
             mac = uuid.getnode()
-            mac_address = ':'.join(['{:02x}'.format((mac >> elements) & 0xff) 
-                                  for elements in range(0,2*6,2)][::-1])
+            mac_address = ":".join(
+                [
+                    "{:02x}".format((mac >> elements) & 0xFF)
+                    for elements in range(0, 2 * 6, 2)
+                ][::-1]
+            )
             self.logger.debug(f"MAC address retrieved: {mac_address}")
             return mac_address
         except Exception as e:
             self.logger.warning(f"Could not get MAC address: {e}")
             return "unknown_mac"
-    
+
     def _create_hmac(self, data: str) -> bytes:
         """Create HMAC signature for data"""
         key = self._derive_secret_key()
-        return hmac.new(key, data.encode('utf-8'), hashlib.sha256).digest()
-    
+        return hmac.new(key, data.encode("utf-8"), hashlib.sha256).digest()
+
     def _verify_hmac(self, data: str, signature: bytes) -> bool:
         """Verify HMAC signature for data"""
         expected_signature = self._create_hmac(data)
         return hmac.compare_digest(signature, expected_signature)
-    
+
     def save_config(self, config: Dict[str, Any]) -> bool:
         """Save configuration with HMAC protection"""
         try:
             # Add metadata
-            config['timestamp'] = self.get_timestamp()
-            config['environment'] = self.environment
-            config['version'] = '1.0'
-            
+            config["timestamp"] = self.get_timestamp()
+            config["environment"] = self.environment
+            config["version"] = "1.0"
+
             # Convert to JSON with consistent ordering
-            json_data = json.dumps(config, sort_keys=True, separators=(',', ':'))
-            
+            json_data = json.dumps(config, sort_keys=True, separators=(",", ":"))
+
             # Create HMAC signature
             signature = self._create_hmac(json_data)
-            
+
             # Save data and signature
-            with open(self.config_file, 'wb') as f:
-                f.write(json_data.encode('utf-8'))
-                f.write(b'\n---SIGNATURE---\n')
+            with open(self.config_file, "wb") as f:
+                f.write(json_data.encode("utf-8"))
+                f.write(b"\n---SIGNATURE---\n")
                 f.write(signature)
-            
+
             # Set restrictive permissions
             os.chmod(self.config_file, 0o600)  # Owner only
-            
+
             self.logger.info("Configuration saved securely")
             return True
-            
+
         except Exception as e:
             self.logger.error(f"Error saving configuration: {e}")
             return False
-    
+
     def load_config(self) -> Optional[Dict[str, Any]]:
         """Load configuration with HMAC verification"""
         try:
             if not self.config_file.exists():
                 self.logger.debug("Configuration file does not exist")
                 return None
-            
-            with open(self.config_file, 'rb') as f:
+
+            with open(self.config_file, "rb") as f:
                 content = f.read()
-            
+
             # Split data and signature
-            parts = content.split(b'\n---SIGNATURE---\n')
+            parts = content.split(b"\n---SIGNATURE---\n")
             if len(parts) != 2:
                 raise ValueError("Invalid configuration file format")
-            
-            json_data = parts[0].decode('utf-8')
+
+            json_data = parts[0].decode("utf-8")
             signature = parts[1]
-            
+
             # Verify signature
             if not self._verify_hmac(json_data, signature):
                 raise ValueError("Configuration file has been tampered with")
-            
+
             # Parse JSON
             config = json.loads(json_data)
-            
+
             # Verify environment compatibility
-            if config.get('environment') != self.environment:
-                self.logger.warning(f"Environment mismatch: expected {self.environment}, got {config.get('environment')}")
+            if config.get("environment") != self.environment:
+                self.logger.warning(
+                    f"Environment mismatch: expected {self.environment}, got {config.get('environment')}"
+                )
                 # Still return config but log warning
-            
+
             self.logger.info("Configuration loaded and verified successfully")
             return config
-            
+
         except FileNotFoundError:
             self.logger.debug("Configuration file not found")
             return None
@@ -387,28 +413,28 @@ class SecureConfigManager:
         except Exception as e:
             self.logger.error(f"Error loading configuration: {e}")
             return None
-    
+
     def get_user_mode(self) -> Optional[str]:
         """Get user's preferred mode"""
         try:
             config = self.load_config()
             if config:
-                return config.get('user_mode')
+                return config.get("user_mode")
             return None
         except Exception as e:
             self.logger.warning(f"Could not get user mode: {e}")
             return None
-    
+
     def set_user_mode(self, mode: str) -> bool:
         """Set user's preferred mode"""
         try:
             config = self.load_config() or {}
-            config['user_mode'] = mode
+            config["user_mode"] = mode
             return self.save_config(config)
         except Exception as e:
             self.logger.error(f"Could not set user mode: {e}")
             return False
-    
+
     def get_timestamp(self) -> str:
         """Get current timestamp"""
         return datetime.now().isoformat()
@@ -419,12 +445,12 @@ def show_startup_screen(parent=None) -> Optional[str]:
     try:
         dialog = StartupScreen(parent)
         result = dialog.exec()
-        
+
         if result == QDialog.Accepted:
             # Get the choice from the signal
             return dialog.property("user_choice")
         return None
-        
+
     except Exception as e:
         logger = get_logger("helpmesign.startup")
         logger.error(f"Error showing startup screen: {e}")
@@ -450,4 +476,4 @@ def set_user_mode(mode: str, environment: str = "dev") -> bool:
     except Exception as e:
         logger = get_logger("helpmesign.startup")
         logger.error(f"Error setting user mode: {e}")
-        return False 
+        return False

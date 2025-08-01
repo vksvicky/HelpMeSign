@@ -15,5 +15,5 @@ tests_path = Path(__file__).parent
 sys.path.insert(0, str(tests_path))
 
 # Set up test environment
-os.environ['TESTING'] = 'true'
-os.environ['ENVIRONMENT'] = 'test' 
+os.environ["TESTING"] = "true"
+os.environ["ENVIRONMENT"] = "test"
