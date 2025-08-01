@@ -6,7 +6,7 @@ Modern, professional design with multiple sections
 
 from typing import Callable, Optional
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -36,85 +36,99 @@ from ..utils.theme_manager import apply_theme, get_theme_manager
 
 
 class ModernSegmentedControl(QFrame):
-    """Modern segmented control widget for mode selection"""
+    """Modern segmented control widget"""
 
-    # Signal emitted when selection changes
     selection_changed = Signal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, options: list[str], parent=None):
         super().__init__(parent)
-        self.options = [
-            get_text("modes.sign_translate.name"),
-            get_text("modes.learn.name"),
-        ]
+        self.options = options
         self.selected_index = 0
         self.hover_index = -1
-        self.setup_ui()
-        self.setup_style()
-
-    def setup_ui(self):
-        """Set up the segmented control UI"""
-        self.setMinimumHeight(40)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setFixedHeight(40)
         self.setMouseTracking(True)
 
-    def setup_style(self):
-        """Set up the visual style"""
-        self.setStyleSheet(
-            """
-            ModernSegmentedControl {
-                background-color: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 3px;
-            }
-        """
-        )
+        # Get theme-aware colors
+        self._update_colors()
+
+    def _update_colors(self):
+        """Update colors based on current theme"""
+        try:
+            from ..utils.theme_manager import get_theme_manager
+
+            theme_manager = get_theme_manager()
+            current_theme = theme_manager.get_current_theme()
+
+            if current_theme == "Dark":
+                # Dark theme colors
+                self.bg_color = "#334155"  # Dark gray background
+                self.selected_bg = "#3b82f6"  # Blue for selected
+                self.selected_text = "#ffffff"  # White text for selected
+                self.unselected_bg = "#475569"  # Slightly lighter gray for unselected
+                self.unselected_text = "#cbd5e1"  # Light gray text for unselected
+                self.hover_bg = "#64748b"  # Lighter gray for hover
+                self.border_color = "#475569"  # Border color
+            else:
+                # Light theme colors (default)
+                self.bg_color = "#f1f5f9"  # Light gray background
+                self.selected_bg = "#3b82f6"  # Blue for selected
+                self.selected_text = "#ffffff"  # White text for selected
+                self.unselected_bg = "#ffffff"  # White for unselected
+                self.unselected_text = "#64748b"  # Gray text for unselected
+                self.hover_bg = "#e2e8f0"  # Light gray for hover
+                self.border_color = "#d1d5db"  # Border color
+        except Exception:
+            # Fallback colors if theme manager fails
+            self.bg_color = "#f1f5f9"
+            self.selected_bg = "#3b82f6"
+            self.selected_text = "#ffffff"
+            self.unselected_bg = "#ffffff"
+            self.unselected_text = "#64748b"
+            self.hover_bg = "#e2e8f0"
+            self.border_color = "#d1d5db"
 
     def paintEvent(self, event):
         """Custom paint event for the segmented control"""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         try:
-            # Get widget dimensions
-            width = self.width()
-            height = self.height()
+            # Update colors based on current theme
+            self._update_colors()
 
-            # Calculate segment dimensions
-            segment_width = (width - 6) // len(self.options)
-            segment_height = height - 6
+            # Calculate segment width
+            segment_width = self.width() // len(self.options)
+            segment_height = self.height()
+
+            # Draw background
+            painter.fillRect(self.rect(), QColor(self.bg_color))
 
             # Draw segments
             for i, option in enumerate(self.options):
-                x = 3 + i * segment_width
-                y = 3
+                x = i * segment_width
+                segment_rect = QRect(x, 0, segment_width, segment_height)
 
                 # Determine colors based on state
                 if i == self.selected_index:
-                    # Selected segment - modern blue
-                    bg_color = QColor("#3b82f6")
-                    text_color = QColor("#ffffff")
-                    border_color = QColor("#2563eb")
+                    bg_color = self.selected_bg
+                    text_color = self.selected_text
                 elif i == self.hover_index:
-                    # Hover segment - light blue
-                    bg_color = QColor("#dbeafe")
-                    text_color = QColor("#1e40af")
-                    border_color = QColor("#93c5fd")
+                    bg_color = self.hover_bg
+                    text_color = self.unselected_text
                 else:
-                    # Normal segment - transparent
-                    bg_color = QColor("#ffffff")
-                    text_color = QColor("#64748b")
-                    border_color = QColor("#e2e8f0")
+                    bg_color = self.unselected_bg
+                    text_color = self.unselected_text
 
                 # Draw segment background
-                painter.setBrush(QBrush(bg_color))
-                painter.setPen(QPen(border_color, 1))
-                painter.drawRoundedRect(x, y, segment_width, segment_height, 10, 10)
+                painter.fillRect(segment_rect, QColor(bg_color))
+
+                # Draw segment border
+                painter.setPen(QPen(QColor(self.border_color), 1))
+                painter.drawRect(segment_rect)
 
                 # Draw text
-                painter.setPen(QPen(text_color))
-                font = get_body_font()
+                painter.setPen(QColor(text_color))
+                font = painter.font()
                 font.setWeight(
                     QFont.Weight.Bold
                     if i == self.selected_index
@@ -123,66 +137,48 @@ class ModernSegmentedControl(QFrame):
                 painter.setFont(font)
 
                 # Center text in segment
-                text_rect = painter.boundingRect(
-                    x, y, segment_width, segment_height, Qt.AlignCenter, option
-                )
-                painter.drawText(text_rect, Qt.AlignCenter, option)
+                text_rect = segment_rect
+                painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, option)
+
         finally:
             painter.end()
 
     def mousePressEvent(self, event):
         """Handle mouse press events"""
-        if event.button() == Qt.LeftButton:
-            self.handle_click(event.pos())
+        if event.button() == Qt.MouseButton.LeftButton:
+            segment_width = self.width() // len(self.options)
+            clicked_index = int(event.position().x() // segment_width)
+
+            if 0 <= clicked_index < len(self.options):
+                self.set_selection(self.options[clicked_index])
 
     def mouseMoveEvent(self, event):
         """Handle mouse move events for hover effects"""
-        self.handle_hover(event.pos())
+        segment_width = self.width() // len(self.options)
+        hover_index = int(event.position().x() // segment_width)
 
-    def handle_click(self, pos):
-        """Handle click events"""
-        width = self.width()
-        segment_width = (width - 6) // len(self.options)
-
-        for i in range(len(self.options)):
-            x = 3 + i * segment_width
-            if x <= pos.x() <= x + segment_width:
-                if i != self.selected_index:
-                    self.selected_index = i
-                    self.selection_changed.emit(self.options[i])
-                    self.update()
-                break
-
-    def handle_hover(self, pos):
-        """Handle hover effects"""
-        width = self.width()
-        segment_width = (width - 6) // len(self.options)
-
-        hover_index = -1
-        for i in range(len(self.options)):
-            x = 3 + i * segment_width
-            if x <= pos.x() <= x + segment_width:
-                hover_index = i
-                break
-
-        if hover_index != self.hover_index:
+        if 0 <= hover_index < len(self.options):
             self.hover_index = hover_index
-            self.update()
+        else:
+            self.hover_index = -1
+
+        self.update()
 
     def leaveEvent(self, event):
-        """Handle leave events"""
+        """Handle mouse leave events"""
         self.hover_index = -1
         self.update()
 
-    def get_selection(self) -> str:
-        """Get the currently selected option"""
-        return self.options[self.selected_index]
-
-    def set_selection(self, option: str) -> None:
+    def set_selection(self, option: str):
         """Set the selected option"""
         if option in self.options:
             self.selected_index = self.options.index(option)
             self.update()
+            self.selection_changed.emit(option)
+
+    def get_selection(self) -> str:
+        """Get the currently selected option"""
+        return self.options[self.selected_index]
 
 
 class SettingsDialog(QDialog):
@@ -202,6 +198,11 @@ class SettingsDialog(QDialog):
         self.environment = environment
         self.current_settings = get_all_settings(environment)
         self.logger = get_logger("helpmesign.settings")
+
+        # Set dialog properties to prevent blocking main app
+        self.setModal(False)  # Make it non-modal so CMD+Q works
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+
         self.setup_ui()
         self.load_current_settings()
         self.setup_behavior()
@@ -434,7 +435,12 @@ class SettingsDialog(QDialog):
         mode_layout.addWidget(mode_label)
 
         # Modern segmented control
-        self.segmented_control = ModernSegmentedControl()
+        self.segmented_control = ModernSegmentedControl(
+            [
+                get_text("modes.sign_translate.name"),
+                get_text("modes.learn.name"),
+            ]
+        )
         self.segmented_control.set_selection(self.current_mode)
         mode_layout.addWidget(self.segmented_control)
 
@@ -463,216 +469,116 @@ class SettingsDialog(QDialog):
         layout.addStretch()
         return tab
 
-    def create_appearance_tab(self):
-        """Create the Appearance settings tab"""
+    def create_appearance_tab(self) -> QWidget:
+        """Create the appearance tab"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(20)
 
-        # Theme section
+        # Theme Group
         theme_group = QGroupBox("Theme")
-        theme_group.setStyleSheet(
-            """
-            QGroupBox {
-                font-weight: 600;
-                color: #1e293b;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                margin-top: 12px;
-                padding-top: 16px;
-                background-color: #ffffff;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 16px;
-                padding: 0 8px 0 8px;
-                background-color: #ffffff;
-                color: #1e293b;
-                font-size: 14px;
-            }
-        """
-        )
-
+        theme_group.setStyleSheet(get_theme_manager().get_theme_style("group_box"))
         theme_layout = QVBoxLayout(theme_group)
-        theme_layout.setContentsMargins(20, 20, 20, 20)
+        theme_layout.setContentsMargins(16, 20, 16, 16)
         theme_layout.setSpacing(12)
 
-        # Theme selection
-        theme_label = QLabel("Choose your preferred theme:")
-        theme_label.setFont(get_body_font())
-        theme_label.setStyleSheet(
-            "color: #64748b; font-size: 13px; font-weight: 500; margin-bottom: 8px;"
+        # Theme segmented control
+        self.theme_control = ModernSegmentedControl(
+            ["Light", "Dark", "System"], parent=theme_group
         )
-        theme_layout.addWidget(theme_label)
+        self.theme_control.setFixedHeight(40)
+        self.theme_control.selection_changed.connect(self._on_theme_changed)
+        theme_layout.addWidget(self.theme_control)
 
-        self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Light", "Dark", "System"])
-        self.theme_combo.setCurrentText("Light")
-        self.theme_combo.setFixedHeight(40)
-        self.theme_combo.setStyleSheet(
+        # Theme description
+        self.theme_description = QLabel("Choose your preferred theme")
+        self.theme_description.setStyleSheet(
             """
-            QComboBox {
-                border: 1px solid #d1d5db;
-                border-radius: 8px;
-                padding: 8px 12px;
-                background-color: #ffffff;
-                color: #1e293b;
-                font-weight: 500;
-                font-size: 13px;
-                min-width: 200px;
-            }
-            QComboBox:hover {
-                border-color: #94a3b8;
-            }
-            QComboBox:focus {
-                border-color: #3b82f6;
-                outline: none;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 4px solid #64748b;
-                margin-right: 8px;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid #d1d5db;
-                border-radius: 8px;
-                background-color: #ffffff;
-                selection-background-color: #3b82f6;
-                selection-color: #ffffff;
-                padding: 4px;
-            }
-            QComboBox QAbstractItemView::item {
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-size: 13px;
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background-color: #f1f5f9;
-            }
-        """
-        )
-        theme_layout.addWidget(self.theme_combo)
-
-        # Font size section
-        font_group = QGroupBox("Font Size")
-        font_group.setStyleSheet(
-            """
-            QGroupBox {
-                font-weight: 600;
-                color: #1e293b;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                margin-top: 12px;
-                padding-top: 16px;
-                background-color: #ffffff;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 16px;
-                padding: 0 8px 0 8px;
-                background-color: #ffffff;
-                color: #1e293b;
+            QLabel {
+                color: #64748b;
                 font-size: 14px;
+                padding: 8px 0;
             }
         """
         )
+        theme_layout.addWidget(self.theme_description)
 
+        # Font Size Group
+        font_group = QGroupBox("Font Size")
+        font_group.setStyleSheet(get_theme_manager().get_theme_style("group_box"))
         font_layout = QVBoxLayout(font_group)
-        font_layout.setContentsMargins(20, 20, 20, 20)
-        font_layout.setSpacing(16)
+        font_layout.setContentsMargins(16, 20, 16, 16)
+        font_layout.setSpacing(12)
 
+        # Font size label
         font_label = QLabel("Adjust text size:")
-        font_label.setFont(get_body_font())
         font_label.setStyleSheet(
-            "color: #64748b; font-size: 13px; font-weight: 500; margin-bottom: 8px;"
-        )
-        font_layout.addWidget(font_label)
-
-        # Slider container for better styling
-        slider_container = QFrame()
-        slider_container.setStyleSheet(
-            """
-            QFrame {
-                background-color: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 16px;
-            }
-        """
-        )
-        slider_layout = QVBoxLayout(slider_container)
-        slider_layout.setContentsMargins(16, 16, 16, 16)
-        slider_layout.setSpacing(12)
-
-        self.font_slider = QSlider(Qt.Horizontal)
-        self.font_slider.setRange(8, 24)
-        self.font_slider.setValue(12)
-        self.font_slider.setFixedHeight(20)
-        self.font_slider.setStyleSheet(
-            """
-            QSlider::groove:horizontal {
-                border: none;
-                height: 4px;
-                background: #e2e8f0;
-                border-radius: 2px;
-                margin: 0px;
-            }
-            QSlider::handle:horizontal {
-                background: #3b82f6;
-                border: 2px solid #ffffff;
-                width: 16px;
-                height: 16px;
-                margin: -6px 0;
-                border-radius: 8px;
-            }
-            QSlider::handle:horizontal:hover {
-                background: #2563eb;
-            }
-            QSlider::sub-page:horizontal {
-                background: #3b82f6;
-                border-radius: 2px;
-            }
-        """
-        )
-        slider_layout.addWidget(self.font_slider)
-
-        # Font size display with better styling
-        self.font_size_label = QLabel("12px")
-        self.font_size_label.setFont(get_body_font())
-        self.font_size_label.setAlignment(Qt.AlignCenter)
-        self.font_size_label.setStyleSheet(
             """
             QLabel {
                 color: #1e293b;
-                font-weight: 600;
-                font-size: 13px;
-                background-color: #ffffff;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-                padding: 6px 12px;
-                margin-top: 8px;
-                max-width: 60px;
+                font-size: 14px;
+                font-weight: 500;
+                padding: 8px 0;
             }
         """
         )
-        slider_layout.addWidget(self.font_size_label)
+        font_layout.addWidget(font_label)
 
-        font_layout.addWidget(slider_container)
+        # Font size slider
+        self.font_slider = QSlider(Qt.Orientation.Horizontal)
+        self.font_slider.setRange(10, 20)
+        self.font_slider.setValue(12)
+        self.font_slider.setStyleSheet(
+            """
+            QSlider::groove:horizontal {
+                border: 1px solid #d1d5db;
+                height: 8px;
+                background: #f1f5f9;
+                border-radius: 4px;
+            }
+            QSlider::handle:horizontal {
+                background: #3b82f6;
+                border: 2px solid #3b82f6;
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                margin: -6px 0;
+            }
+            QSlider::handle:horizontal:hover {
+                background: #2563eb;
+                border-color: #2563eb;
+            }
+            QSlider::sub-page:horizontal {
+                background: #3b82f6;
+                border-radius: 4px;
+            }
+        """
+        )
+        font_layout.addWidget(self.font_slider)
+
+        # Font size value label
+        self.font_size_label = QLabel("12px")
+        self.font_size_label.setStyleSheet(
+            """
+            QLabel {
+                color: #64748b;
+                font-size: 14px;
+                padding: 8px 0;
+                margin-top: 4px;
+            }
+        """
+        )
+        self.font_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font_layout.addWidget(self.font_size_label)
 
         # Connect font slider
         self.font_slider.valueChanged.connect(
             lambda value: self.font_size_label.setText(f"{value}px")
         )
 
-        # Connect theme combo box for real-time preview
-        self.theme_combo.currentTextChanged.connect(self._on_theme_changed)
+        # Connect theme control for real-time preview
+        self.theme_control.selection_changed.connect(self._on_theme_changed)
 
         layout.addWidget(theme_group)
         layout.addWidget(font_group)
@@ -691,6 +597,8 @@ class SettingsDialog(QDialog):
                 if success:
                     # Update dialog styling to match new theme
                     self._update_dialog_theme(theme_name)
+                    # Update theme description based on selection
+                    self._update_theme_description(theme_name)
                 else:
                     self.logger.error(f"Failed to apply theme preview: {theme_name}")
             else:
@@ -698,6 +606,17 @@ class SettingsDialog(QDialog):
 
         except Exception as e:
             self.logger.error(f"Error applying theme preview: {e}")
+            # Don't crash the app - just log the error
+
+    def _update_theme_description(self, theme_name: str) -> None:
+        """Update theme description based on selected theme"""
+        descriptions = {
+            "Light": "Clean, bright interface with high contrast",
+            "Dark": "Easy on the eyes with reduced brightness",
+            "System": "Follows your operating system preference",
+        }
+        description = descriptions.get(theme_name, "Choose your preferred theme")
+        self.theme_description.setText(description)
 
     def _update_dialog_theme(self, theme_name: str) -> None:
         """Update dialog styling to match the selected theme"""
@@ -725,7 +644,7 @@ class SettingsDialog(QDialog):
 
         # Set theme
         saved_theme = self.current_settings.get("theme", "Light")
-        self.theme_combo.setCurrentText(saved_theme)
+        self.theme_control.set_selection(saved_theme)
 
         # Set font size
         saved_font_size = self.current_settings.get("font_size", 12)
@@ -764,7 +683,7 @@ class SettingsDialog(QDialog):
         self.segmented_control.set_selection(default_mode)
 
         # Reset appearance settings
-        self.theme_combo.setCurrentText("Light")
+        self.theme_control.set_selection("Light")
         self.font_slider.setValue(12)
         self.font_size_label.setText("12px")
 
@@ -776,7 +695,7 @@ class SettingsDialog(QDialog):
         # Collect all current settings
         new_settings = {
             "user_mode": self.segmented_control.get_selection(),
-            "theme": self.theme_combo.currentText(),
+            "theme": self.theme_control.get_selection(),
             "font_size": self.font_slider.value(),
         }
 
@@ -800,6 +719,41 @@ class SettingsDialog(QDialog):
         """Get the currently selected mode"""
         return self.segmented_control.get_selection()
 
+    def closeEvent(self, event):
+        """Handle dialog close event properly"""
+        try:
+            # Simple cleanup without theme restoration to prevent conflicts
+            event.accept()
+        except Exception as e:
+            self.logger.error(f"Error in closeEvent: {e}")
+            event.accept()
+
+    def _cleanup_theme_preview(self):
+        """Clean up theme preview - simplified to prevent conflicts"""
+        try:
+            # Don't restore theme automatically - let the main app handle it
+            self.logger.debug("Theme preview cleanup completed")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up theme preview: {e}")
+
+    def reject(self):
+        """Handle dialog rejection (Cancel button or ESC key)"""
+        try:
+            # Simple rejection without theme restoration
+            super().reject()
+        except Exception as e:
+            self.logger.error(f"Error in reject: {e}")
+            super().reject()
+
+    def accept(self):
+        """Handle dialog acceptance (Save Changes button)"""
+        try:
+            # No cleanup needed here as we're applying the new settings
+            super().accept()
+        except Exception as e:
+            self.logger.error(f"Error in accept: {e}")
+            super().accept()
+
 
 def show_settings_dialog(
     parent=None,
@@ -807,24 +761,24 @@ def show_settings_dialog(
     callback: Optional[Callable[[str], None]] = None,
     environment: str = "dev",
 ) -> Optional[str]:
-    """
-    Show the modern settings dialog
+    """Show the settings dialog and return the selected mode"""
+    try:
+        dialog = SettingsDialog(parent, current_mode, environment)
 
-    Args:
-        parent: Parent widget
-        current_mode: Currently selected mode
-        callback: Optional callback function to call when settings are applied
-        environment: Environment to use for settings (dev/prod)
+        # Connect the callback if provided
+        if callback:
+            dialog.settings_applied.connect(callback)
 
-    Returns:
-        Selected mode if dialog was accepted, None if cancelled
-    """
-    dialog = SettingsDialog(parent, current_mode, environment)
+        # Show the dialog non-modally
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
 
-    if callback:
-        dialog.settings_applied.connect(callback)
+        # Return None immediately since it's non-modal
+        # The callback will handle the result when user clicks Save Changes
+        return None
 
-    if dialog.exec() == QDialog.DialogCode.Accepted:
-        return dialog.get_selected_mode()
-    else:
+    except Exception as e:
+        logger = get_logger("helpmesign.settings")
+        logger.error(f"Error creating settings dialog: {e}")
         return None

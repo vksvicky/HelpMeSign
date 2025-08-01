@@ -30,12 +30,7 @@ class HelpMeSignApp:
     """Main application class for HelpMeSign"""
 
     def __init__(self, environment: str = "dev"):
-        """
-        Initialize the HelpMeSign application
-
-        Args:
-            environment: Environment to run in ("dev" or "prod")
-        """
+        """Initialize the HelpMeSign application"""
         self.environment = environment.lower()
         log_function_entry(
             get_logger(), "HelpMeSignApp.__init__", environment=environment
@@ -69,7 +64,38 @@ class HelpMeSignApp:
         # Apply saved theme and font settings
         self.apply_theme_and_font_settings()
 
+        # Set up application shutdown handling
+        self._setup_shutdown_handling()
+
         log_function_exit(get_logger(), "HelpMeSignApp.__init__")
+
+    def _setup_shutdown_handling(self):
+        """Set up proper application shutdown handling"""
+        try:
+            from PySide6.QtWidgets import QApplication
+
+            app = QApplication.instance()
+            if app:
+                # Connect to aboutToQuit signal for cleanup
+                app.aboutToQuit.connect(self._cleanup_on_shutdown)
+                self.logger.debug("Shutdown handling set up")
+        except Exception as e:
+            self.logger.error(f"Error setting up shutdown handling: {e}")
+
+    def _cleanup_on_shutdown(self):
+        """Clean up resources when application is shutting down"""
+        try:
+            self.logger.info("Application shutting down, cleaning up resources...")
+
+            # Simple cleanup - just log the event
+            self.logger.info("Cleanup completed")
+        except Exception as e:
+            self.logger.error(f"Error during shutdown cleanup: {e}")
+
+    def _check_shutdown_state(self):
+        """Check if application is in shutdown state"""
+        # Removed to prevent segmentation faults
+        pass
 
     def setup_application(self) -> None:
         """Set up the application configuration and appearance"""
@@ -290,9 +316,14 @@ class HelpMeSignApp:
     def show_settings(self) -> None:
         """Show the settings dialog"""
         try:
-            current_mode = self.user_mode or "Sign & Translate"
+            from .startup import get_user_mode
 
-            # Show settings dialog
+            # Get current mode
+            current_mode = get_user_mode(self.environment)
+            if not current_mode:
+                current_mode = self.user_mode or get_text("modes.sign_translate.name")
+
+            # Show settings dialog (non-modal)
             selected_mode = show_settings_dialog(
                 parent=self.main_window,
                 current_mode=current_mode,
@@ -300,13 +331,15 @@ class HelpMeSignApp:
                 environment=self.environment,
             )
 
+            # Handle the result
             if selected_mode:
-                self.user_mode = selected_mode
-                self.update_ui_for_mode(selected_mode)
-                self.logger.info(f"User mode changed via settings: {selected_mode}")
+                self.logger.info(f"Settings dialog returned mode: {selected_mode}")
+            else:
+                self.logger.info("Settings dialog was cancelled")
 
         except Exception as e:
             self.logger.error(f"Error showing settings: {e}")
+            log_exception(self.logger, "show_settings")
 
     def handle_settings_changed(self, mode: str) -> None:
         """Handle all settings changes from settings dialog"""
