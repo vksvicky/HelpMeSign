@@ -33,6 +33,9 @@ def test_logging():
         app_logger = setup_logging(config)
         logger.info("✅ Logging setup completed")
 
+        # Assert that logger was created successfully
+        assert app_logger is not None, "Logger should be created successfully"
+
         # Test different log levels
         app_logger.debug("This is a debug message")
         app_logger.info("This is an info message")
@@ -52,16 +55,18 @@ def test_logging():
         test_logger = get_logger("test.module")
         test_logger.info("Test logger working")
 
-        logger.info("✅ Logger retrieval tested")
+        # Assert that test logger was created successfully
+        assert test_logger is not None, "Test logger should be created successfully"
 
-        return True
+        logger.info("✅ Logger retrieval tested")
 
     except Exception as e:
         logger.error(f"❌ Error: {e}")
         import traceback
 
         traceback.print_exc()
-        return False
+        # Use assertion to fail the test instead of returning False
+        assert False, f"Logging test failed with error: {e}"
 
 
 if __name__ == "__main__":

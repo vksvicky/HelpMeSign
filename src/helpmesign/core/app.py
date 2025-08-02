@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from PySide6.QtCore import QTimer
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QApplication
 
 from ..ui.components import MainWindow
@@ -345,6 +345,16 @@ class HelpMeSignApp:
     def handle_settings_changed(self, mode: str) -> None:
         """Handle all settings changes from settings dialog"""
         try:
+            # Check if we're already in the process of applying settings to prevent loops
+            if (
+                hasattr(self, "_settings_save_in_progress")
+                and self._settings_save_in_progress
+            ):
+                self.logger.debug(
+                    "Settings save in progress, skipping handle_settings_changed"
+                )
+                return
+
             # Update user mode
             self.user_mode = mode
             self.update_ui_for_mode(mode)
@@ -363,7 +373,7 @@ class HelpMeSignApp:
 
             from .startup import get_font_size, get_theme
 
-            # Get current settings
+            # Get current settings (these calls are safe and won't trigger save loops)
             theme = get_theme(self.environment)
             font_size = get_font_size(self.environment)
 
@@ -383,11 +393,86 @@ class HelpMeSignApp:
                     "No QApplication instance found for theme application"
                 )
 
-            # Apply font size (placeholder for future implementation)
-            self.logger.info(f"Font size setting: {font_size}")
+            # Apply font size
+            self._apply_font_size_setting(font_size)
+            self.logger.info(f"Font size setting applied: {font_size}")
 
         except Exception as e:
             self.logger.error(f"Error applying theme and font settings: {e}")
+
+    def _apply_font_size_setting(self, font_size: int) -> None:
+        """Apply font size setting to the main window using centralized system"""
+        try:
+            from ..utils.theme_manager import (
+                apply_font_size_to_widget_tree,
+                set_font_size,
+            )
+
+            # Set the font size in the theme manager
+            set_font_size(font_size)
+
+            # Apply font size to the entire main window widget tree
+            apply_font_size_to_widget_tree(self.main_window)
+
+            self.logger.info(f"Font size applied to main window: {font_size}px")
+        except Exception as e:
+            self.logger.error(f"Error applying font size setting: {e}")
+
+    def _update_input_fields_theme_with_font_size(self, input_style: str) -> None:
+        """Update input field styling with font size"""
+        try:
+            if hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "text_input"):
+                    self.main_window.text_input_frame.text_input.setStyleSheet(
+                        input_style
+                    )
+
+            if hasattr(self.main_window, "output_frame"):
+                if hasattr(self.main_window.output_frame, "text_output"):
+                    self.main_window.output_frame.text_output.setStyleSheet(input_style)
+        except Exception as e:
+            self.logger.error(f"Error updating input fields theme with font size: {e}")
+
+    def _update_buttons_theme_with_font_size(
+        self, primary_style: str, secondary_style: str
+    ) -> None:
+        """Update button styling with font size"""
+        try:
+            if hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "process_button"):
+                    self.main_window.text_input_frame.process_button.setStyleSheet(
+                        primary_style
+                    )
+                if hasattr(self.main_window.text_input_frame, "clear_button"):
+                    self.main_window.text_input_frame.clear_button.setStyleSheet(
+                        secondary_style
+                    )
+        except Exception as e:
+            self.logger.error(f"Error updating buttons theme with font size: {e}")
+
+    def _update_input_fields_font_size(self, font: QFont) -> None:
+        """Update input field font sizes (legacy method - kept for compatibility)"""
+        try:
+            if hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "text_input"):
+                    self.main_window.text_input_frame.text_input.setFont(font)
+
+            if hasattr(self.main_window, "output_frame"):
+                if hasattr(self.main_window.output_frame, "text_output"):
+                    self.main_window.output_frame.text_output.setFont(font)
+        except Exception as e:
+            self.logger.error(f"Error updating input fields font size: {e}")
+
+    def _update_buttons_font_size(self, font: QFont) -> None:
+        """Update button font sizes (legacy method - kept for compatibility)"""
+        try:
+            if hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "process_button"):
+                    self.main_window.text_input_frame.process_button.setFont(font)
+                if hasattr(self.main_window.text_input_frame, "clear_button"):
+                    self.main_window.text_input_frame.clear_button.setFont(font)
+        except Exception as e:
+            self.logger.error(f"Error updating buttons font size: {e}")
 
     def _update_main_window_theme(self) -> None:
         """Update main window styling to match current theme"""

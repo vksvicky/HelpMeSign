@@ -20,24 +20,24 @@ help:
 # Code quality checks
 check:
 	@echo "🔍 Running quick code quality checks..."
-	@python scripts/quick_check.py
+	@python3 scripts/quick_check.py
 
 format:
 	@echo "🔧 Running full code quality checks with auto-fixing..."
-	@python scripts/pre_commit_check.py
+	@python3 scripts/pre_commit_check.py
 
 install-hooks:
 	@echo "🔧 Installing git hooks..."
-	@python scripts/install_git_hooks.py
+	@python3 scripts/install_git_hooks.py
 
 # Development commands
 run:
 	@echo "🚀 Starting HelpMeSign application..."
-	@python run_app.py --env dev --debug
+	@python3 run_app.py --env dev --debug
 
 test:
 	@echo "🧪 Running tests..."
-	@python -m pytest tests/ -v
+	@python3 -m pytest tests/ -v
 
 clean:
 	@echo "🧹 Cleaning up..."
@@ -49,8 +49,8 @@ clean:
 # CI/CD commands
 ci-check:
 	@echo "🔍 Running CI checks..."
-	@python test_ci_import.py
-	@python scripts/quick_check.py
+	@python3 test_ci_import.py
+	@python3 scripts/quick_check.py
 
 # Build commands (placeholder for future)
 build:

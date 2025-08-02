@@ -1,38 +1,284 @@
 #!/usr/bin/env python3
 """
 Settings dialog for HelpMeSign application
-Modern, professional design with multiple sections
+Provides a modern, user-friendly interface for managing application preferences
 """
 
-from typing import Callable, Optional
+import os
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
-from PySide6.QtCore import QRect, QSize, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
-from PySide6.QtWidgets import (
-    QButtonGroup,
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QFrame,
-    QGridLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QRadioButton,
-    QScrollArea,
-    QSizePolicy,
-    QSlider,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+if TYPE_CHECKING:
+    from PySide6.QtCore import QCoreApplication, QRect, QSize, Qt, Signal
+    from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+    from PySide6.QtWidgets import (
+        QButtonGroup,
+        QCheckBox,
+        QComboBox,
+        QDialog,
+        QFrame,
+        QGridLayout,
+        QGroupBox,
+        QHBoxLayout,
+        QLabel,
+        QLineEdit,
+        QPushButton,
+        QRadioButton,
+        QScrollArea,
+        QSizePolicy,
+        QSlider,
+        QTabBar,
+        QTabWidget,
+        QTextEdit,
+        QVBoxLayout,
+        QWidget,
+    )
+
+# Try to import PySide6 components
+try:
+    from PySide6.QtCore import QCoreApplication, QRect, QSize, Qt, Signal
+    from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+    from PySide6.QtWidgets import (
+        QButtonGroup,
+        QCheckBox,
+        QComboBox,
+        QDialog,
+        QFrame,
+        QGridLayout,
+        QGroupBox,
+        QHBoxLayout,
+        QLabel,
+        QLineEdit,
+        QPushButton,
+        QRadioButton,
+        QScrollArea,
+        QSizePolicy,
+        QSlider,
+        QTabBar,
+        QTabWidget,
+        QTextEdit,
+        QVBoxLayout,
+        QWidget,
+    )
+
+    PYSIDE6_AVAILABLE = True
+except ImportError:
+    PYSIDE6_AVAILABLE = False
 
 from ..core.startup import get_all_settings, save_all_settings
-from ..utils.font_manager import get_body_font, get_button_font, get_heading_font
 from ..utils.language_manager import get_dict, get_list, get_text
 from ..utils.logger import get_logger
-from ..utils.theme_manager import apply_theme, get_theme_manager
+
+# Conditional font manager import
+try:
+    from ..utils.font_manager import get_body_font, get_button_font, get_heading_font
+
+    FONT_MANAGER_AVAILABLE = True
+except ImportError:
+    FONT_MANAGER_AVAILABLE = False
+
+    # Create dummy functions with proper return types
+    def get_body_font() -> Union[QFont, None]:  # type: ignore
+        return None
+
+    def get_button_font() -> Union[QFont, None]:  # type: ignore
+        return None
+
+    def get_heading_font() -> Union[QFont, None]:  # type: ignore
+        return None
+
+
+# Conditional theme manager import
+try:
+    from ..utils.theme_manager import apply_theme, get_theme_manager
+
+    THEME_MANAGER_AVAILABLE = True
+except ImportError:
+    THEME_MANAGER_AVAILABLE = False
+
+    # Create dummy functions with proper signatures
+    def apply_theme(*args: Any, **kwargs: Any) -> Union[bool, None]:  # type: ignore
+        return None
+
+    def get_theme_manager() -> Union[Any, None]:  # type: ignore
+        return None
+
+
+class FontSizeSelector(QWidget):
+    """Innovative font size selector with visual preview"""
+
+    size_changed = Signal(int)
+
+    def __init__(self, parent=None):
+        if not PYSIDE6_AVAILABLE:
+            raise ImportError("PySide6 is required for FontSizeSelector")
+
+        super().__init__(parent)
+        self.current_size = 12
+        self.sizes = [10, 11, 12, 13, 14, 15, 16, 17, 18]
+        self.hover_index = -1
+        self.setMouseTracking(True)
+        self.setFixedHeight(80)
+
+        # Initialize logger
+        from ..utils.logger import get_logger
+
+        self.logger = get_logger("helpmesign.font_selector")
+
+        # Get theme-aware colors
+        self._update_colors()
+
+    def _update_colors(self):
+        """Update colors based on current theme"""
+        try:
+            from ..utils.theme_manager import get_theme_manager
+
+            theme_manager = get_theme_manager()
+            current_theme = theme_manager.get_current_theme()
+
+            if current_theme == "Dark":
+                self.bg_color = "#1c1c1e"
+                self.selected_bg = "#0a84ff"
+                self.selected_text = "#ffffff"
+                self.unselected_bg = "#2c2c2e"
+                self.unselected_text = "#ebebf5"
+                self.hover_bg = "#3a3a3c"
+                self.border_color = "#38383a"
+            else:
+                self.bg_color = "#ffffff"
+                self.selected_bg = "#3b82f6"
+                self.selected_text = "#ffffff"
+                self.unselected_bg = "#f1f5f9"
+                self.unselected_text = "#64748b"
+                self.hover_bg = "#e2e8f0"
+                self.border_color = "#d1d5db"
+        except Exception as e:
+            self.logger.error(f"Error getting theme colors: {e}")
+            # Fallback colors
+            self.bg_color = "#ffffff"
+            self.selected_bg = "#3b82f6"
+            self.selected_text = "#ffffff"
+            self.unselected_bg = "#f1f5f9"
+            self.unselected_text = "#64748b"
+            self.hover_bg = "#e2e8f0"
+            self.border_color = "#d1d5db"
+
+    def paintEvent(self, event):
+        """Custom paint event for the font size selector"""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Update colors based on current theme
+        self._update_colors()
+
+        # Calculate item width
+        item_width = self.width() // len(self.sizes)
+        item_height = self.height() - 20  # Leave space for labels
+
+        # Draw background
+        painter.fillRect(self.rect(), QColor(self.bg_color))
+
+        # Draw font size options
+        for i, size in enumerate(self.sizes):
+            x = i * item_width
+            item_rect = QRect(x + 2, 2, item_width - 4, item_height)
+
+            # Determine colors based on state
+            if size == self.current_size:
+                bg_color = self.selected_bg
+                text_color = self.selected_text
+            elif i == self.hover_index:
+                bg_color = self.hover_bg
+                text_color = self.unselected_text
+            else:
+                bg_color = self.unselected_bg
+                text_color = self.unselected_text
+
+            # Draw background
+            painter.fillRect(item_rect, QColor(bg_color))
+
+            # Draw border
+            painter.setPen(QPen(QColor(self.border_color), 1))
+            painter.drawRect(item_rect)
+
+            # Draw sample text
+            font = QFont()
+            font.setPointSize(size)
+            painter.setFont(font)
+            painter.setPen(QColor(text_color))
+
+            # Sample text that shows the size
+            sample_text = "Aa"
+            text_rect = item_rect.adjusted(4, 4, -4, -4)
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, sample_text)
+
+            # Draw size label below
+            label_font = QFont()
+            label_font.setPointSize(8)
+            painter.setFont(label_font)
+            painter.setPen(QColor(text_color))
+
+            size_text = f"{size}px"
+            label_rect = QRect(x + 2, item_height + 4, item_width - 4, 16)
+            painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, size_text)
+
+    def mousePressEvent(self, event):
+        """Handle mouse press to select font size"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            item_width = self.width() // len(self.sizes)
+            index = int(event.position().x() // item_width)
+
+            if 0 <= index < len(self.sizes):
+                new_size = self.sizes[index]
+                if new_size != self.current_size:
+                    self.current_size = new_size
+                    self.size_changed.emit(new_size)
+                    self.update()
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for hover effects"""
+        item_width = self.width() // len(self.sizes)
+        index = int(event.position().x() // item_width)
+
+        if 0 <= index < len(self.sizes):
+            if self.hover_index != index:
+                self.hover_index = index
+                self.update()
+        elif self.hover_index != -1:
+            self.hover_index = -1
+            self.update()
+
+    def leaveEvent(self, event):
+        """Handle mouse leave event"""
+        if self.hover_index != -1:
+            self.hover_index = -1
+            self.update()
+
+    def set_size(self, size: int):
+        """Set the current font size"""
+        if size in self.sizes and size != self.current_size:
+            self.current_size = size
+            self.update()
+            self.repaint()
+
+            # Add debugging
+            try:
+                from ..utils.logger import get_logger
+
+                logger = get_logger("helpmesign.font_selector")
+                logger.debug(
+                    f"Font size selector set_size called: {size}px, current_size now: {self.current_size}"
+                )
+            except:
+                pass
+
+    def get_size(self) -> int:
+        """Get the current font size"""
+        return self.current_size
+
+    def force_color_update(self):
+        """Force update colors when theme changes"""
+        self._update_colors()
+        self.update()
 
 
 class ModernSegmentedControl(QFrame):
@@ -41,12 +287,15 @@ class ModernSegmentedControl(QFrame):
     selection_changed = Signal(str)
 
     def __init__(self, options: list[str], parent=None):
+        if not PYSIDE6_AVAILABLE:
+            raise ImportError("PySide6 is required for ModernSegmentedControl")
+
         super().__init__(parent)
         self.options = options
-        self.selected_index = 0
+        self.selected_option = options[0] if options else ""
         self.hover_index = -1
-        self.setFixedHeight(40)
         self.setMouseTracking(True)
+        self.setFixedHeight(40)
 
         # Initialize logger
         from ..utils.logger import get_logger
@@ -64,10 +313,12 @@ class ModernSegmentedControl(QFrame):
             theme_manager = get_theme_manager()
             current_theme = theme_manager.get_current_theme()
 
-            # Debug logging
-            self.logger.debug(
-                f"ModernSegmentedControl: Current theme detected as: {current_theme}"
-            )
+            # Only log when theme actually changes (not on every paint event)
+            if not hasattr(self, "_last_theme") or self._last_theme != current_theme:
+                self.logger.debug(
+                    f"ModernSegmentedControl: Theme changed to: {current_theme}"
+                )
+                self._last_theme = current_theme
 
             if current_theme == "Dark":
                 # Dark theme colors - macOS-style dark backgrounds
@@ -78,7 +329,6 @@ class ModernSegmentedControl(QFrame):
                 self.unselected_text = "#ebebf5"  # Light gray text for unselected
                 self.hover_bg = "#3a3a3c"  # macOS dark tertiary for hover
                 self.border_color = "#38383a"  # Dark border color
-                self.logger.debug("ModernSegmentedControl: Applied dark theme colors")
             else:
                 # Light theme colors - light backgrounds
                 self.bg_color = "#ffffff"  # White background to match dialog
@@ -88,7 +338,6 @@ class ModernSegmentedControl(QFrame):
                 self.unselected_text = "#64748b"  # Gray text for unselected
                 self.hover_bg = "#e2e8f0"  # Light gray for hover
                 self.border_color = "#d1d5db"  # Border color
-                self.logger.debug("ModernSegmentedControl: Applied light theme colors")
         except Exception as e:
             # Fallback colors if theme manager fails
             self.logger.error(
@@ -108,8 +357,10 @@ class ModernSegmentedControl(QFrame):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         try:
-            # Update colors based on current theme
-            self._update_colors()
+            # Only update colors if theme has changed (not on every paint)
+            if not hasattr(self, "_colors_initialized"):
+                self._update_colors()
+                self._colors_initialized = True
 
             # Calculate segment width
             segment_width = self.width() // len(self.options)
@@ -184,12 +435,22 @@ class ModernSegmentedControl(QFrame):
         self.hover_index = -1
         self.update()
 
+    def force_color_update(self):
+        """Force update colors when theme changes"""
+        self._update_colors()
+        self._colors_initialized = True
+        self.update()
+
     def set_selection(self, option: str):
         """Set the selected option"""
         if option in self.options:
             self.selected_index = self.options.index(option)
-            self.update()
+            self.update()  # Trigger repaint
             self.selection_changed.emit(option)
+        else:
+            self.logger.warning(
+                f"Option '{option}' not found in options: {self.options}"
+            )
 
     def get_selection(self) -> str:
         """Get the currently selected option"""
@@ -209,20 +470,80 @@ class SettingsDialog(QDialog):
         environment: str = "dev",
         main_window=None,
     ):
+        if not PYSIDE6_AVAILABLE:
+            raise ImportError("PySide6 is required for SettingsDialog")
+
         super().__init__(parent)
-        self.current_mode = current_mode
+        self.logger = get_logger("helpmesign.settings")
         self.environment = environment
         self.main_window = main_window
-        self.current_settings = get_all_settings(environment)
-        self.logger = get_logger("helpmesign.settings")
+        self.current_mode = current_mode
 
-        # Set dialog properties to prevent blocking main app
-        self.setModal(False)  # Make it non-modal so CMD+Q works
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        # Initialize settings tracking
+        self.original_settings: Dict[str, Any] = {}
+        self.current_settings: Dict[str, Any] = {}
+        self._applying_settings = False
 
+        # Reset loop detection counters
+        self._reset_loop_detection()
+
+        # Setup UI
         self.setup_ui()
-        self.load_current_settings()  # New call
+
+        # Load current settings
+        self.load_current_settings()
+
+        # Setup behavior
         self.setup_behavior()
+
+        # Apply initial theme
+        self._apply_initial_theme()
+
+        self.logger.info("Settings dialog initialized")
+
+    def _reset_loop_detection(self):
+        """Reset loop detection counters"""
+        self._save_call_depth = 0
+        self._theme_change_depth = 0
+
+    def showEvent(self, event):
+        """Handle dialog show event"""
+        super().showEvent(event)
+        # Reset loop detection when dialog is shown
+        self._reset_loop_detection()
+
+        # Re-enable all controls when dialog is shown
+        self._enable_all_controls()
+
+        self.logger.debug(
+            "Settings dialog shown - loop detection reset and controls enabled"
+        )
+
+    def _enable_all_controls(self):
+        """Enable all controls in the dialog"""
+        try:
+            # Re-enable font size selector
+            if hasattr(self, "font_size_selector"):
+                self.font_size_selector.setEnabled(True)
+
+            # Re-enable theme control
+            if hasattr(self, "theme_control"):
+                self.theme_control.setEnabled(True)
+
+            # Re-enable mode selector
+            if hasattr(self, "segmented_control"):
+                self.segmented_control.setEnabled(True)
+
+            # Re-enable buttons
+            if hasattr(self, "ok_button"):
+                self.ok_button.setEnabled(True)
+            if hasattr(self, "cancel_button"):
+                self.cancel_button.setEnabled(True)
+            if hasattr(self, "reset_button"):
+                self.reset_button.setEnabled(True)
+
+        except Exception as e:
+            self.logger.error(f"Error enabling controls: {e}")
 
     def setup_ui(self):
         """Set up the settings dialog UI"""
@@ -614,27 +935,14 @@ class SettingsDialog(QDialog):
         font_layout.setSpacing(12)
 
         # Font size label
-        font_label = QLabel("Adjust text size:")
+        font_label = QLabel("Choose your preferred text size:")
         # Remove hardcoded styling - let theme-based styling take over
         font_layout.addWidget(font_label)
 
-        # Font size slider
-        self.font_slider = QSlider(Qt.Orientation.Horizontal)
-        self.font_slider.setRange(10, 20)
-        self.font_slider.setValue(12)
-        # Remove hardcoded styling - let theme-based styling take over
-        font_layout.addWidget(self.font_slider)
-
-        # Font size value label
-        self.font_size_label = QLabel("12px")
-        # Remove hardcoded styling - let theme-based styling take over
-        self.font_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font_layout.addWidget(self.font_size_label)
-
-        # Connect font slider
-        self.font_slider.valueChanged.connect(
-            lambda value: self.font_size_label.setText(f"{value}px")
-        )
+        # Font size selector (replaces slider)
+        self.font_size_selector = FontSizeSelector()
+        self.font_size_selector.set_size(12)  # Default size
+        font_layout.addWidget(self.font_size_selector)
 
         # Connect theme control for real-time preview
         self.theme_control.selection_changed.connect(self._on_theme_changed)
@@ -663,6 +971,19 @@ class SettingsDialog(QDialog):
     def _on_theme_changed(self, theme_name: str) -> None:
         """Handle theme change in real-time"""
         try:
+            # More robust loop detection - track call depth
+            if hasattr(self, "_theme_change_depth"):
+                self._theme_change_depth += 1
+            else:
+                self._theme_change_depth = 1
+
+            # Prevent deep recursion
+            if self._theme_change_depth > 3:
+                self.logger.error(
+                    f"Theme change depth too high ({self._theme_change_depth}) - preventing loop"
+                )
+                return
+
             from PySide6.QtWidgets import QApplication
 
             app = QApplication.instance()
@@ -698,21 +1019,25 @@ class SettingsDialog(QDialog):
 
         except Exception as e:
             self.logger.error(f"Error applying theme preview: {e}")
+        finally:
+            # Reduce call depth
+            if hasattr(self, "_theme_change_depth"):
+                self._theme_change_depth = max(0, self._theme_change_depth - 1)
 
     def _update_all_segmented_controls(self, theme_name: str) -> None:
         """Update all segmented controls to match the current theme"""
         try:
             # Update mode selection segmented control
             if hasattr(self, "segmented_control"):
-                self.segmented_control._update_colors()
-                self.segmented_control.update()
-                self.segmented_control.repaint()
+                self.segmented_control.force_color_update()
 
             # Update theme selection segmented control
             if hasattr(self, "theme_control"):
-                self.theme_control._update_colors()
-                self.theme_control.update()
-                self.theme_control.repaint()
+                self.theme_control.force_color_update()
+
+            # Update font size selector
+            if hasattr(self, "font_size_selector"):
+                self.font_size_selector.force_color_update()
 
             self.logger.debug(f"Updated all segmented controls for theme: {theme_name}")
         except Exception as e:
@@ -765,44 +1090,82 @@ class SettingsDialog(QDialog):
 
             # Update segmented control colors
             if hasattr(self, "segmented_control"):
-                self.segmented_control._update_colors()
-                self.segmented_control.update()
+                self.segmented_control.force_color_update()
 
             if hasattr(self, "theme_control"):
-                self.theme_control._update_colors()
-                self.theme_control.update()
+                self.theme_control.force_color_update()
+
+            # Update font size selector
+            if hasattr(self, "font_size_selector"):
+                self.font_size_selector.force_color_update()
 
         except Exception as e:
             self.logger.error(f"Error updating dialog theme: {e}")
 
     def load_current_settings(self):
-        """Load current settings and initialize UI controls"""
-        # Set mode
-        saved_mode = self.current_settings.get("user_mode", self.current_mode)
-        self.segmented_control.set_selection(saved_mode)
+        """Load current settings from config"""
+        try:
+            self.current_settings = get_all_settings(self.environment)
+            self.original_settings = self.current_settings.copy()
 
-        # Set theme
-        saved_theme = self.current_settings.get("theme", "Light")
-        self.theme_control.set_selection(saved_theme)
+            # Reset loop detection when loading settings
+            self._reset_loop_detection()
 
-        # Set font size
-        saved_font_size = self.current_settings.get("font_size", 12)
-        self.font_slider.setValue(saved_font_size)
-        self.font_size_label.setText(f"{saved_font_size}px")
+            self.logger.info(f"Current settings loaded: {self.current_settings}")
 
-        # Update description
-        self.update_description(saved_mode)
+            # Initialize UI controls with loaded settings
+            self._initialize_ui_controls()
+
+        except Exception as e:
+            self.logger.error(f"Error loading current settings: {e}")
+            # Set defaults if loading fails
+            self.current_settings = {
+                "user_mode": get_text("modes.sign_translate.name"),
+                "theme": "Light",
+                "font_size": 12,
+            }
+            self.original_settings = self.current_settings.copy()
+            self._initialize_ui_controls()
+
+    def _initialize_ui_controls(self):
+        """Initialize UI controls with current settings"""
+        try:
+            # Set mode
+            saved_mode = self.current_settings.get("user_mode", self.current_mode)
+            self.segmented_control.set_selection(saved_mode)
+
+            # Set theme
+            saved_theme = self.current_settings.get("theme", "Light")
+            self.theme_control.set_selection(saved_theme)
+
+            # Set font size
+            saved_font_size = self.current_settings.get("font_size", 12)
+            self.font_size_selector.set_size(saved_font_size)
+
+            # Update description
+            self.update_description(saved_mode)
+
+            # Ensure all controls are enabled
+            self._enable_all_controls()
+
+        except Exception as e:
+            self.logger.error(f"Error initializing UI controls: {e}")
 
     def setup_behavior(self):
         """Set up dialog behavior"""
         # Connect segmented control signal
         self.segmented_control.selection_changed.connect(self.update_description)
 
-        # Set focus to OK button
-        self.ok_button.setFocus()
+        # Connect theme control for real-time preview
+        self.theme_control.selection_changed.connect(self._on_theme_changed)
 
-        # Update initial description
-        self.update_description(self.current_mode)
+        # Connect font size selector for real-time preview
+        self.font_size_selector.size_changed.connect(self._on_font_size_changed)
+
+        # Connect buttons
+        self.reset_button.clicked.connect(self.reset_to_defaults)
+        self.cancel_button.clicked.connect(self.reject)
+        self.ok_button.clicked.connect(self.apply_settings)
 
     def update_description(self, mode: str):
         """Update the description based on selected mode"""
@@ -817,51 +1180,126 @@ class SettingsDialog(QDialog):
 
     def reset_to_defaults(self):
         """Reset all settings to default values"""
-        # Reset mode to Sign & Translate
-        default_mode = get_text("modes.sign_translate.name")
-        self.segmented_control.set_selection(default_mode)
+        try:
+            # Reset to default values
+            default_mode = get_text("modes.sign_translate.name")
+            default_theme = "Light"
+            default_font_size = 12
 
-        # Reset appearance settings
-        self.theme_control.set_selection("Light")
-        self.font_slider.setValue(12)
-        self.font_size_label.setText("12px")
+            # Update UI controls
+            self.segmented_control.set_selection(default_mode)
+            self.theme_control.set_selection(default_theme)
+            self.font_size_selector.set_size(default_font_size)
 
-        # Update description
-        self.update_description(default_mode)
+            # Update current settings
+            self.current_settings = {
+                "user_mode": default_mode,
+                "theme": default_theme,
+                "font_size": default_font_size,
+            }
+
+            # Apply changes immediately for preview
+            self.update_description(default_mode)
+            self._on_theme_changed(default_theme)
+            self._on_font_size_changed(default_font_size)
+
+            self.logger.info("Settings reset to defaults")
+        except Exception as e:
+            self.logger.error(f"Error resetting to defaults: {e}")
 
     def apply_settings(self):
         """Apply the current settings and save to config"""
-        # Collect all current settings
-        new_settings = {
-            "user_mode": self.segmented_control.get_selection(),
-            "theme": self.theme_control.get_selection(),
-            "font_size": self.font_slider.value(),
-        }
+        try:
+            # More robust loop detection - track call depth
+            if hasattr(self, "_save_call_depth"):
+                self._save_call_depth += 1
+            else:
+                self._save_call_depth = 1
 
-        # Save settings to config
-        if save_all_settings(new_settings, self.environment):
-            # Emit signal with new mode
-            self.settings_applied.emit(new_settings["user_mode"])
-            self.accept()
-        else:
-            # Show error message if save failed
+            # Prevent deep recursion
+            if self._save_call_depth > 2:
+                self.logger.error(
+                    f"Save call depth too high ({self._save_call_depth}) - preventing infinite loop"
+                )
+                return
+
+            # Mark that we're in the process of applying settings
+            self._applying_settings = True
+
+            # Set a flag to prevent the main window callback from triggering additional saves
+            if hasattr(self, "main_window") and self.main_window:
+                self.main_window._settings_save_in_progress = True
+
+            # Collect all current settings
+            new_settings = {
+                "user_mode": self.segmented_control.get_selection(),
+                "theme": self.theme_control.get_selection(),
+                "font_size": self.font_size_selector.get_size(),
+            }
+
+            self.logger.info(
+                f"Saving settings (depth {self._save_call_depth}): {new_settings}"
+            )
+
+            # Save settings
+            if save_all_settings(new_settings, self.environment):
+                # Update original settings to current state
+                self.original_settings = new_settings.copy()
+
+                # Emit signal with new mode
+                self.settings_applied.emit(new_settings["user_mode"])
+
+                # Close dialog
+                self.accept()
+
+                self.logger.info(f"Settings saved successfully: {new_settings}")
+            else:
+                from PySide6.QtWidgets import QMessageBox
+
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    "Failed to save settings. Please try again.",
+                    QMessageBox.StandardButton.Ok,
+                )
+                self.logger.error("Failed to save settings")
+        except Exception as e:
+            self.logger.error(f"Error applying settings: {e}")
             from PySide6.QtWidgets import QMessageBox
 
             QMessageBox.critical(
                 self,
                 "Error",
-                "Failed to save settings. Please try again.",
+                f"Error applying settings: {e}",
                 QMessageBox.StandardButton.Ok,
             )
+        finally:
+            # Clear the applying settings flag and reduce call depth
+            self._applying_settings = False
+            if hasattr(self, "_save_call_depth"):
+                self._save_call_depth = max(0, self._save_call_depth - 1)
+
+            # Clear the main window flag
+            if hasattr(self, "main_window") and self.main_window:
+                self.main_window._settings_save_in_progress = False
 
     def get_selected_mode(self) -> str:
         """Get the currently selected mode"""
         return self.segmented_control.get_selection()
 
     def closeEvent(self, event):
-        """Handle dialog close event properly"""
+        """Handle dialog close event"""
         try:
-            # Simple cleanup without theme restoration to prevent conflicts
+            self.logger.info("Settings dialog closed - restoring original settings")
+
+            # Restore original settings if dialog wasn't accepted
+            if not hasattr(self, "_accepted"):
+                self._restore_original_settings()
+
+            # Clean up theme preview
+            self._cleanup_theme_preview()
+
+            # Accept the close event
             event.accept()
         except Exception as e:
             self.logger.error(f"Error in closeEvent: {e}")
@@ -878,17 +1316,44 @@ class SettingsDialog(QDialog):
     def reject(self):
         """Handle dialog rejection (Cancel button or ESC key)"""
         try:
-            # Simple rejection without theme restoration
+            self.logger.info("Settings dialog cancelled - restoring original settings")
+
+            # Restore original settings
+            self._restore_original_settings()
+
+            # Close dialog
             super().reject()
         except Exception as e:
-            self.logger.error(f"Error in reject: {e}")
+            self.logger.error(f"Error rejecting settings dialog: {e}")
             super().reject()
+
+    def _restore_original_settings(self):
+        """Restore original settings and apply them"""
+        try:
+            # Restore original theme
+            original_theme = self.original_settings.get("theme", "Light")
+            self._on_theme_changed(original_theme)
+
+            # Restore original font size
+            original_font_size = self.original_settings.get("font_size", 12)
+            self._on_font_size_changed(original_font_size)
+
+            # Restore original mode
+            original_mode = self.original_settings.get("user_mode", "Sign & Translate")
+            self.update_description(original_mode)
+
+            self.logger.info("Original settings restored")
+        except Exception as e:
+            self.logger.error(f"Error restoring original settings: {e}")
 
     def accept(self):
         """Handle dialog acceptance (Save Changes button)"""
         try:
-            # No cleanup needed here as we're applying the new settings
-            super().accept()
+            # Mark dialog as accepted to prevent any further font size updates
+            self._accepted = True
+
+            # Apply settings (this will save and close)
+            self.apply_settings()
         except Exception as e:
             self.logger.error(f"Error in accept: {e}")
             super().accept()
@@ -941,6 +1406,461 @@ class SettingsDialog(QDialog):
         except Exception as e:
             self.logger.error(f"Error updating main window theme preview: {e}")
 
+    def _on_font_size_changed(self, font_size: int) -> None:
+        """Handle font size change in real-time"""
+        try:
+            # Update current settings (but don't save yet)
+            self.current_settings["font_size"] = font_size
+
+            # Apply font size preview to both dialog and main window
+            self._apply_font_size_preview(font_size)
+
+            # Force the font size selector to update its visual appearance
+            self._update_font_size_selector_visual(font_size)
+
+        except Exception as e:
+            self.logger.error(f"Error applying font size preview: {e}")
+
+    def _update_main_window_content_fonts(self, font_size: int) -> None:
+        """Update font sizes in the main window content area"""
+        try:
+            if not self.main_window:
+                return
+
+            from PySide6.QtGui import QFont
+            from PySide6.QtWidgets import (
+                QButtonGroup,
+                QLabel,
+                QLineEdit,
+                QPushButton,
+                QTabBar,
+                QTabWidget,
+                QTextEdit,
+                QWidget,
+            )
+
+            from ..utils.theme_manager import get_theme_manager
+
+            # Update the theme manager's font size first
+            theme_manager = get_theme_manager()
+            theme_manager.set_font_size(font_size)
+
+            # Create a new font with the specified size
+            new_font = QFont()
+            new_font.setPointSize(font_size)
+
+            # Get all child widgets from the main window
+            all_widgets = self.main_window.findChildren(QWidget)
+
+            updated_count = 0
+            for widget in all_widgets:
+                try:
+                    if widget is None or not widget.isVisible():
+                        continue
+
+                    # Update font for specific widget types in the main window
+                    if isinstance(widget, (QLabel, QLineEdit, QPushButton, QTextEdit)):
+                        widget.setFont(new_font)
+                        # Force theme manager to update this widget's stylesheet
+                        if isinstance(widget, QLabel):
+                            theme_manager.force_font_size_update(widget, "label")
+                        elif isinstance(widget, QLineEdit):
+                            theme_manager.force_font_size_update(widget, "input_field")
+                        elif isinstance(widget, QPushButton):
+                            theme_manager.force_font_size_update(
+                                widget, "button_primary"
+                            )
+                        elif isinstance(widget, QTextEdit):
+                            theme_manager.force_font_size_update(widget, "input_field")
+                        updated_count += 1
+                        self.logger.debug(
+                            f"Updated main window content font for {widget.__class__.__name__} to {font_size}px"
+                        )
+                    elif isinstance(widget, QTabWidget):
+                        # For tab widgets, update the tab bar font
+                        if hasattr(widget, "tabBar"):
+                            tab_bar = widget.tabBar()
+                            tab_bar.setFont(new_font)
+                            theme_manager.force_font_size_update(tab_bar, "tab_widget")
+                            updated_count += 1
+                            self.logger.debug(
+                                f"Updated main window content font for QTabBar to {font_size}px"
+                            )
+                    elif isinstance(widget, QTabBar):
+                        # Direct tab bar widgets
+                        widget.setFont(new_font)
+                        theme_manager.force_font_size_update(widget, "tab_widget")
+                        updated_count += 1
+                        self.logger.debug(
+                            f"Updated main window content font for QTabBar to {font_size}px"
+                        )
+                    elif isinstance(widget, QButtonGroup):
+                        # Button groups - update all buttons in the group
+                        for button in widget.buttons():
+                            if button.isVisible():
+                                button.setFont(new_font)
+                                theme_manager.force_font_size_update(
+                                    button, "button_primary"
+                                )
+                                updated_count += 1
+                                self.logger.debug(
+                                    f"Updated main window content font for QButtonGroup button to {font_size}px"
+                                )
+
+                except Exception as widget_error:
+                    # Continue with other widgets if one fails
+                    self.logger.warning(
+                        f"Error updating main window widget {widget.__class__.__name__}: {widget_error}"
+                    )
+                    continue
+
+            self.logger.debug(
+                f"Main window content font updates applied to {updated_count} widgets"
+            )
+
+            # Force immediate repaint of the main window
+            self.main_window.update()
+            self.main_window.repaint()
+            QCoreApplication.processEvents()
+
+        except Exception as e:
+            self.logger.error(f"Error updating main window content fonts: {e}")
+
+    def _update_font_size_selector_visual(self, font_size: int) -> None:
+        """Update the visual appearance of the font size selector"""
+        try:
+            if hasattr(self, "font_size_selector"):
+                # Update the font size selector's current size
+                self.font_size_selector.set_size(font_size)
+
+                # Force the font size selector to repaint
+                self.font_size_selector.update()
+                self.font_size_selector.repaint()
+
+                # Also force the parent dialog to repaint
+                self.update()
+                self.repaint()
+
+                # Force Qt to process all pending events
+                QCoreApplication.processEvents()
+
+                self.logger.debug(
+                    f"Font size selector visual updated to: {font_size}px"
+                )
+        except Exception as e:
+            self.logger.error(f"Error updating font size selector visual: {e}")
+
+    def _apply_font_size_preview(self, font_size: int) -> None:
+        """Apply font size preview to both settings dialog and main window"""
+        try:
+            # Update the font size selector visual
+            self._update_font_size_selector_visual(font_size)
+
+            # Preview the font size changes
+            self._preview_font_size(font_size)
+
+            self.logger.debug(f"Font size preview applied: {font_size}px")
+        except Exception as e:
+            self.logger.error(f"Error applying font size preview: {e}")
+
+    def _update_dialog_font_size(self, font_size: int) -> None:
+        """Update dialog font size using centralized system"""
+        try:
+            # Don't apply font size if dialog is being closed, accepted, or applying settings
+            if (
+                hasattr(self, "_accepted")
+                or hasattr(self, "_applying_settings")
+                or not self.isVisible()
+                or self.isHidden()
+            ):
+                return
+
+            from ..utils.theme_manager import apply_font_size_to_widget_tree
+
+            # Apply font size to the entire dialog widget tree
+            # Note: set_font_size is already called in _apply_font_size_preview
+            apply_font_size_to_widget_tree(self)
+
+            # Also directly update font objects for immediate visual feedback
+            self._update_widget_fonts_directly(font_size)
+
+            # Force the dialog to refresh its appearance
+            self.update()
+            self.repaint()
+
+            # Force the font size selector to refresh its appearance
+            if hasattr(self, "font_size_selector"):
+                self.font_size_selector.update()
+                self.font_size_selector.repaint()
+
+            self.logger.debug(f"Dialog font size updated to: {font_size}px")
+
+        except Exception as e:
+            self.logger.error(f"Error updating dialog font size: {e}")
+
+    def _update_widget_fonts_directly(self, font_size: int) -> None:
+        """Directly update font objects of widgets for immediate visual feedback"""
+        try:
+            from PySide6.QtGui import QFont
+            from PySide6.QtWidgets import (
+                QButtonGroup,
+                QGroupBox,
+                QLabel,
+                QPushButton,
+                QTabBar,
+                QTabWidget,
+                QWidget,
+            )
+
+            from ..utils.theme_manager import get_theme_manager
+
+            # Update the theme manager's font size first
+            theme_manager = get_theme_manager()
+            theme_manager.set_font_size(font_size)
+
+            # Create a new font with the specified size
+            new_font = QFont()
+            new_font.setPointSize(font_size)
+
+            # Get all child widgets
+            all_widgets = self.findChildren(QWidget)
+
+            updated_count = 0
+            for widget in all_widgets:
+                try:
+                    if widget is None or not widget.isVisible():
+                        continue
+
+                    # Update font for specific widget types that should show font size changes
+                    if isinstance(widget, (QLabel, QPushButton, QGroupBox)):
+                        # Set the font directly
+                        widget.setFont(new_font)
+                        # Force theme manager to update this widget's stylesheet
+                        if isinstance(widget, QLabel):
+                            theme_manager.force_font_size_update(widget, "label")
+                        elif isinstance(widget, QPushButton):
+                            theme_manager.force_font_size_update(
+                                widget, "button_primary"
+                            )
+                        elif isinstance(widget, QGroupBox):
+                            theme_manager.force_font_size_update(widget, "group_box")
+                        updated_count += 1
+                        self.logger.debug(
+                            f"Updated font for {widget.__class__.__name__} to {font_size}px"
+                        )
+                    elif isinstance(widget, QTabWidget):
+                        # For tab widgets, update the tab bar font
+                        if hasattr(widget, "tabBar"):
+                            tab_bar = widget.tabBar()
+                            tab_bar.setFont(new_font)
+                            theme_manager.force_font_size_update(tab_bar, "tab_widget")
+                            updated_count += 1
+                            self.logger.debug(
+                                f"Updated font for QTabBar to {font_size}px"
+                            )
+                    elif isinstance(widget, QTabBar):
+                        # Direct tab bar widgets
+                        widget.setFont(new_font)
+                        theme_manager.force_font_size_update(widget, "tab_widget")
+                        updated_count += 1
+                        self.logger.debug(
+                            f"Updated font for direct QTabBar to {font_size}px"
+                        )
+                    elif isinstance(widget, QButtonGroup):
+                        # Button groups - update all buttons in the group
+                        for button in widget.buttons():
+                            if button.isVisible():
+                                button.setFont(new_font)
+                                theme_manager.force_font_size_update(
+                                    button, "button_primary"
+                                )
+                                updated_count += 1
+                                self.logger.debug(
+                                    f"Updated font for QButtonGroup button to {font_size}px"
+                                )
+
+                except Exception as widget_error:
+                    # Continue with other widgets if one fails
+                    self.logger.warning(
+                        f"Error updating widget {widget.__class__.__name__}: {widget_error}"
+                    )
+                    continue
+
+            self.logger.debug(
+                f"Direct font updates applied to {updated_count} out of {len(all_widgets)} widgets"
+            )
+
+            # Force immediate repaint of the dialog
+            self.update()
+            self.repaint()
+            QCoreApplication.processEvents()
+
+        except Exception as e:
+            self.logger.error(f"Error updating widget fonts directly: {e}")
+
+    def _update_main_window_font_size(self, font_size: int) -> None:
+        """Update main window font size using centralized system"""
+        try:
+            # Don't apply font size if dialog is being closed, accepted, applying settings, or main window is not available
+            if (
+                hasattr(self, "_accepted")
+                or hasattr(self, "_applying_settings")
+                or not self.main_window
+                or not self.main_window.isVisible()
+                or self.main_window.isHidden()
+            ):
+                return
+
+            from ..utils.theme_manager import apply_font_size_to_widget_tree
+
+            # Apply font size to the entire main window widget tree
+            # Note: set_font_size is already called in _apply_font_size_preview
+            apply_font_size_to_widget_tree(self.main_window)
+
+            # Also directly update font objects for immediate visual feedback
+            self._update_main_window_fonts_directly(font_size)
+
+            self.logger.debug(f"Main window font size updated to: {font_size}px")
+
+        except Exception as e:
+            self.logger.error(f"Error updating main window font size: {e}")
+
+    def _update_main_window_fonts_directly(self, font_size: int) -> None:
+        """Directly update font objects of main window widgets for immediate visual feedback"""
+        try:
+            if not self.main_window:
+                self.logger.warning("Main window is None, skipping font updates")
+                return
+
+            from PySide6.QtGui import QFont
+            from PySide6.QtWidgets import (
+                QButtonGroup,
+                QLabel,
+                QLineEdit,
+                QPushButton,
+                QTabBar,
+                QTabWidget,
+                QTextEdit,
+                QWidget,
+            )
+
+            from ..utils.theme_manager import get_theme_manager
+
+            # Update the theme manager's font size first
+            theme_manager = get_theme_manager()
+            theme_manager.set_font_size(font_size)
+
+            # Create a new font with the specified size
+            new_font = QFont()
+            new_font.setPointSize(font_size)
+
+            # Get all child widgets from the main window
+            all_widgets = self.main_window.findChildren(QWidget)
+            self.logger.debug(f"Found {len(all_widgets)} widgets in main window")
+
+            # Log widget types for debugging
+            widget_types: Dict[str, int] = {}
+            for widget in all_widgets:
+                widget_type = widget.__class__.__name__
+                widget_types[widget_type] = widget_types.get(widget_type, 0) + 1
+
+            self.logger.debug(f"Widget types in main window: {widget_types}")
+
+            updated_count = 0
+            for widget in all_widgets:
+                try:
+                    if widget is None:
+                        continue
+
+                    if not widget.isVisible():
+                        self.logger.debug(
+                            f"Skipping invisible widget: {widget.__class__.__name__}"
+                        )
+                        continue
+
+                    # Update font for specific widget types in the main window
+                    if isinstance(widget, (QLabel, QLineEdit, QPushButton, QTextEdit)):
+                        widget.setFont(new_font)
+                        # Force theme manager to update this widget's stylesheet
+                        if isinstance(widget, QLabel):
+                            theme_manager.force_font_size_update(widget, "label")
+                        elif isinstance(widget, QLineEdit):
+                            theme_manager.force_font_size_update(widget, "input_field")
+                        elif isinstance(widget, QPushButton):
+                            theme_manager.force_font_size_update(
+                                widget, "button_primary"
+                            )
+                        elif isinstance(widget, QTextEdit):
+                            theme_manager.force_font_size_update(widget, "input_field")
+                        updated_count += 1
+                        self.logger.debug(
+                            f"Updated main window content font for {widget.__class__.__name__} to {font_size}px"
+                        )
+                    elif isinstance(widget, QTabWidget):
+                        # For tab widgets, update the tab bar font
+                        if hasattr(widget, "tabBar"):
+                            tab_bar = widget.tabBar()
+                            tab_bar.setFont(new_font)
+                            theme_manager.force_font_size_update(tab_bar, "tab_widget")
+                            updated_count += 1
+                            self.logger.debug(
+                                f"Updated main window content font for QTabBar to {font_size}px"
+                            )
+                    elif isinstance(widget, QTabBar):
+                        # Direct tab bar widgets
+                        widget.setFont(new_font)
+                        theme_manager.force_font_size_update(widget, "tab_widget")
+                        updated_count += 1
+                        self.logger.debug(
+                            f"Updated main window content font for QTabBar to {font_size}px"
+                        )
+                    elif isinstance(widget, QButtonGroup):
+                        # Button groups - update all buttons in the group
+                        for button in widget.buttons():
+                            if button.isVisible():
+                                button.setFont(new_font)
+                                theme_manager.force_font_size_update(
+                                    button, "button_primary"
+                                )
+                                updated_count += 1
+                                self.logger.debug(
+                                    f"Updated main window content font for QButtonGroup button to {font_size}px"
+                                )
+
+                except Exception as widget_error:
+                    # Continue with other widgets if one fails
+                    self.logger.warning(
+                        f"Error updating main window widget {widget.__class__.__name__}: {widget_error}"
+                    )
+                    continue
+
+            self.logger.debug(
+                f"Main window direct font updates applied to {updated_count} widgets"
+            )
+
+            # Force immediate repaint of the main window
+            self.main_window.update()
+            self.main_window.repaint()
+            QCoreApplication.processEvents()
+
+        except Exception as e:
+            self.logger.error(f"Error updating main window fonts directly: {e}")
+
+    def _preview_font_size(self, font_size: int) -> None:
+        """Preview font size changes without saving"""
+        try:
+            self.logger.debug(f"Font size preview applied: {font_size}px")
+
+            # Update settings dialog fonts directly
+            self._update_widget_fonts_directly(font_size)
+
+            # Update main window fonts directly if available
+            if self.main_window:
+                self._update_main_window_fonts_directly(font_size)
+
+        except Exception as e:
+            self.logger.error(f"Error previewing font size: {e}")
+
 
 def show_settings_dialog(
     parent=None,
@@ -951,6 +1871,11 @@ def show_settings_dialog(
 ) -> Optional[str]:
     """Show the settings dialog and return the selected mode"""
     try:
+        if not PYSIDE6_AVAILABLE:
+            logger = get_logger("helpmesign.settings")
+            logger.error("PySide6 is not available, cannot show settings dialog")
+            return None
+
         dialog = SettingsDialog(parent, current_mode, environment, main_window)
 
         # Connect the callback if provided
@@ -968,5 +1893,5 @@ def show_settings_dialog(
 
     except Exception as e:
         logger = get_logger("helpmesign.settings")
-        logger.error(f"Error creating settings dialog: {e}")
+        logger.error(f"Error showing settings dialog: {e}")
         return None

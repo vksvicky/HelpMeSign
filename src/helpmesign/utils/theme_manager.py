@@ -19,11 +19,192 @@ class ThemeManager:
     def __init__(self):
         self.logger = get_logger("helpmesign.theme")
         self.current_theme = "Light"
+        self.current_font_size = 12  # Default font size
         self.themes = {
             "Light": self._get_light_theme(),
             "Dark": self._get_dark_theme(),
             "System": self._get_system_theme(),
         }
+
+    def set_font_size(self, font_size: int) -> None:
+        """Set the current font size"""
+        self.current_font_size = font_size
+        self.logger.info(f"Font size set to: {font_size}px")
+
+    def get_font_size(self) -> int:
+        """Get the current font size"""
+        return self.current_font_size
+
+    def get_font_size_style(self, component: str = "general") -> str:
+        """Get font size style for a specific component"""
+        font_size = self.current_font_size
+
+        # Component-specific font size adjustments
+        size_adjustments = {
+            "general": font_size,
+            "small": max(8, font_size - 2),
+            "large": min(24, font_size + 2),
+            "title": min(24, font_size + 4),
+            "button": font_size,
+            "input": font_size,
+            "label": font_size,
+        }
+
+        adjusted_size = size_adjustments.get(component, font_size)
+
+        return f"font-size: {adjusted_size}px;"
+
+    def get_complete_style(self, component: str, include_font_size: bool = True) -> str:
+        """Get complete style including theme and font size"""
+        theme_style = self.get_theme_style(component)
+
+        if include_font_size:
+            font_style = self.get_font_size_style(component)
+
+            # Replace existing font-size declarations or add new ones
+            import re
+
+            # Pattern to match font-size declarations
+            font_size_pattern = r"font-size:\s*\d+px;"
+
+            if re.search(font_size_pattern, theme_style):
+                # Replace existing font-size declarations
+                theme_style = re.sub(font_size_pattern, font_style.strip(), theme_style)
+            else:
+                # Add font-size to the style if none exists
+                if "{" in theme_style and "}" in theme_style:
+                    # Insert font-size before the closing brace
+                    insert_pos = theme_style.rfind("}")
+                    if insert_pos != -1:
+                        theme_style = (
+                            theme_style[:insert_pos]
+                            + f"    {font_style}\n"
+                            + theme_style[insert_pos:]
+                        )
+
+        return theme_style
+
+    def force_font_size_update(self, widget, component: str = "general") -> None:
+        """Force update a widget's font size"""
+        try:
+            if widget is None:
+                return
+
+            # Check if widget is still valid
+            if not hasattr(widget, "setStyleSheet"):
+                return
+
+            # Check if widget is visible and not being destroyed
+            if hasattr(widget, "isVisible") and not widget.isVisible():
+                return
+
+            # Additional safety check for widget destruction
+            if hasattr(widget, "isHidden") and widget.isHidden():
+                return
+
+            # Check if widget is being deleted
+            if (
+                hasattr(widget, "parent")
+                and widget.parent() is None
+                and hasattr(widget, "deleteLater")
+            ):
+                return
+
+            complete_style = self.get_complete_style(component, include_font_size=True)
+            if complete_style:
+                widget.setStyleSheet(complete_style)
+
+            # Only call update/repaint if widget is visible
+            if hasattr(widget, "isVisible") and widget.isVisible():
+                widget.update()
+                widget.repaint()
+
+        except Exception as e:
+            self.logger.error(f"Error forcing font size update: {e}")
+
+    def apply_font_size_to_widget_tree(
+        self, root_widget, component_map: Optional[Dict[str, str]] = None
+    ) -> None:
+        """Apply font size to an entire widget tree"""
+        try:
+            if root_widget is None:
+                self.logger.warning(
+                    "Root widget is None, skipping font size application"
+                )
+                return
+
+            # Additional safety check for widget validity
+            if not hasattr(root_widget, "setStyleSheet"):
+                self.logger.warning(
+                    "Root widget is not a valid Qt widget, skipping font size application"
+                )
+                return
+
+            if component_map is None:
+                component_map = {
+                    "QMainWindow": "main_window",
+                    "QDialog": "dialog",
+                    "QPushButton": "button_primary",
+                    "QLineEdit": "input_field",
+                    "QTextEdit": "input_field",
+                    "QGroupBox": "group_box",
+                    "QTabWidget": "tab_widget",
+                    "QLabel": "label",
+                    "QSlider": "general",
+                    "QTabBar": "tab_widget",
+                }
+
+            # Apply to root widget
+            root_type = root_widget.__class__.__name__
+            component = component_map.get(root_type, "general")
+            self.force_font_size_update(root_widget, component)
+
+            # Apply to all child widgets (find all types, not just same type as root)
+            from PySide6.QtWidgets import QWidget
+
+            # Get all child widgets recursively with safety check
+            try:
+                all_children = root_widget.findChildren(QWidget)
+
+                # Limit the number of children to prevent infinite loops
+                max_children = 1000
+                if len(all_children) > max_children:
+                    self.logger.warning(
+                        f"Too many child widgets ({len(all_children)}), limiting to {max_children}"
+                    )
+                    all_children = all_children[:max_children]
+
+                # Apply font size to each child widget
+                for i, child in enumerate(all_children):
+                    try:
+                        if child is None or not child.isVisible():
+                            continue
+
+                        # Additional safety check for child widget validity
+                        if not hasattr(child, "setStyleSheet"):
+                            continue
+
+                        child_type = child.__class__.__name__
+                        child_component = component_map.get(child_type, "general")
+                        self.force_font_size_update(child, child_component)
+
+                        # Add a small delay every 100 widgets to prevent UI freezing
+                        if i % 100 == 0 and i > 0:
+                            from PySide6.QtCore import QCoreApplication
+
+                            QCoreApplication.processEvents()
+
+                    except Exception as child_error:
+                        self.logger.warning(
+                            f"Error applying font size to child widget {i}: {child_error}"
+                        )
+                        continue
+
+            except Exception as children_error:
+                self.logger.error(f"Error finding child widgets: {children_error}")
+
+        except Exception as e:
+            self.logger.error(f"Error applying font size to widget tree: {e}")
 
     def _get_light_theme(self) -> Dict[str, Any]:
         """Get light theme colors and styles"""
@@ -50,6 +231,7 @@ class ThemeManager:
                     QMainWindow {
                         background-color: #ffffff;
                         color: #1e293b;
+                        font-size: 12px;
                     }
                 """,
                 "dialog": """
@@ -58,9 +240,11 @@ class ThemeManager:
                         border: 1px solid #e2e8f0;
                         border-radius: 16px;
                         color: #1e293b;
+                        font-size: 12px;
                     }
                     QDialog QLabel {
                         color: #1e293b;
+                        font-size: 12px;
                     }
                 """,
                 "button_primary": """
@@ -71,7 +255,7 @@ class ThemeManager:
                         border-radius: 8px;
                         font-weight: 500;
                         padding: 10px 20px;
-                        font-size: 14px;
+                        font-size: 12px;
                         min-width: 100px;
                     }
                     QPushButton:hover {
@@ -93,7 +277,7 @@ class ThemeManager:
                         border-radius: 8px;
                         font-weight: 500;
                         padding: 10px 20px;
-                        font-size: 14px;
+                        font-size: 12px;
                         min-width: 100px;
                     }
                     QPushButton:hover {
@@ -116,6 +300,7 @@ class ThemeManager:
                         border: 1px solid #d1d5db;
                         border-radius: 8px;
                         padding: 8px 12px;
+                        font-size: 12px;
                     }
                     QLineEdit:focus, QTextEdit:focus {
                         border-color: #3b82f6;
@@ -131,7 +316,7 @@ class ThemeManager:
                         margin-top: 12px;
                         padding-top: 16px;
                         background-color: #ffffff;
-                        font-size: 14px;
+                        font-size: 12px;
                     }
                     QGroupBox::title {
                         subcontrol-origin: margin;
@@ -139,7 +324,7 @@ class ThemeManager:
                         padding: 0 8px 0 8px;
                         background-color: #ffffff;
                         color: #1e293b;
-                        font-size: 14px;
+                        font-size: 12px;
                         font-weight: 600;
                     }
                 """,
@@ -156,7 +341,7 @@ class ThemeManager:
                         border-top-left-radius: 8px;
                         border-top-right-radius: 8px;
                         font-weight: 500;
-                        font-size: 14px;
+                        font-size: 12px;
                         border: none;
                     }
                     QTabBar::tab:selected {
@@ -197,6 +382,7 @@ class ThemeManager:
                     QMainWindow {
                         background-color: #1c1c1e;
                         color: #ffffff;
+                        font-size: 12px;
                     }
                 """,
                 "dialog": """
@@ -205,9 +391,11 @@ class ThemeManager:
                         border: 1px solid #38383a;
                         border-radius: 16px;
                         color: #ffffff;
+                        font-size: 12px;
                     }
                     QDialog QLabel {
                         color: #ffffff;
+                        font-size: 12px;
                     }
                 """,
                 "button_primary": """
@@ -218,7 +406,7 @@ class ThemeManager:
                         border-radius: 8px;
                         font-weight: 500;
                         padding: 10px 20px;
-                        font-size: 14px;
+                        font-size: 12px;
                         min-width: 100px;
                     }
                     QPushButton:hover {
@@ -240,7 +428,7 @@ class ThemeManager:
                         border-radius: 8px;
                         font-weight: 500;
                         padding: 10px 20px;
-                        font-size: 14px;
+                        font-size: 12px;
                         min-width: 100px;
                     }
                     QPushButton:hover {
@@ -263,6 +451,7 @@ class ThemeManager:
                         border: 1px solid #48484a;
                         border-radius: 8px;
                         padding: 8px 12px;
+                        font-size: 12px;
                     }
                     QLineEdit:focus, QTextEdit:focus {
                         border-color: #0a84ff;
@@ -278,7 +467,7 @@ class ThemeManager:
                         margin-top: 12px;
                         padding-top: 16px;
                         background-color: #1c1c1e;
-                        font-size: 14px;
+                        font-size: 12px;
                     }
                     QGroupBox::title {
                         subcontrol-origin: margin;
@@ -286,7 +475,7 @@ class ThemeManager:
                         padding: 0 8px 0 8px;
                         background-color: #1c1c1e;
                         color: #ffffff;
-                        font-size: 14px;
+                        font-size: 12px;
                         font-weight: 600;
                     }
                 """,
@@ -303,7 +492,7 @@ class ThemeManager:
                         border-top-left-radius: 8px;
                         border-top-right-radius: 8px;
                         font-weight: 500;
-                        font-size: 14px;
+                        font-size: 12px;
                         border: none;
                     }
                     QTabBar::tab:selected {
@@ -329,25 +518,28 @@ class ThemeManager:
         """Apply a theme to the application"""
         try:
             if theme_name not in self.themes:
-                self.logger.warning(f"Unknown theme: {theme_name}, using Light")
-                theme_name = "Light"
+                self.logger.error(f"Theme '{theme_name}' not found")
+                return False
 
             self.current_theme = theme_name
             theme = self.themes[theme_name]
 
-            self.logger.info(f"Applying theme: {theme_name}")
+            # Store current font size
+            current_font_size = self.current_font_size
 
-            # Apply to QApplication if provided
-            if app:
+            # Apply theme to application
+            if app and isinstance(app, QApplication):
                 self._apply_to_application(app, theme)
+                self._refresh_all_widgets(app)
 
-                # Force application update
-                app.processEvents()
+            # Restore font size after theme change
+            self.current_font_size = current_font_size
 
+            self.logger.info(f"Theme '{theme_name}' applied successfully")
             return True
 
         except Exception as e:
-            self.logger.error(f"Error applying theme {theme_name}: {e}")
+            self.logger.error(f"Error applying theme '{theme_name}': {e}")
             return False
 
     def _apply_to_application(self, app: QApplication, theme: Dict[str, Any]) -> None:
@@ -438,3 +630,35 @@ def get_theme_style(component: str) -> str:
 def get_theme_color(color_name: str) -> str:
     """Get a specific color from the current theme"""
     return get_theme_manager().get_theme_color(color_name)
+
+
+def set_font_size(font_size: int) -> None:
+    """Set the application font size"""
+    get_theme_manager().set_font_size(font_size)
+
+
+def get_font_size() -> int:
+    """Get the current application font size"""
+    return get_theme_manager().get_font_size()
+
+
+def get_font_size_style(component: str = "general") -> str:
+    """Get font size style for a specific component"""
+    return get_theme_manager().get_font_size_style(component)
+
+
+def get_complete_style(component: str, include_font_size: bool = True) -> str:
+    """Get complete style including theme and font size"""
+    return get_theme_manager().get_complete_style(component, include_font_size)
+
+
+def force_font_size_update(widget, component: str = "general") -> None:
+    """Force update a widget's font size"""
+    get_theme_manager().force_font_size_update(widget, component)
+
+
+def apply_font_size_to_widget_tree(
+    root_widget, component_map: Optional[Dict[str, str]] = None
+) -> None:
+    """Apply font size to an entire widget tree"""
+    get_theme_manager().apply_font_size_to_widget_tree(root_widget, component_map)

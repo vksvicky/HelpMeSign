@@ -11,6 +11,30 @@ from pathlib import Path
 from typing import List, Tuple
 
 
+def get_python_executable() -> str:
+    """Get the correct Python executable, preferring virtual environment"""
+    # Check if we're in a virtual environment
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        # We're in a virtual environment
+        return sys.executable
+    
+    # Check for common virtual environment paths
+    project_root = Path(__file__).parent.parent
+    venv_paths = [
+        project_root / "venv" / "bin" / "python",
+        project_root / "venv" / "Scripts" / "python.exe",  # Windows
+        project_root / ".venv" / "bin" / "python",
+        project_root / ".venv" / "Scripts" / "python.exe",  # Windows
+    ]
+    
+    for venv_path in venv_paths:
+        if venv_path.exists():
+            return str(venv_path)
+    
+    # Fall back to system Python
+    return sys.executable
+
+
 def run_command(command: List[str], description: str) -> Tuple[bool, str]:
     """Run a command and return success status and output"""
     print(f"\n{'='*60}")
@@ -48,8 +72,9 @@ def run_command(command: List[str], description: str) -> Tuple[bool, str]:
 
 def run_black_check() -> bool:
     """Run black formatting check"""
+    python_exe = get_python_executable()
     success, _ = run_command(
-        [sys.executable, "-m", "black", "--check", "src/", "tests/"],
+        [python_exe, "-m", "black", "--check", "src/", "tests/"],
         "Black formatting check"
     )
     return success
@@ -57,8 +82,9 @@ def run_black_check() -> bool:
 
 def run_black_format() -> bool:
     """Run black formatting (auto-fix)"""
+    python_exe = get_python_executable()
     success, _ = run_command(
-        [sys.executable, "-m", "black", "src/", "tests/"],
+        [python_exe, "-m", "black", "src/", "tests/"],
         "Black formatting (auto-fix)"
     )
     return success
@@ -66,8 +92,9 @@ def run_black_format() -> bool:
 
 def run_isort_check() -> bool:
     """Run isort import sorting check"""
+    python_exe = get_python_executable()
     success, _ = run_command(
-        [sys.executable, "-m", "isort", "--check-only", "src/", "tests/"],
+        [python_exe, "-m", "isort", "--check-only", "src/", "tests/"],
         "isort import sorting check"
     )
     return success
@@ -75,8 +102,9 @@ def run_isort_check() -> bool:
 
 def run_isort_format() -> bool:
     """Run isort import sorting (auto-fix)"""
+    python_exe = get_python_executable()
     success, _ = run_command(
-        [sys.executable, "-m", "isort", "src/", "tests/"],
+        [python_exe, "-m", "isort", "src/", "tests/"],
         "isort import sorting (auto-fix)"
     )
     return success
@@ -84,8 +112,9 @@ def run_isort_format() -> bool:
 
 def run_mypy_check() -> bool:
     """Run mypy type checking"""
+    python_exe = get_python_executable()
     success, _ = run_command(
-        [sys.executable, "-m", "mypy", "src/"],
+        [python_exe, "-m", "mypy", "src/"],
         "mypy type checking"
     )
     return success
@@ -94,6 +123,7 @@ def run_mypy_check() -> bool:
 def install_dependencies() -> bool:
     """Install required dependencies if not present"""
     dependencies = ["black", "isort", "mypy"]
+    python_exe = get_python_executable()
     
     for dep in dependencies:
         try:
@@ -101,7 +131,7 @@ def install_dependencies() -> bool:
         except ImportError:
             print(f"📦 Installing {dep}...")
             success, _ = run_command(
-                [sys.executable, "-m", "pip", "install", dep],
+                [python_exe, "-m", "pip", "install", dep],
                 f"Installing {dep}"
             )
             if not success:

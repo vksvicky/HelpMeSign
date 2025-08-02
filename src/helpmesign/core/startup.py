@@ -1,6 +1,5 @@
 """
-Startup screen module for HelpMeSign
-Handles user choice between sign and learn modes
+Startup screen and configuration management for HelpMeSign
 """
 
 import getpass
@@ -9,27 +8,65 @@ import hmac
 import json
 import os
 import platform
-import sys
+import subprocess
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QFont, QPixmap
-from PySide6.QtWidgets import (
-    QDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QPushButton,
-    QSizePolicy,
-    QVBoxLayout,
-)
+if TYPE_CHECKING:
+    from PySide6.QtCore import Qt, QTimer, Signal
+    from PySide6.QtGui import QFont, QPixmap
+    from PySide6.QtWidgets import (
+        QDialog,
+        QFrame,
+        QHBoxLayout,
+        QLabel,
+        QMessageBox,
+        QPushButton,
+        QSizePolicy,
+        QVBoxLayout,
+    )
 
-from ..utils.font_manager import get_button_font, get_heading_font, get_title_font
+# Try to import PySide6 components
+try:
+    from PySide6.QtCore import Qt, QTimer, Signal
+    from PySide6.QtGui import QFont, QPixmap
+    from PySide6.QtWidgets import (
+        QDialog,
+        QFrame,
+        QHBoxLayout,
+        QLabel,
+        QMessageBox,
+        QPushButton,
+        QSizePolicy,
+        QVBoxLayout,
+    )
+
+    PYSIDE6_AVAILABLE = True
+except ImportError:
+    PYSIDE6_AVAILABLE = False
+
 from ..utils.language_manager import get_dict, get_list, get_text
 from ..utils.logger import get_logger
+
+# Conditional font manager import
+try:
+    from ..utils.font_manager import get_button_font, get_heading_font, get_title_font
+
+    FONT_MANAGER_AVAILABLE = True
+except ImportError:
+    FONT_MANAGER_AVAILABLE = False
+
+    # Create dummy functions with proper return types
+    def get_button_font() -> Union[QFont, None]:  # type: ignore
+        return None
+
+    def get_heading_font() -> Union[QFont, None]:  # type: ignore
+        return None
+
+    def get_title_font() -> Union[QFont, None]:  # type: ignore
+        return None
 
 
 class StartupScreen(QDialog):
@@ -39,6 +76,9 @@ class StartupScreen(QDialog):
     choice_made = Signal(str)
 
     def __init__(self, parent=None):
+        if not PYSIDE6_AVAILABLE:
+            raise ImportError("PySide6 is required for StartupScreen")
+
         super().__init__(parent)
         self.logger = get_logger("helpmesign.startup")
         self.logger.info("Initializing startup screen")
@@ -268,6 +308,7 @@ class SecureConfigManager:
         self.config_file = self.config_dir / "user_config.secure"
         self.environment = environment.lower()
         self.logger = get_logger("helpmesign.config")
+        self._saving_settings: bool = False
 
         # Ensure config directory exists with secure permissions
         self.config_dir.mkdir(mode=0o700, exist_ok=True)
@@ -310,8 +351,6 @@ class SecureConfigManager:
     def _get_mac_address(self) -> str:
         """Get the primary MAC address of the machine"""
         try:
-            import uuid
-
             # Get the MAC address as a hex string
             mac = uuid.getnode()
             mac_address = ":".join(
@@ -428,11 +467,17 @@ class SecureConfigManager:
     def set_user_mode(self, mode: str) -> bool:
         """Set user's preferred mode"""
         try:
+            # Check if we're already in a save operation to prevent infinite loops
+            if hasattr(self, "_saving_settings") and self._saving_settings:
+                self.logger.warning("Already saving settings, skipping mode save")
+                return True
+
             config = self.load_config() or {}
             config["user_mode"] = mode
+            config["last_updated"] = self.get_timestamp()
             return self.save_config(config)
         except Exception as e:
-            self.logger.error(f"Could not set user mode: {e}")
+            self.logger.error(f"Could not save user mode: {e}")
             return False
 
     def get_theme(self) -> str:
@@ -449,11 +494,17 @@ class SecureConfigManager:
     def set_theme(self, theme: str) -> bool:
         """Set user's preferred theme"""
         try:
+            # Check if we're already in a save operation to prevent infinite loops
+            if hasattr(self, "_saving_settings") and self._saving_settings:
+                self.logger.warning("Already saving settings, skipping theme save")
+                return True
+
             config = self.load_config() or {}
             config["theme"] = theme
+            config["last_updated"] = self.get_timestamp()
             return self.save_config(config)
         except Exception as e:
-            self.logger.error(f"Could not set theme: {e}")
+            self.logger.error(f"Could not save theme: {e}")
             return False
 
     def get_font_size(self) -> int:
@@ -470,11 +521,17 @@ class SecureConfigManager:
     def set_font_size(self, font_size: int) -> bool:
         """Set user's preferred font size"""
         try:
+            # Check if we're already in a save operation to prevent infinite loops
+            if hasattr(self, "_saving_settings") and self._saving_settings:
+                self.logger.warning("Already saving settings, skipping font size save")
+                return True
+
             config = self.load_config() or {}
             config["font_size"] = font_size
+            config["last_updated"] = self.get_timestamp()
             return self.save_config(config)
         except Exception as e:
-            self.logger.error(f"Could not set font size: {e}")
+            self.logger.error(f"Could not save font size: {e}")
             return False
 
     def get_all_settings(self) -> Dict[str, Any]:
@@ -499,11 +556,31 @@ class SecureConfigManager:
     def save_all_settings(self, settings: Dict[str, Any]) -> bool:
         """Save all user settings"""
         try:
-            config = self.load_config() or {}
-            config.update(settings)
-            return self.save_config(config)
+            # Check if we're already in a save operation to prevent infinite loops
+            if hasattr(self, "_saving_settings") and self._saving_settings:
+                self.logger.warning("Already saving settings, skipping recursive call")
+                return True
+
+            self._saving_settings = True
+
+            # Load existing config only if we need to merge with existing settings
+            existing_config = self.load_config() or {}
+
+            # Update with new settings
+            existing_config.update(settings)
+
+            # Save the updated config
+            result = self.save_config(existing_config)
+
+            # Clear the flag
+            self._saving_settings = False
+
+            return result
         except Exception as e:
             self.logger.error(f"Could not save all settings: {e}")
+            # Clear the flag on error
+            if hasattr(self, "_saving_settings"):
+                self._saving_settings = False
             return False
 
     def get_timestamp(self) -> str:
@@ -514,6 +591,11 @@ class SecureConfigManager:
 def show_startup_screen(parent=None) -> Optional[str]:
     """Show startup screen and return user choice"""
     try:
+        if not PYSIDE6_AVAILABLE:
+            logger = get_logger("helpmesign.startup")
+            logger.error("PySide6 is not available, cannot show startup screen")
+            return None
+
         dialog = StartupScreen(parent)
         result = dialog.exec()
 

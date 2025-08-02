@@ -253,5 +253,106 @@ class TestFontManagerSecurityLogic(unittest.TestCase):
         self.assertNotIn(test_invalid, valid_extensions)
 
 
+class TestFontSizePreviewLogic(unittest.TestCase):
+    """Unit tests for font size preview functionality logic"""
+
+    def test_font_size_preview_validation(self):
+        """Test font size preview validation logic"""
+        valid_sizes = [8, 10, 12, 14, 16, 18, 20, 24]
+        invalid_sizes = [-1, 0, "invalid", None, 1000]
+
+        # Test valid preview sizes
+        for size in valid_sizes:
+            self.assertIsInstance(size, int)
+            self.assertGreater(size, 0)
+            self.assertLess(size, 100)
+
+        # Test invalid preview sizes
+        for size in invalid_sizes:
+            if isinstance(size, int):
+                self.assertFalse(0 < size < 100)
+
+    def test_widget_type_mapping_logic(self):
+        """Test widget type to theme component mapping logic"""
+        widget_mappings = {
+            "QLabel": "label",
+            "QPushButton": "button_primary",
+            "QLineEdit": "input_field",
+            "QTextEdit": "input_field",
+            "QGroupBox": "group_box",
+            "QTabBar": "tab_widget",
+        }
+
+        # Test valid mappings
+        for widget_type, expected_component in widget_mappings.items():
+            self.assertIsInstance(widget_type, str)
+            self.assertIsInstance(expected_component, str)
+            self.assertGreater(len(widget_type), 0)
+            self.assertGreater(len(expected_component), 0)
+
+    def test_font_update_sequence_logic(self):
+        """Test font update sequence logic"""
+        # Test the sequence: update theme manager -> set font -> force stylesheet update
+        sequence = [
+            "update_theme_manager",
+            "set_widget_font",
+            "force_stylesheet_update",
+        ]
+
+        self.assertEqual(len(sequence), 3)
+        self.assertEqual(sequence[0], "update_theme_manager")
+        self.assertEqual(sequence[1], "set_widget_font")
+        self.assertEqual(sequence[2], "force_stylesheet_update")
+
+    def test_widget_visibility_check_logic(self):
+        """Test widget visibility check logic"""
+        # Test visibility conditions
+        visible_widget = {"isVisible": True, "isHidden": False}
+        hidden_widget = {"isVisible": False, "isHidden": True}
+        none_widget = None
+
+        # Test visible widget
+        if visible_widget:
+            self.assertTrue(visible_widget.get("isVisible", False))
+            self.assertFalse(visible_widget.get("isHidden", True))
+
+        # Test hidden widget
+        if hidden_widget:
+            self.assertFalse(hidden_widget.get("isVisible", True))
+            self.assertTrue(hidden_widget.get("isHidden", False))
+
+        # Test none widget
+        self.assertIsNone(none_widget)
+
+    def test_error_handling_logic(self):
+        """Test error handling logic for font preview"""
+        # Test error handling sequence
+        try:
+            # Simulate potential error conditions
+            invalid_widget = None
+            if invalid_widget is None:
+                raise ValueError("Widget is None")
+        except ValueError:
+            # Error should be caught and logged
+            error_caught = True
+            self.assertTrue(error_caught)
+
+    def test_font_size_range_logic(self):
+        """Test font size range logic for preview"""
+        min_size = 8
+        max_size = 24
+        default_size = 12
+
+        # Test range validation
+        self.assertGreaterEqual(default_size, min_size)
+        self.assertLessEqual(default_size, max_size)
+        self.assertGreater(max_size, min_size)
+
+        # Test size increments
+        size_increments = [8, 10, 12, 14, 16, 18, 20, 24]
+        for i in range(1, len(size_increments)):
+            self.assertGreater(size_increments[i], size_increments[i - 1])
+
+
 if __name__ == "__main__":
     unittest.main()

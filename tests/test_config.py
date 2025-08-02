@@ -36,7 +36,7 @@ TEST_DATA = {
 }
 
 
-class TestEnvironment:
+class EnvironmentHelper:
     """Test environment setup and teardown utilities"""
 
     def __init__(self):

@@ -6,7 +6,32 @@ Fast checks without auto-fixing - for git hooks
 
 import subprocess
 import sys
+import os
 from pathlib import Path
+
+
+def get_python_executable() -> str:
+    """Get the correct Python executable, preferring virtual environment"""
+    # Check if we're in a virtual environment
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        # We're in a virtual environment
+        return sys.executable
+    
+    # Check for common virtual environment paths
+    project_root = Path(__file__).parent.parent
+    venv_paths = [
+        project_root / "venv" / "bin" / "python",
+        project_root / "venv" / "Scripts" / "python.exe",  # Windows
+        project_root / ".venv" / "bin" / "python",
+        project_root / ".venv" / "Scripts" / "python.exe",  # Windows
+    ]
+    
+    for venv_path in venv_paths:
+        if venv_path.exists():
+            return str(venv_path)
+    
+    # Fall back to system Python
+    return sys.executable
 
 
 def run_check(command: list, name: str) -> bool:
@@ -42,18 +67,19 @@ def main():
         print("❌ Error: Run from project root")
         sys.exit(1)
     
+    python_exe = get_python_executable()
     all_passed = True
     
     # Black check
-    if not run_check([sys.executable, "-m", "black", "--check", "src/", "tests/"], "Black"):
+    if not run_check([python_exe, "-m", "black", "--check", "src/", "tests/"], "Black"):
         all_passed = False
     
     # isort check
-    if not run_check([sys.executable, "-m", "isort", "--check-only", "src/", "tests/"], "isort"):
+    if not run_check([python_exe, "-m", "isort", "--check-only", "src/", "tests/"], "isort"):
         all_passed = False
     
     # mypy check
-    if not run_check([sys.executable, "-m", "mypy", "src/"], "mypy"):
+    if not run_check([python_exe, "-m", "mypy", "src/"], "mypy"):
         all_passed = False
     
     if all_passed:

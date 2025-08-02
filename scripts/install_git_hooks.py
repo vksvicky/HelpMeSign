@@ -35,8 +35,17 @@ def install_pre_commit_hook():
 
 echo "🔍 Running pre-commit checks..."
 
+# Activate virtual environment if it exists
+if [ -d "venv" ]; then
+    echo "📦 Activating virtual environment..."
+    source venv/bin/activate
+elif [ -d ".venv" ]; then
+    echo "📦 Activating virtual environment..."
+    source .venv/bin/activate
+fi
+
 # Run the quick check script
-python "{script_path.absolute()}"
+python3 "{script_path.absolute()}"
 
 # Exit with the script's exit code
 exit $?
