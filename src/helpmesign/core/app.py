@@ -70,6 +70,7 @@ class HelpMeSignApp:
         # Add a small delay to ensure all components are fully initialized
         # before applying font settings
         from PySide6.QtCore import QTimer
+
         QTimer.singleShot(100, self._delayed_font_application)
 
         # Set up application shutdown handling
@@ -81,12 +82,13 @@ class HelpMeSignApp:
         """Apply font settings after a delay to ensure all components are initialized"""
         try:
             from .startup import get_font_size
+
             font_size = get_font_size(self.environment)
             self.logger.debug(f"Delayed font application for size: {font_size}px")
-            
+
             # Re-apply font size to ensure all components are updated
             self._apply_font_size_setting(font_size)
-            
+
         except Exception as e:
             self.logger.error(f"Error in delayed font application: {e}")
 
@@ -108,12 +110,12 @@ class HelpMeSignApp:
         try:
             # Set shutdown flag to prevent further operations
             self._shutting_down = True
-            
+
             self.logger.info("Application shutting down, cleaning up resources...")
 
             # Disconnect all signals to prevent callbacks during shutdown
             try:
-                if hasattr(self, 'main_window') and self.main_window:
+                if hasattr(self, "main_window") and self.main_window:
                     self.main_window.process_requested.disconnect()
                     self.main_window.clear_requested.disconnect()
                     self.main_window.settings_requested.disconnect()
@@ -344,7 +346,8 @@ class HelpMeSignApp:
         """Update the UI to reflect the current mode"""
         try:
             self.main_window.set_mode(mode)
-            self.main_window.set_status(f"Mode: {mode}")
+            # Don't include mode in status - StatusBar handles this automatically
+            self.main_window.set_status(get_text("ui.status.default"))
             self.logger.info(f"UI updated for mode: {mode}")
         except Exception as e:
             self.logger.error(f"Error updating UI for mode: {e}")
@@ -440,7 +443,7 @@ class HelpMeSignApp:
         """Apply font size setting to the main window using centralized system"""
         try:
             # Check if app is shutting down
-            if hasattr(self, '_shutting_down') and self._shutting_down:
+            if hasattr(self, "_shutting_down") and self._shutting_down:
                 self.logger.debug("App shutting down, skipping font size application")
                 return
 
@@ -461,6 +464,7 @@ class HelpMeSignApp:
 
             # Force a small delay to ensure all components are updated
             from PySide6.QtCore import QCoreApplication
+
             QCoreApplication.processEvents()
 
             self.logger.info(f"Font size applied to main window: {font_size}px")
@@ -471,13 +475,15 @@ class HelpMeSignApp:
         """Apply font size directly to specific UI components for immediate effect"""
         try:
             # Check if app is shutting down
-            if hasattr(self, '_shutting_down') and self._shutting_down:
+            if hasattr(self, "_shutting_down") and self._shutting_down:
                 self.logger.debug("App shutting down, skipping direct font application")
                 return
 
             # Check if main window is still valid
-            if not hasattr(self, 'main_window') or self.main_window is None:
-                self.logger.debug("Main window not available, skipping direct font application")
+            if not hasattr(self, "main_window") or self.main_window is None:
+                self.logger.debug(
+                    "Main window not available, skipping direct font application"
+                )
                 return
 
             from PySide6.QtGui import QFont
@@ -521,7 +527,9 @@ class HelpMeSignApp:
             self.main_window.update()
             self.main_window.repaint()
 
-            self.logger.debug(f"Direct font size application completed for {font_size}px")
+            self.logger.debug(
+                f"Direct font size application completed for {font_size}px"
+            )
 
         except Exception as e:
             self.logger.error(f"Error applying font size directly: {e}")

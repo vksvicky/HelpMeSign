@@ -179,6 +179,7 @@ class StatusBar(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.current_mode = get_text("modes.sign_translate.name")
         self.setup_ui()
 
     def setup_ui(self):
@@ -187,23 +188,19 @@ class StatusBar(QFrame):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
 
-        # Status label
+        # Status label (will show both status and mode)
         self.status_label = QLabel(get_text("ui.status.default"))
         self.status_label.setFont(get_small_font())
         layout.addWidget(self.status_label)
 
-        layout.addStretch()
-
-        # Mode label
-        self.mode_label = QLabel(
-            f"{get_text('ui.status.mode_prefix')}{get_text('modes.sign_translate.name')}"
-        )
-        self.mode_label.setFont(get_small_font())
-        layout.addWidget(self.mode_label)
+        # Remove the separate mode label - mode will be shown in status
 
     def set_status(self, message: str) -> None:
         """Set status message"""
-        self.status_label.setText(message)
+        # Show mode and status together on the left
+        mode_text = f"{get_text('ui.status.mode_prefix')}{self.current_mode}"
+        full_message = f"{mode_text} | {message}"
+        self.status_label.setText(full_message)
 
     def get_status(self) -> str:
         """Get current status message"""
@@ -211,7 +208,15 @@ class StatusBar(QFrame):
 
     def set_mode(self, mode: str) -> None:
         """Set mode display"""
-        self.mode_label.setText(f"{get_text('ui.status.mode_prefix')}{mode}")
+        self.current_mode = mode
+        # Update the status to show the new mode
+        current_status = self.get_status()
+        # Extract just the status part (after the mode)
+        if " | " in current_status:
+            status_part = current_status.split(" | ", 1)[1]
+        else:
+            status_part = get_text("ui.status.default")
+        self.set_status(status_part)
 
 
 class MainWindow(QMainWindow):
@@ -229,9 +234,10 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self.setup_menu()
         self.setup_shortcuts()
-        
+
         # Initialize logger
         from ..utils.logger import get_logger
+
         self.logger = get_logger("helpmesign.main_window")
 
     def setup_ui(self):
@@ -411,12 +417,12 @@ class MainWindow(QMainWindow):
                 if label:
                     label.setFont(get_label_font())
                     self.logger.debug("Updated text input frame label font")
-                
+
                 # Update text input
                 if hasattr(self.text_input_frame, "text_input"):
                     self.text_input_frame.text_input.setFont(get_input_font())
                     self.logger.debug("Updated text input font")
-                
+
                 # Update buttons
                 if hasattr(self.text_input_frame, "process_button"):
                     self.text_input_frame.process_button.setFont(get_button_font())
@@ -432,7 +438,7 @@ class MainWindow(QMainWindow):
                 if label:
                     label.setFont(get_label_font())
                     self.logger.debug("Updated output frame label font")
-                
+
                 # Update text output
                 if hasattr(self.output_frame, "text_output"):
                     self.output_frame.text_output.setFont(get_body_font())
@@ -457,10 +463,11 @@ class MainWindow(QMainWindow):
             # Force refresh
             self.update()
             self.repaint()
-            
+
             self.logger.debug("MainWindow fonts updated successfully")
 
         except Exception as e:
             # Log error but don't crash
             import logging
+
             logging.error(f"Error updating fonts: {e}")

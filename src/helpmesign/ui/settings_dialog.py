@@ -182,7 +182,9 @@ class FontSizeSelector(QWidget):
         # Draw font size options
         for i, size in enumerate(self.sizes):
             x = i * item_width
-            item_rect = QRect(x + 3, 3, item_width - 6, item_height)  # Increased margins
+            item_rect = QRect(
+                x + 3, 3, item_width - 6, item_height
+            )  # Increased margins
 
             # Determine colors based on state
             if size == self.current_size:
@@ -220,7 +222,9 @@ class FontSizeSelector(QWidget):
             painter.setPen(QColor(text_color))
 
             size_text = f"{size}px"
-            label_rect = QRect(x + 3, item_height + 6, item_width - 6, 20)  # Increased height
+            label_rect = QRect(
+                x + 3, item_height + 6, item_width - 6, 20
+            )  # Increased height
             painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, size_text)
 
     def mousePressEvent(self, event):
@@ -580,7 +584,7 @@ class SettingsDialog(QDialog):
         self.tab_widget = QTabWidget()
         self.tab_widget.addTab(self.create_general_tab(), "General")
         self.tab_widget.addTab(self.create_appearance_tab(), "Appearance")
-        
+
         # Tab bar styling will be applied after settings are loaded
         content_layout.addWidget(self.tab_widget)
 
@@ -948,7 +952,9 @@ class SettingsDialog(QDialog):
         # Font size selector (replaces slider)
         self.font_size_selector = FontSizeSelector()
         self.font_size_selector.set_size(12)  # Default size
-        self.font_size_selector.setFixedHeight(60)  # Increased height for better visibility
+        self.font_size_selector.setFixedHeight(
+            60
+        )  # Increased height for better visibility
         font_layout.addWidget(self.font_size_selector)
 
         # Connect theme control for real-time preview
@@ -1227,7 +1233,9 @@ class SettingsDialog(QDialog):
                 return
 
             if hasattr(self, "_save_call_depth") and self._save_call_depth >= 3:
-                self.logger.error("Save call depth too high (3) - preventing infinite loop")
+                self.logger.error(
+                    "Save call depth too high (3) - preventing infinite loop"
+                )
                 return
 
             # Set flags to prevent loops
@@ -1260,11 +1268,12 @@ class SettingsDialog(QDialog):
                 self.settings_applied.emit(new_settings["user_mode"])
 
                 self.logger.info(f"Settings saved successfully: {new_settings}")
-                
+
                 # Close dialog after a small delay to ensure save completes
                 from PySide6.QtCore import QTimer
+
                 QTimer.singleShot(100, self._close_dialog_after_save)
-                
+
             else:
                 from PySide6.QtWidgets import QMessageBox
 
@@ -1380,11 +1389,11 @@ class SettingsDialog(QDialog):
 
             # Apply settings (this will save and close)
             self.apply_settings()
-            
+
             # Ensure dialog closes even if apply_settings doesn't call accept
             if not self.isHidden():
                 super().accept()
-                
+
         except Exception as e:
             self.logger.error(f"Error in accept: {e}")
             super().accept()
@@ -1448,7 +1457,7 @@ class SettingsDialog(QDialog):
 
             # Force the font size selector to update its visual appearance
             self._update_font_size_selector_visual(font_size)
-            
+
             # Apply tab bar styling for the new font size
             self._apply_tab_bar_styling(font_size)
 
@@ -1645,27 +1654,29 @@ class SettingsDialog(QDialog):
             # Base size for font size 12
             base_width = 700
             base_height = 550
-            
+
             # Calculate size multiplier based on font size
             # Font sizes: 10, 12, 14, 16, 18, 20, 22, 24, 26, 28
             size_multiplier = font_size / 12.0
-            
+
             # Apply multiplier with reasonable bounds
             new_width = int(base_width * size_multiplier)
             new_height = int(base_height * size_multiplier)
-            
+
             # Ensure minimum and maximum sizes
             new_width = max(600, min(new_width, 1200))
             new_height = max(460, min(new_height, 900))
-            
+
             # Resize the dialog
             self.resize(new_width, new_height)
-            
+
             # Ensure the dialog stays on screen
             self._ensure_dialog_on_screen()
-            
-            self.logger.debug(f"Dialog resized to {new_width}x{new_height} for font size {font_size}")
-            
+
+            self.logger.debug(
+                f"Dialog resized to {new_width}x{new_height} for font size {font_size}"
+            )
+
         except Exception as e:
             self.logger.error(f"Error adjusting dialog size: {e}")
 
@@ -1673,36 +1684,36 @@ class SettingsDialog(QDialog):
         """Ensure the dialog stays within screen bounds"""
         try:
             from PySide6.QtWidgets import QApplication
-            
+
             # Get screen geometry
             screen = QApplication.primaryScreen()
             screen_geometry = screen.geometry()
-            
+
             # Get current dialog geometry
             dialog_geometry = self.geometry()
-            
+
             # Check if dialog is outside screen bounds
             if dialog_geometry.right() > screen_geometry.right():
                 # Move dialog left
                 new_x = screen_geometry.right() - dialog_geometry.width()
                 dialog_geometry.moveLeft(new_x)
-                
+
             if dialog_geometry.bottom() > screen_geometry.bottom():
                 # Move dialog up
                 new_y = screen_geometry.bottom() - dialog_geometry.height()
                 dialog_geometry.moveTop(new_y)
-                
+
             if dialog_geometry.left() < screen_geometry.left():
                 # Move dialog right
                 dialog_geometry.moveLeft(screen_geometry.left())
-                
+
             if dialog_geometry.top() < screen_geometry.top():
                 # Move dialog down
                 dialog_geometry.moveTop(screen_geometry.top())
-            
+
             # Apply the adjusted geometry
             self.setGeometry(dialog_geometry)
-            
+
         except Exception as e:
             self.logger.error(f"Error ensuring dialog on screen: {e}")
 
@@ -1769,10 +1780,10 @@ class SettingsDialog(QDialog):
                         if hasattr(widget, "tabBar"):
                             tab_bar = widget.tabBar()
                             tab_bar.setFont(new_font)
-                            
+
                             # Use the new tab bar styling method
                             self._apply_tab_bar_styling(font_size)
-                            
+
                             theme_manager.force_font_size_update(tab_bar, "tab_widget")
                             updated_count += 1
                             self.logger.debug(
@@ -1781,10 +1792,10 @@ class SettingsDialog(QDialog):
                     elif isinstance(widget, QTabBar):
                         # Direct tab bar widgets
                         widget.setFont(new_font)
-                        
+
                         # Use the new tab bar styling method
                         self._apply_tab_bar_styling(font_size)
-                        
+
                         theme_manager.force_font_size_update(widget, "tab_widget")
                         updated_count += 1
                         self.logger.debug(
@@ -1834,12 +1845,14 @@ class SettingsDialog(QDialog):
 
             # Get current theme for proper colors
             from ..utils.theme_manager import get_theme_manager
+
             theme_manager = get_theme_manager()
             current_theme = theme_manager.get_current_theme()
 
             if current_theme == "Dark":
                 # Dark theme tab bar styling
-                tab_bar.setStyleSheet(f"""
+                tab_bar.setStyleSheet(
+                    f"""
                     QTabBar::tab {{
                         background-color: #374151;
                         color: #d1d5db;
@@ -1857,10 +1870,12 @@ class SettingsDialog(QDialog):
                     QTabBar::tab:hover {{
                         background-color: #4b5563;
                     }}
-                """)
+                """
+                )
             else:
                 # Light theme tab bar styling
-                tab_bar.setStyleSheet(f"""
+                tab_bar.setStyleSheet(
+                    f"""
                     QTabBar::tab {{
                         background-color: #f3f4f6;
                         color: #374151;
@@ -1878,10 +1893,11 @@ class SettingsDialog(QDialog):
                     QTabBar::tab:hover {{
                         background-color: #e5e7eb;
                     }}
-                """)
-                
+                """
+                )
+
             self.logger.debug(f"Applied tab bar styling for font size {font_size}px")
-            
+
         except Exception as e:
             self.logger.error(f"Error applying tab bar styling: {e}")
 
@@ -1930,8 +1946,8 @@ class SettingsDialog(QDialog):
                 QLabel,
                 QLineEdit,
                 QPushButton,
-                QTextEdit,
                 QTabBar,
+                QTextEdit,
                 QWidget,
             )
 
@@ -1956,7 +1972,9 @@ class SettingsDialog(QDialog):
                         continue
 
                     if widget is None or not widget.isVisible():
-                        self.logger.debug(f"Skipping invisible widget: {widget.__class__.__name__}")
+                        self.logger.debug(
+                            f"Skipping invisible widget: {widget.__class__.__name__}"
+                        )
                         continue
 
                     # Update font for specific widget types that should show font size changes
@@ -1969,7 +1987,9 @@ class SettingsDialog(QDialog):
                         elif isinstance(widget, QLineEdit):
                             theme_manager.force_font_size_update(widget, "input_field")
                         elif isinstance(widget, QPushButton):
-                            theme_manager.force_font_size_update(widget, "button_primary")
+                            theme_manager.force_font_size_update(
+                                widget, "button_primary"
+                            )
                         elif isinstance(widget, QTextEdit):
                             theme_manager.force_font_size_update(widget, "input_field")
                         updated_count += 1
@@ -1984,7 +2004,9 @@ class SettingsDialog(QDialog):
                     )
                     continue
 
-            self.logger.debug(f"Main window direct font updates applied to {updated_count} widgets")
+            self.logger.debug(
+                f"Main window direct font updates applied to {updated_count} widgets"
+            )
 
         except Exception as e:
             self.logger.error(f"Error updating main window fonts directly: {e}")

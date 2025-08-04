@@ -113,7 +113,9 @@ class FontManager:
         """Get font for subheadings"""
         # Use current font size from theme manager with subheading adjustment
         current_size = self._get_current_font_size()
-        subheading_size = min(18, current_size + 1)  # Subheading is slightly larger than base
+        subheading_size = min(
+            18, current_size + 1
+        )  # Subheading is slightly larger than base
         return self.get_font("Roboto", subheading_size, QFont.Bold)  # type: ignore
 
     def get_body_font(self) -> QFont:
@@ -157,6 +159,7 @@ class FontManager:
         """Get the current font size from the theme manager"""
         try:
             from .theme_manager import get_font_size
+
             return get_font_size()
         except Exception:
             # Fallback to default size if theme manager is not available
