@@ -18,6 +18,7 @@ from ..utils.logger import (
 )
 from ..utils.resource_manager import ResourceManager
 from ..utils.theme_manager import apply_theme, get_theme_manager
+from ..modes.mode_manager import ModeManager
 from .startup import (
     SecureConfigManager,
     get_user_mode,
@@ -56,6 +57,10 @@ class HelpMeSignApp:
         # Create main window
         self.main_window = MainWindow(title=f"HelpMeSign ({self.environment.upper()})")
         self.logger.debug("Main window created")
+
+        # Initialize mode manager
+        self.mode_manager = ModeManager(self.main_window, self.environment)
+        self.logger.debug("Mode manager initialized")
 
         # Set up application
         self.setup_application()
@@ -158,16 +163,42 @@ class HelpMeSignApp:
         self.main_window.focus_input()
 
     def setup_event_handlers(self) -> None:
-        """Set up event handlers for UI components"""
-        # Connect text processing signals
-        self.main_window.process_requested.connect(self.process_text)
-        self.main_window.clear_requested.connect(self.clear_text)
+        """Set up event handlers for the main window"""
+        try:
+            # Connect main window signals to mode manager
+            self.main_window.process_requested.connect(self._on_process_requested)
+            self.main_window.clear_requested.connect(self._on_clear_requested)
+            self.main_window.settings_requested.connect(self.show_settings)
+            
+            self.logger.debug("Event handlers set up successfully")
+        except Exception as e:
+            self.logger.error(f"Error setting up event handlers: {e}")
 
-        # Connect settings signal
-        self.main_window.settings_requested.connect(self.show_settings)
+    def _on_process_requested(self) -> None:
+        """Handle process button click using current mode"""
+        try:
+            input_text = self.main_window.get_text_input()
+            output_text = self.mode_manager.process_text(input_text)
+            self.main_window.set_text_output(output_text)
+            
+            # Update status based on current mode
+            current_mode_name = self.mode_manager.get_current_mode_name()
+            status_message = f"Processed text using {current_mode_name}"
+            self.main_window.set_status(status_message)
+            
+        except Exception as e:
+            self.logger.error(f"Error processing text: {e}")
+            self.main_window.set_text_output(f"Error: {e}")
+            self.main_window.set_status("Error occurred")
 
-        # Set initial mode
-        self.update_ui_for_mode(get_text("modes.sign_translate.name"))
+    def _on_clear_requested(self) -> None:
+        """Handle clear button click using current mode"""
+        try:
+            self.mode_manager.clear_content()
+            self.main_window.set_status("Content cleared")
+        except Exception as e:
+            self.logger.error(f"Error clearing content: {e}")
+            self.main_window.set_status("Error clearing content")
 
     def set_app_icon(self) -> None:
         """Set the application icon if available"""
@@ -188,169 +219,75 @@ class HelpMeSignApp:
         except Exception as e:
             self.logger.warning(f"Could not load app icon: {e}")
 
-    def process_text(self) -> None:
-        """Process the input text based on current mode"""
-        try:
-            input_text = self.main_window.get_input_text()  # type: ignore
-
-            if not input_text.strip():
-                self.main_window.set_output_text(get_text("ui.output.empty_message"))  # type: ignore
-                return
-
-            # Process based on current mode
-            if self.user_mode == get_text("modes.sign_translate.name"):
-                # Convert text to sign language representation
-                output = self.convert_to_sign_language(input_text)
-                self.main_window.set_output_text(output)  # type: ignore
-                self.main_window.set_status(
-                    f"{get_text('ui.status.converted_prefix')}{input_text}{get_text('ui.status.converted_suffix')}"
-                )
-
-            elif self.user_mode == get_text("modes.learn.name"):
-                # Educational mode - show sign language information
-                output = self.get_sign_language_info(input_text)
-                self.main_window.set_output_text(output)  # type: ignore
-                self.main_window.set_status(
-                    f"{get_text('ui.status.learning_prefix')}{input_text}{get_text('ui.status.learning_suffix')}"
-                )
-
-            else:
-                # Default to Sign & Translate
-                output = self.convert_to_sign_language(input_text)
-                self.main_window.set_output_text(output)  # type: ignore
-                self.main_window.set_status(
-                    f"{get_text('ui.status.converted_prefix')}{input_text}{get_text('ui.status.converted_suffix')}"
-                )
-
-        except Exception as e:
-            self.logger.error(f"Error processing text: {e}")
-            self.main_window.set_output_text(f"{get_text('ui.status.error_prefix')}{e}")  # type: ignore
-
-    def convert_to_sign_language(self, text: str) -> str:
-        """Convert text to sign language representation"""
-        # This is a placeholder implementation
-        # In a real application, this would use a sign language translation service
-        words = text.lower().split()
-        sign_representations = []
-
-        for word in words:
-            # Simple mapping for demonstration
-            if word in ["hello", "hi"]:
-                sign_representations.append(get_text("sign_language.conversion.hello"))
-            elif word in ["thank", "thanks", "thank you"]:
-                sign_representations.append(
-                    get_text("sign_language.conversion.thank_you")
-                )
-            elif word in ["yes"]:
-                sign_representations.append(get_text("sign_language.conversion.yes"))
-            elif word in ["no"]:
-                sign_representations.append(get_text("sign_language.conversion.no"))
-            elif word in ["please"]:
-                sign_representations.append(get_text("sign_language.conversion.please"))
-            elif word in ["sorry"]:
-                sign_representations.append(get_text("sign_language.conversion.sorry"))
-            else:
-                sign_representations.append(
-                    f"{get_text('sign_language.conversion.spell_prefix')}{' '.join(word.upper())}"
-                )
-
-        return "\n".join(sign_representations)
-
-    def get_sign_language_info(self, text: str) -> str:
-        """Get educational information about sign language"""
-        # This is a placeholder implementation
-        # In a real application, this would provide educational content
-        basic_signs = get_dict("sign_language.learning.basic_signs")
-        tips = get_list("sign_language.learning.tips")
-
-        result = f"{get_text('sign_language.learning.title_prefix')}{text}{get_text('sign_language.learning.title_suffix')}\n\n"
-        result += f"{get_text('sign_language.learning.basic_signs_title')}\n"
-
-        for sign_name, sign_description in basic_signs.items():
-            result += f"• {sign_description}\n"
-
-        result += f"\n{get_text('sign_language.learning.tips_title')}\n"
-        for tip in tips:
-            result += f"• {tip}\n"
-
-        result += f"\n{get_text('sign_language.learning.practice_prefix')}{text}{get_text('sign_language.learning.practice_suffix')}"
-
-        return result
-
-    def clear_text(self) -> None:
-        """Clear input and output text"""
-        self.main_window.clear_input()  # type: ignore
-        self.main_window.clear_output()  # type: ignore
-        self.main_window.set_status(get_text("ui.status.cleared"))
-
     def get_config(self) -> Dict[str, Any]:
         """Get the current configuration"""
         return self.config
 
     def save_config(self, config_data: Dict[str, Any]) -> bool:
-        """Save configuration"""
+        """Save configuration data"""
         try:
-            self.config.update(config_data)
-            return self.resource_manager.save_config(self.config)
+            self.config = config_data
+            return True
         except Exception as e:
             self.logger.error(f"Error saving config: {e}")
             return False
 
     def check_user_mode(self) -> None:
-        """Check if user mode is set and show startup screen if needed"""
+        """Check if user mode is set and handle accordingly"""
         try:
-            # Try to get user mode with environment-specific config
-            mode = get_user_mode(self.environment)
-
-            if mode:
-                self.user_mode = mode
-                self.update_ui_for_mode(mode)
-                self.logger.info(f"User mode loaded: {mode}")
+            # Get saved user mode
+            saved_mode = get_user_mode(self.environment)
+            
+            if saved_mode:
+                # Switch to saved mode using mode manager
+                success = self.mode_manager.switch_mode_by_display_name(saved_mode)
+                if success:
+                    self.user_mode = saved_mode
+                    self.logger.info(f"Switched to saved mode: {saved_mode}")
+                else:
+                    # Fallback to default mode
+                    self.mode_manager.switch_mode("sign_translate")
+                    self.user_mode = get_text("modes.sign_translate.name")
+                    self.logger.warning(f"Failed to switch to saved mode {saved_mode}, using default")
             else:
-                # No user mode set, show startup screen
-                self.logger.info("No user mode set, showing startup screen")
+                # No saved mode, show startup screen
                 self.show_startup_screen()
-
+                
         except Exception as e:
-            self.logger.warning(f"Error checking user mode: {e}")
-            # Show startup screen on error
-            self.show_startup_screen()
+            self.logger.error(f"Error checking user mode: {e}")
+            # Fallback to default mode
+            self.mode_manager.switch_mode("sign_translate")
+            self.user_mode = get_text("modes.sign_translate.name")
 
     def show_startup_screen(self) -> None:
         """Show the startup screen for mode selection"""
         try:
-            self.logger.info("Showing startup screen")
-
-            # Show startup screen
-            mode = show_startup_screen()
-
-            if mode:
-                self.user_mode = mode
-                set_user_mode(mode, self.environment)
-                self.update_ui_for_mode(mode)
-                self.logger.info(f"User mode set from startup screen: {mode}")
+            # Show startup screen and get selected mode
+            selected_mode = show_startup_screen(self.environment)
+            
+            if selected_mode:
+                # Switch to selected mode using mode manager
+                success = self.mode_manager.switch_mode_by_display_name(selected_mode)
+                if success:
+                    self.user_mode = selected_mode
+                    set_user_mode(selected_mode, self.environment)
+                    self.logger.info(f"User selected mode: {selected_mode}")
+                else:
+                    # Fallback to default mode
+                    self.mode_manager.switch_mode("sign_translate")
+                    self.user_mode = get_text("modes.sign_translate.name")
+                    self.logger.warning(f"Failed to switch to selected mode {selected_mode}, using default")
             else:
-                # Default to Sign & Translate if no selection
+                # No mode selected, use default
+                self.mode_manager.switch_mode("sign_translate")
                 self.user_mode = get_text("modes.sign_translate.name")
-                set_user_mode(self.user_mode, self.environment)
-                self.update_ui_for_mode(self.user_mode)
-                self.logger.info("No mode selected, using default: Sign & Translate")
-
+                self.logger.info("No mode selected, using default")
+                
         except Exception as e:
             self.logger.error(f"Error showing startup screen: {e}")
-            # Default to Sign & Translate on error
+            # Fallback to default mode
+            self.mode_manager.switch_mode("sign_translate")
             self.user_mode = get_text("modes.sign_translate.name")
-            self.update_ui_for_mode(self.user_mode)
-
-    def update_ui_for_mode(self, mode: str) -> None:
-        """Update the UI to reflect the current mode"""
-        try:
-            self.main_window.set_mode(mode)
-            # Don't include mode in status - StatusBar handles this automatically
-            self.main_window.set_status(get_text("ui.status.default"))
-            self.logger.info(f"UI updated for mode: {mode}")
-        except Exception as e:
-            self.logger.error(f"Error updating UI for mode: {e}")
 
     def show_settings(self) -> None:
         """Show the settings dialog"""
@@ -382,28 +319,31 @@ class HelpMeSignApp:
             log_exception(self.logger, "show_settings")
 
     def handle_settings_changed(self, mode: str) -> None:
-        """Handle all settings changes from settings dialog"""
+        """Handle settings changes from the settings dialog"""
         try:
-            # Check if we're already in the process of applying settings to prevent loops
-            if (
-                hasattr(self, "_settings_save_in_progress")
-                and self._settings_save_in_progress
-            ):
-                self.logger.debug(
-                    "Settings save in progress, skipping handle_settings_changed"
-                )
+            # Prevent infinite loops during settings save
+            if hasattr(self, "_settings_save_in_progress") and self._settings_save_in_progress:
+                self.logger.debug("Settings save in progress, skipping mode update")
                 return
 
-            # Update user mode
-            self.user_mode = mode
-            self.update_ui_for_mode(mode)
+            self._settings_save_in_progress = True
 
-            # Apply theme and font size changes
+            # Switch to new mode using mode manager
+            success = self.mode_manager.switch_mode_by_display_name(mode)
+            if success:
+                self.user_mode = mode
+                self.logger.info(f"Switched to mode: {mode}")
+            else:
+                self.logger.warning(f"Failed to switch to mode: {mode}")
+
+            # Apply theme and font settings
             self.apply_theme_and_font_settings()
 
-            self.logger.info(f"Settings applied: mode={mode}")
+            self._settings_save_in_progress = False
+
         except Exception as e:
-            self.logger.error(f"Error applying settings: {e}")
+            self.logger.error(f"Error handling settings change: {e}")
+            self._settings_save_in_progress = False
 
     def apply_theme_and_font_settings(self) -> None:
         """Apply theme and font size settings to the UI"""
@@ -660,12 +600,11 @@ class HelpMeSignApp:
             self.logger.error(f"Error updating buttons theme: {e}")
 
     def set_user_mode_from_settings(self, mode: str) -> None:
-        """Handle mode change from settings dialog"""
+        """Set user mode from settings dialog"""
         try:
             self.user_mode = mode
             set_user_mode(mode, self.environment)
-            self.update_ui_for_mode(mode)
-            self.logger.info(f"User mode changed from settings: {mode}")
+            self.logger.info(f"User mode set from settings: {mode}")
         except Exception as e:
             self.logger.error(f"Error setting user mode from settings: {e}")
 
