@@ -3,13 +3,13 @@ Learn Sign Language mode implementation
 Provides educational content and learning tools for sign language
 """
 
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout
 
-from ..base_mode import BaseMode
 from ...utils.language_manager import get_text
+from ..base_mode import BaseMode
 
 
 class LearnMode(BaseMode):
@@ -17,8 +17,8 @@ class LearnMode(BaseMode):
 
     def __init__(self, main_window, environment: str = "dev"):
         super().__init__(main_window, environment)
-        self.learning_progress = {}
-        self.lesson_history = []
+        self.learning_progress: Dict[str, Dict[str, Any]] = {}
+        self.lesson_history: List[Dict[str, Any]] = []
         self.current_lesson = None
 
     def get_mode_name(self) -> str:
@@ -40,7 +40,7 @@ class LearnMode(BaseMode):
         # Connect to main window signals for learning functionality
         if hasattr(self.main_window, "process_requested"):
             self.main_window.process_requested.connect(self._on_learn_requested)
-        
+
         if hasattr(self.main_window, "clear_requested"):
             self.main_window.clear_requested.connect(self._on_clear_requested)
 
@@ -51,13 +51,16 @@ class LearnMode(BaseMode):
 
         # Provide educational content about the input text
         output = self.get_sign_language_info(text)
-        
+
         # Track learning progress
         self.learning_progress[text.lower()] = {
-            "searched_count": self.learning_progress.get(text.lower(), {}).get("searched_count", 0) + 1,
-            "last_searched": "now"  # Could use actual timestamp
+            "searched_count": self.learning_progress.get(text.lower(), {}).get(
+                "searched_count", 0
+            )
+            + 1,
+            "last_searched": "now",  # Could use actual timestamp
         }
-        
+
         return output
 
     def get_sign_language_info(self, text: str) -> str:
@@ -127,11 +130,11 @@ class LearnMode(BaseMode):
             input_text = self.main_window.get_text_input()
             output_text = self.process_text(input_text)
             self.main_window.set_text_output(output_text)
-            
+
             # Update status
             status_message = f"{get_text('ui.status.learning_prefix')}{input_text}{get_text('ui.status.learning_suffix')}"
             self.main_window.set_status(status_message)
-            
+
         except Exception as e:
             error_message = f"{get_text('ui.status.error_prefix')}{e}"
             self.main_window.set_text_output(error_message)
@@ -163,7 +166,7 @@ class LearnMode(BaseMode):
         return {
             "learning_progress_count": len(self.learning_progress),
             "lesson_history_count": len(self.lesson_history),
-            "mode": "learn"
+            "mode": "learn",
         }
 
     def apply_settings(self, settings: Dict[str, Any]) -> None:
@@ -181,4 +184,4 @@ class LearnMode(BaseMode):
     def get_lesson_suggestions(self) -> List[str]:
         """Get suggested lessons based on learning progress"""
         # Could implement AI-based suggestions
-        return ["Basic Greetings", "Common Phrases", "Numbers", "Colors"] 
+        return ["Basic Greetings", "Common Phrases", "Numbers", "Colors"]

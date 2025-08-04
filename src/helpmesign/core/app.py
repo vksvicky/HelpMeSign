@@ -6,6 +6,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QApplication
 
+from ..modes.mode_manager import ModeManager
 from ..ui.components import MainWindow
 from ..ui.settings_dialog import show_settings_dialog
 from ..utils.language_manager import get_dict, get_list, get_text
@@ -18,7 +19,6 @@ from ..utils.logger import (
 )
 from ..utils.resource_manager import ResourceManager
 from ..utils.theme_manager import apply_theme, get_theme_manager
-from ..modes.mode_manager import ModeManager
 from .startup import (
     SecureConfigManager,
     get_user_mode,
@@ -39,6 +39,9 @@ class HelpMeSignApp:
 
         # Add shutdown flag to prevent operations during shutdown
         self._shutting_down = False
+
+        # Add settings save flag to prevent infinite loops
+        self._settings_save_in_progress: bool = False
 
         self.resource_manager = ResourceManager()
 
@@ -169,7 +172,7 @@ class HelpMeSignApp:
             self.main_window.process_requested.connect(self._on_process_requested)
             self.main_window.clear_requested.connect(self._on_clear_requested)
             self.main_window.settings_requested.connect(self.show_settings)
-            
+
             self.logger.debug("Event handlers set up successfully")
         except Exception as e:
             self.logger.error(f"Error setting up event handlers: {e}")
@@ -180,12 +183,12 @@ class HelpMeSignApp:
             input_text = self.main_window.get_text_input()
             output_text = self.mode_manager.process_text(input_text)
             self.main_window.set_text_output(output_text)
-            
+
             # Update status based on current mode
             current_mode_name = self.mode_manager.get_current_mode_name()
             status_message = f"Processed text using {current_mode_name}"
             self.main_window.set_status(status_message)
-            
+
         except Exception as e:
             self.logger.error(f"Error processing text: {e}")
             self.main_window.set_text_output(f"Error: {e}")
@@ -237,7 +240,7 @@ class HelpMeSignApp:
         try:
             # Get saved user mode
             saved_mode = get_user_mode(self.environment)
-            
+
             if saved_mode:
                 # Switch to saved mode using mode manager
                 success = self.mode_manager.switch_mode_by_display_name(saved_mode)
@@ -248,11 +251,13 @@ class HelpMeSignApp:
                     # Fallback to default mode
                     self.mode_manager.switch_mode("sign_translate")
                     self.user_mode = get_text("modes.sign_translate.name")
-                    self.logger.warning(f"Failed to switch to saved mode {saved_mode}, using default")
+                    self.logger.warning(
+                        f"Failed to switch to saved mode {saved_mode}, using default"
+                    )
             else:
                 # No saved mode, show startup screen
                 self.show_startup_screen()
-                
+
         except Exception as e:
             self.logger.error(f"Error checking user mode: {e}")
             # Fallback to default mode
@@ -264,7 +269,7 @@ class HelpMeSignApp:
         try:
             # Show startup screen and get selected mode
             selected_mode = show_startup_screen(self.environment)
-            
+
             if selected_mode:
                 # Switch to selected mode using mode manager
                 success = self.mode_manager.switch_mode_by_display_name(selected_mode)
@@ -276,13 +281,15 @@ class HelpMeSignApp:
                     # Fallback to default mode
                     self.mode_manager.switch_mode("sign_translate")
                     self.user_mode = get_text("modes.sign_translate.name")
-                    self.logger.warning(f"Failed to switch to selected mode {selected_mode}, using default")
+                    self.logger.warning(
+                        f"Failed to switch to selected mode {selected_mode}, using default"
+                    )
             else:
                 # No mode selected, use default
                 self.mode_manager.switch_mode("sign_translate")
                 self.user_mode = get_text("modes.sign_translate.name")
                 self.logger.info("No mode selected, using default")
-                
+
         except Exception as e:
             self.logger.error(f"Error showing startup screen: {e}")
             # Fallback to default mode
@@ -322,7 +329,10 @@ class HelpMeSignApp:
         """Handle settings changes from the settings dialog"""
         try:
             # Prevent infinite loops during settings save
-            if hasattr(self, "_settings_save_in_progress") and self._settings_save_in_progress:
+            if (
+                hasattr(self, "_settings_save_in_progress")
+                and self._settings_save_in_progress
+            ):
                 self.logger.debug("Settings save in progress, skipping mode update")
                 return
 

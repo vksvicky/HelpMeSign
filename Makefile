@@ -1,6 +1,25 @@
 # HelpMeSign Development Makefile
 
-.PHONY: help check format install-hooks test run clean
+.PHONY: help check format install-hooks test test-coverage run clean
+
+# Virtual environment detection and activation
+VENV_PATH := venv
+PYTHON := python3
+VENV_PYTHON := $(VENV_PATH)/bin/python
+VENV_PIP := $(VENV_PATH)/bin/pip
+
+# Check if we're in a virtual environment
+define check_venv
+	@if [ -z "$$VIRTUAL_ENV" ]; then \
+		if [ -d "$(VENV_PATH)" ]; then \
+			echo "🔧 Activating virtual environment..."; \
+			. $(VENV_PATH)/bin/activate; \
+		else \
+			echo "❌ Virtual environment not found. Please run 'make setup' first."; \
+			exit 1; \
+		fi; \
+	fi
+endef
 
 # Default target
 help:
@@ -14,43 +33,72 @@ help:
 	@echo "Development:"
 	@echo "  run        - Run the application in development mode"
 	@echo "  test       - Run all tests"
+	@echo "  test-coverage - Run tests with coverage report"
 	@echo "  clean      - Clean up temporary files"
+	@echo ""
+	@echo "Setup:"
+	@echo "  setup      - Setup development environment"
+	@echo "  install    - Install dependencies"
 	@echo ""
 
 # Code quality checks
 check:
 	@echo "🔍 Running quick code quality checks..."
-	@python3 scripts/quick_check.py
+	$(check_venv)
+	@$(VENV_PYTHON) scripts/quick_check.py
 
 format:
 	@echo "🔧 Running full code quality checks with auto-fixing..."
-	@python3 scripts/pre_commit_check.py
+	$(check_venv)
+	@$(VENV_PYTHON) scripts/pre_commit_check.py
 
 install-hooks:
 	@echo "🔧 Installing git hooks..."
-	@python3 scripts/install_git_hooks.py
+	$(check_venv)
+	@$(VENV_PYTHON) scripts/install_git_hooks.py
 
 # Development commands
 run:
 	@echo "🚀 Starting HelpMeSign application..."
-	@python3 run_app.py --env dev --debug
+	$(check_venv)
+	@$(VENV_PYTHON) run_app.py --env dev --debug
 
 test:
 	@echo "🧪 Running tests..."
-	@python3 -m pytest tests/ -v
+	$(check_venv)
+	@$(VENV_PYTHON) -m pytest tests/ -v
+
+test-coverage:
+	@echo "🧪 Running tests with coverage report..."
+	$(check_venv)
+	@$(VENV_PYTHON) -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml
+	@echo ""
+	@echo "📊 Coverage report generated:"
+	@echo "  - HTML: htmlcov/index.html"
+	@echo "  - XML: coverage.xml"
+	@echo "  - Terminal: See above output"
+
+test-coverage-quick:
+	@echo "🧪 Running tests with quick coverage report..."
+	$(check_venv)
+	@$(VENV_PYTHON) -m pytest tests/ --cov=src --cov-report=term-missing
 
 clean:
 	@echo "🧹 Cleaning up..."
 	@find . -type f -name "*.pyc" -delete
 	@find . -type d -name "__pycache__" -delete
 	@find . -type d -name "*.egg-info" -exec rm -rf {} +
+	@find . -type d -name "htmlcov" -exec rm -rf {} +
+	@find . -type f -name "coverage.xml" -delete
+	@find . -type f -name ".coverage" -delete
 	@echo "✅ Cleanup complete"
 
 # CI/CD commands
 ci-check:
 	@echo "🔍 Running CI checks..."
-	@python3 test_ci_import.py
-	@python3 scripts/quick_check.py
+	$(check_venv)
+	@$(VENV_PYTHON) test_ci_import.py
+	@$(VENV_PYTHON) scripts/quick_check.py
 
 # Build commands (placeholder for future)
 build:
@@ -60,8 +108,13 @@ build:
 # Install dependencies
 install:
 	@echo "📦 Installing dependencies..."
-	@pip install -r requirements.txt
-	@pip install black isort mypy pytest
+	@if [ ! -d "$(VENV_PATH)" ]; then \
+		echo "🔧 Creating virtual environment..."; \
+		$(PYTHON) -m venv $(VENV_PATH); \
+	fi
+	@echo "📦 Installing packages..."
+	@$(VENV_PIP) install -r requirements.txt
+	@$(VENV_PIP) install black isort mypy pytest pytest-cov
 	@echo "✅ Dependencies installed"
 
 # Setup development environment
@@ -71,4 +124,5 @@ setup: install install-hooks
 	@echo "Next steps:"
 	@echo "  make run    - Start the application"
 	@echo "  make check  - Run code quality checks"
-	@echo "  make test   - Run tests" 
+	@echo "  make test   - Run tests"
+	@echo "  make test-coverage - Run tests with coverage report" 

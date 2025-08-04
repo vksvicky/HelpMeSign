@@ -5,10 +5,10 @@ Handles switching between different application modes
 
 from typing import Dict, Optional
 
-from .base_mode import BaseMode
-from .sign_translate.sign_translate_mode import SignTranslateMode
-from .learn.learn_mode import LearnMode
 from ..utils.language_manager import get_text
+from .base_mode import BaseMode
+from .learn.learn_mode import LearnMode
+from .sign_translate.sign_translate_mode import SignTranslateMode
 
 
 class ModeManager:
@@ -17,7 +17,7 @@ class ModeManager:
     def __init__(self, main_window, environment: str = "dev"):
         """
         Initialize the mode manager
-        
+
         Args:
             main_window: Reference to the main application window
             environment: Application environment (dev, prod, etc.)
@@ -26,15 +26,17 @@ class ModeManager:
         self.environment = environment
         self.modes: Dict[str, BaseMode] = {}
         self.current_mode: Optional[BaseMode] = None
-        
+
         self._initialize_modes()
 
     def _initialize_modes(self) -> None:
         """Initialize all available modes"""
         # Create mode instances
-        self.modes["sign_translate"] = SignTranslateMode(self.main_window, self.environment)
+        self.modes["sign_translate"] = SignTranslateMode(
+            self.main_window, self.environment
+        )
         self.modes["learn"] = LearnMode(self.main_window, self.environment)
-        
+
         # Set default mode
         self.current_mode = self.modes["sign_translate"]
 
@@ -55,10 +57,10 @@ class ModeManager:
     def switch_mode(self, mode_name: str) -> bool:
         """
         Switch to a different mode
-        
+
         Args:
             mode_name: Name of the mode to switch to
-            
+
         Returns:
             True if mode switch was successful, False otherwise
         """
@@ -66,17 +68,17 @@ class ModeManager:
             # Validate mode name
             if mode_name not in self.modes:
                 return False
-            
+
             # Deactivate current mode
             if self.current_mode:
                 self.current_mode.deactivate()
-            
+
             # Switch to new mode
             self.current_mode = self.modes[mode_name]
             self.current_mode.activate()
-            
+
             return True
-            
+
         except Exception as e:
             # Log error and return False
             print(f"Error switching to mode {mode_name}: {e}")
@@ -85,10 +87,10 @@ class ModeManager:
     def switch_mode_by_display_name(self, display_name: str) -> bool:
         """
         Switch to a mode by its display name
-        
+
         Args:
             display_name: Display name of the mode (e.g., "Sign & Translate")
-            
+
         Returns:
             True if mode switch was successful, False otherwise
         """
@@ -100,10 +102,10 @@ class ModeManager:
     def process_text(self, text: str) -> str:
         """
         Process text using the current mode
-        
+
         Args:
             text: Input text to process
-            
+
         Returns:
             Processed output from the current mode
         """
@@ -132,4 +134,4 @@ class ModeManager:
         descriptions = {}
         for mode_name, mode in self.modes.items():
             descriptions[mode_name] = mode.get_mode_description()
-        return descriptions 
+        return descriptions

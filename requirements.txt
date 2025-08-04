@@ -6,6 +6,13 @@ coverage>=6.10.1
 requests>=2.25.4
 psutil>=5.8.0
 
+# Code quality and formatting tools
+black==25.1.0
+isort==6.0.1
+mypy==1.17.1
+pytest==8.4.1
+pytest-cov==6.2.1
+
 # Optional dependencies for enhanced functionality
 # Pillow>=9.0.0  # For advanced image processing (commented out as not currently used)
 

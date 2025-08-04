@@ -3,13 +3,13 @@ Sign & Translate mode implementation
 Converts text input to sign language representations
 """
 
-from typing import Any, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from ..base_mode import BaseMode
 from ...utils.language_manager import get_text
+from ..base_mode import BaseMode
 
 
 class SignTranslateMode(BaseMode):
@@ -17,7 +17,7 @@ class SignTranslateMode(BaseMode):
 
     def __init__(self, main_window, environment: str = "dev"):
         super().__init__(main_window, environment)
-        self.conversion_history = []
+        self.conversion_history: List[Dict[str, str]] = []
 
     def get_mode_name(self) -> str:
         """Get the display name for this mode"""
@@ -38,7 +38,7 @@ class SignTranslateMode(BaseMode):
         # Connect to main window signals for text processing
         if hasattr(self.main_window, "process_requested"):
             self.main_window.process_requested.connect(self._on_process_requested)
-        
+
         if hasattr(self.main_window, "clear_requested"):
             self.main_window.clear_requested.connect(self._on_clear_requested)
 
@@ -49,14 +49,16 @@ class SignTranslateMode(BaseMode):
 
         # Convert text to sign language representation
         output = self.convert_to_sign_language(text)
-        
+
         # Add to conversion history
-        self.conversion_history.append({
-            "input": text,
-            "output": output,
-            "timestamp": "now"  # Could use actual timestamp
-        })
-        
+        self.conversion_history.append(
+            {
+                "input": text,
+                "output": output,
+                "timestamp": "now",  # Could use actual timestamp
+            }
+        )
+
         return output
 
     def convert_to_sign_language(self, text: str) -> str:
@@ -92,11 +94,11 @@ class SignTranslateMode(BaseMode):
             input_text = self.main_window.get_text_input()
             output_text = self.process_text(input_text)
             self.main_window.set_text_output(output_text)
-            
+
             # Update status
             status_message = f"{get_text('ui.status.converted_prefix')}{input_text}{get_text('ui.status.converted_suffix')}"
             self.main_window.set_status(status_message)
-            
+
         except Exception as e:
             error_message = f"{get_text('ui.status.error_prefix')}{e}"
             self.main_window.set_text_output(error_message)
@@ -127,7 +129,7 @@ class SignTranslateMode(BaseMode):
         """Get mode-specific settings"""
         return {
             "conversion_history_count": len(self.conversion_history),
-            "mode": "sign_translate"
+            "mode": "sign_translate",
         }
 
     def apply_settings(self, settings: Dict[str, Any]) -> None:
@@ -136,4 +138,4 @@ class SignTranslateMode(BaseMode):
         # - Conversion history limit
         # - Preferred sign language dialect
         # - Output format preferences
-        pass 
+        pass

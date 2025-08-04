@@ -4,7 +4,7 @@ Provides common functionality and interface for all modes
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
@@ -16,7 +16,7 @@ class BaseMode(ABC):
     def __init__(self, main_window, environment: str = "dev"):
         """
         Initialize the mode
-        
+
         Args:
             main_window: Reference to the main application window
             environment: Application environment (dev, prod, etc.)
@@ -76,4 +76,4 @@ class BaseMode(ABC):
 
     def clear_content(self) -> None:
         """Clear all content in this mode"""
-        pass 
+        pass

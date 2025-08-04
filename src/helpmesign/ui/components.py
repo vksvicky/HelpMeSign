@@ -34,6 +34,7 @@ from ..utils.font_manager import (
     get_small_font,
 )
 from ..utils.language_manager import get_dict, get_list, get_text
+from ..utils.logger import get_logger
 
 
 def get_os_shortcuts():
@@ -175,12 +176,13 @@ class OutputFrame(QWidget):
 
 
 class StatusBar(QFrame):
-    """Status bar widget"""
+    """Status bar widget with system resource monitoring"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.current_mode = get_text("modes.sign_translate.name")
         self.setup_ui()
+        self.setup_system_monitor()
 
     def setup_ui(self):
         """Set up the status bar UI"""
@@ -188,12 +190,75 @@ class StatusBar(QFrame):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
 
-        # Status label (will show both status and mode)
+        # Status label (will show both status and mode) - left side
         self.status_label = QLabel(get_text("ui.status.default"))
         self.status_label.setFont(get_small_font())
         layout.addWidget(self.status_label)
 
-        # Remove the separate mode label - mode will be shown in status
+        # Add stretch to push system monitor to the right
+        layout.addStretch()
+
+        # System resource monitor - right side
+        self.system_monitor_label = QLabel("System: Initializing...")
+        self.system_monitor_label.setFont(get_small_font())
+        self.system_monitor_label.setStyleSheet("color: #666;")
+        layout.addWidget(self.system_monitor_label)
+
+    def setup_system_monitor(self):
+        """Set up the system resource monitor"""
+        try:
+            from ..utils.system_monitor import get_system_monitor
+
+            self.system_monitor = get_system_monitor()
+            self.system_monitor.start_monitoring()
+
+            # Set up timer to update system monitor display
+            from PySide6.QtCore import QTimer
+
+            self.update_timer = QTimer()
+            self.update_timer.timeout.connect(self._update_system_monitor)
+            self.update_timer.start(2000)  # Update every 2 seconds
+
+            self.logger = get_logger("helpmesign.status_bar")
+            self.logger.debug("System monitor initialized")
+
+        except Exception as e:
+            # If system monitoring fails, just show a static message
+            self.system_monitor_label.setText("System: Monitoring unavailable")
+            self.logger = get_logger("helpmesign.status_bar")
+            self.logger.warning(f"Failed to initialize system monitor: {e}")
+
+    def _update_system_monitor(self):
+        """Update the system monitor display"""
+        try:
+            if hasattr(self, "system_monitor"):
+                status_text = self.system_monitor.get_formatted_status(compact=True)
+                self.system_monitor_label.setText(status_text)
+
+                # Check for alerts and update styling
+                alerts = self.system_monitor.get_resource_alerts()
+                if alerts:
+                    self.system_monitor_label.setStyleSheet(
+                        "color: #ff6b6b; font-weight: bold;"
+                    )
+                else:
+                    self.system_monitor_label.setStyleSheet("color: #666;")
+
+        except Exception as e:
+            if hasattr(self, "logger"):
+                self.logger.error(f"Error updating system monitor: {e}")
+            self.system_monitor_label.setText("System: Error")
+
+    def cleanup(self):
+        """Clean up resources when status bar is destroyed"""
+        try:
+            if hasattr(self, "update_timer"):
+                self.update_timer.stop()
+            if hasattr(self, "system_monitor"):
+                self.system_monitor.stop_monitoring()
+        except Exception as e:
+            if hasattr(self, "logger"):
+                self.logger.error(f"Error cleaning up system monitor: {e}")
 
     def set_status(self, message: str) -> None:
         """Set status message"""
@@ -471,3 +536,18 @@ class MainWindow(QMainWindow):
             import logging
 
             logging.error(f"Error updating fonts: {e}")
+
+    def closeEvent(self, event):
+        """Handle window close event"""
+        try:
+            # Clean up system monitor
+            if hasattr(self, "status_bar"):
+                self.status_bar.cleanup()
+
+            self.logger.info("MainWindow closing - cleanup completed")
+
+        except Exception as e:
+            self.logger.error(f"Error in closeEvent: {e}")
+
+        # Accept the close event
+        event.accept()
