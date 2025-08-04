@@ -83,7 +83,15 @@ class SystemMonitor:
         """Stop the system monitoring thread"""
         self._stop_event.set()
         if self._monitor_thread and self._monitor_thread.is_alive():
-            self._monitor_thread.join(timeout=5.0)
+            try:
+                self._monitor_thread.join(timeout=5.0)
+                if self._monitor_thread.is_alive():
+                    self.logger.warning("System monitor thread did not stop gracefully")
+            except Exception as e:
+                self.logger.error(f"Error stopping monitor thread: {e}")
+
+        self._monitor_thread = None
+        self._current_resources = None
         self.logger.info("System monitoring stopped")
 
     def _monitor_loop(self) -> None:
@@ -116,7 +124,7 @@ class SystemMonitor:
                     app_memory_mb = self._app_process.memory_info().rss / 1024 / 1024
                     app_cpu_percent = self._app_process.cpu_percent()
                     app_threads = self._app_process.num_threads()
-                    app_connections = len(self._app_process.connections())
+                    app_connections = len(self._app_process.net_connections())
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     # Process may have ended or we don't have access
                     self._init_app_process()
@@ -158,11 +166,12 @@ class SystemMonitor:
             self._update_resources()
         return self._current_resources
 
-    def get_formatted_status(self, compact: bool = True) -> str:
+    def get_formatted_status(self, compact: bool = True, mode: str = "standard") -> str:
         """Get formatted status string for display
 
         Args:
             compact: If True, show compact format; if False, show detailed format
+            mode: Display mode - "standard", "minimal", "performance", "health", "developer"
 
         Returns:
             Formatted status string
@@ -171,28 +180,102 @@ class SystemMonitor:
         if resources is None:
             return "System: Unavailable"
 
-        if compact:
-            return self._get_compact_status(resources)
-        else:
-            return self._get_detailed_status(resources)
+        if mode == "minimal":
+            return self._get_minimal_status(resources)
+        elif mode == "performance":
+            return self._get_performance_status(resources)
+        elif mode == "health":
+            return self._get_health_status(resources)
+        elif mode == "developer":
+            return self._get_developer_status(resources)
+        else:  # standard mode
+            if compact:
+                return self._get_compact_status(resources)
+            else:
+                return self._get_detailed_status(resources)
 
     def _get_compact_status(self, resources: SystemResources) -> str:
-        """Get compact status format"""
-        # Show most critical metrics in compact format
+        """Get compact status format with clear labels"""
+        # Show most critical metrics with descriptive labels
         cpu_icon = self._get_cpu_icon(resources.cpu_percent)
         mem_icon = self._get_memory_icon(resources.memory_percent)
         app_icon = self._get_app_icon(resources.app_memory_mb)
 
-        return f"{cpu_icon} {resources.cpu_percent:.0f}% | {mem_icon} {resources.memory_percent:.0f}% | {app_icon} {resources.app_memory_mb:.0f}MB"
+        # Create a more informative compact display
+        cpu_status = f"{cpu_icon}CPU:{resources.cpu_percent:.0f}%"
+        mem_status = f"{mem_icon}RAM:{resources.memory_percent:.0f}%"
+        app_status = f"{app_icon}App:{resources.app_memory_mb:.0f}MB"
+
+        return f"{cpu_status} | {mem_status} | {app_status}"
+
+    def _get_minimal_status(self, resources: SystemResources) -> str:
+        """Get minimal status with just icons and percentages"""
+        cpu_icon = self._get_cpu_icon(resources.cpu_percent)
+        mem_icon = self._get_memory_icon(resources.memory_percent)
+        app_icon = self._get_app_icon(resources.app_memory_mb)
+
+        return f"{cpu_icon}{resources.cpu_percent:.0f}% {mem_icon}{resources.memory_percent:.0f}% {app_icon}{resources.app_memory_mb:.0f}MB"
+
+    def _get_performance_status(self, resources: SystemResources) -> str:
+        """Get performance-focused status with efficiency indicators"""
+        score, level = self.get_performance_score()
+
+        # Performance indicators
+        cpu_efficiency = (
+            "🟢"
+            if resources.cpu_percent < 50
+            else "🟡" if resources.cpu_percent < 80 else "🔴"
+        )
+        mem_efficiency = (
+            "🟢"
+            if resources.memory_percent < 60
+            else "🟡" if resources.memory_percent < 85 else "🔴"
+        )
+        app_efficiency = (
+            "🟢"
+            if resources.app_memory_mb < 200
+            else "🟡" if resources.app_memory_mb < 500 else "🔴"
+        )
+
+        return f"⚡{level} | {cpu_efficiency}CPU:{resources.cpu_percent:.0f}% | {mem_efficiency}RAM:{resources.memory_percent:.0f}% | {app_efficiency}App:{resources.app_memory_mb:.0f}MB"
+
+    def _get_health_status(self, resources: SystemResources) -> str:
+        """Get health-focused status with wellness indicators"""
+        alerts = self.get_resource_alerts()
+
+        if alerts:
+            # Show most critical alert
+            return f"🏥{alerts[0]} | CPU:{resources.cpu_percent:.0f}% RAM:{resources.memory_percent:.0f}%"
+        else:
+            return f"✅Healthy | CPU:{resources.cpu_percent:.0f}% RAM:{resources.memory_percent:.0f}% App:{resources.app_memory_mb:.0f}MB"
+
+    def _get_developer_status(self, resources: SystemResources) -> str:
+        """Get developer-focused status with technical details"""
+        return (
+            f"🔧CPU:{resources.cpu_percent:.1f}%({resources.app_cpu_percent:.1f}%) | "
+            f"RAM:{resources.memory_percent:.1f}%({resources.memory_used_mb:.0f}MB) | "
+            f"App:{resources.app_memory_mb:.0f}MB({resources.app_threads}t) | "
+            f"Disk:{resources.disk_usage_percent:.1f}% | "
+            f"Uptime:{resources.uptime_hours:.1f}h"
+        )
 
     def _get_detailed_status(self, resources: SystemResources) -> str:
-        """Get detailed status format"""
+        """Get detailed status format with comprehensive information"""
+        cpu_icon = self._get_cpu_icon(resources.cpu_percent)
+        mem_icon = self._get_memory_icon(resources.memory_percent)
+        app_icon = self._get_app_icon(resources.app_memory_mb)
+
+        # Create a comprehensive detailed display
         return (
-            f"CPU: {resources.cpu_percent:.1f}% | "
-            f"RAM: {resources.memory_percent:.1f}% ({resources.memory_used_mb:.0f}MB) | "
-            f"Disk: {resources.disk_usage_percent:.1f}% | "
-            f"App: {resources.app_memory_mb:.0f}MB | "
-            f"Uptime: {resources.uptime_hours:.1f}h"
+            f"{cpu_icon}CPU:{resources.cpu_percent:.1f}% "
+            f"({resources.app_cpu_percent:.1f}% app) | "
+            f"{mem_icon}RAM:{resources.memory_percent:.1f}% "
+            f"({resources.memory_used_mb:.0f}/{resources.memory_total_mb:.0f}MB) | "
+            f"💾Disk:{resources.disk_usage_percent:.1f}% "
+            f"({resources.disk_used_gb:.1f}/{resources.disk_total_gb:.1f}GB) | "
+            f"{app_icon}App:{resources.app_memory_mb:.0f}MB "
+            f"({resources.app_threads} threads) | "
+            f"⏱️Uptime:{resources.uptime_hours:.1f}h"
         )
 
     def _get_cpu_icon(self, cpu_percent: float) -> str:
@@ -255,6 +338,32 @@ class SystemMonitor:
             alerts.append("⚠️ Low disk space")
 
         return alerts
+
+    def get_available_display_modes(self) -> list[str]:
+        """Get list of available display modes
+
+        Returns:
+            List of available display mode names
+        """
+        return ["standard", "minimal", "performance", "health", "developer"]
+
+    def get_display_mode_description(self, mode: str) -> str:
+        """Get description for a display mode
+
+        Args:
+            mode: Display mode name
+
+        Returns:
+            Description of the mode
+        """
+        descriptions = {
+            "standard": "Standard view with labeled metrics",
+            "minimal": "Minimal view with just icons and values",
+            "performance": "Performance-focused with efficiency indicators",
+            "health": "Health-focused with wellness status",
+            "developer": "Developer view with technical details",
+        }
+        return descriptions.get(mode, "Unknown mode")
 
     def get_performance_score(self) -> Tuple[int, str]:
         """Get overall system performance score

@@ -7,10 +7,11 @@ import os
 import platform
 from typing import Callable, Optional
 
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QAction, QFont, QIcon, QKeySequence, QShortcut
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QColor, QFont, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFrame,
+    QGraphicsDropShadowEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -180,6 +181,7 @@ class StatusBar(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._is_cleaned_up = False
         self.current_mode = get_text("modes.sign_translate.name")
         self.setup_ui()
         self.setup_system_monitor()
@@ -198,67 +200,320 @@ class StatusBar(QFrame):
         # Add stretch to push system monitor to the right
         layout.addStretch()
 
-        # System resource monitor - right side
-        self.system_monitor_label = QLabel("System: Initializing...")
-        self.system_monitor_label.setFont(get_small_font())
-        self.system_monitor_label.setStyleSheet("color: #666;")
-        layout.addWidget(self.system_monitor_label)
+        # System monitor button on the right side (fixed size)
+        self.setup_system_monitor_button()
+
+    def setup_system_monitor_button(self):
+        """Set up the system monitor display on the right side of status bar"""
+        # Create a professional status display widget
+        self.system_monitor_widget = QWidget()
+        self.system_monitor_widget.setFixedHeight(20)
+        self.system_monitor_widget.setCursor(Qt.PointingHandCursor)
+        self.system_monitor_widget.mousePressEvent = self._on_system_monitor_click
+
+        # Layout for the status display
+        status_layout = QHBoxLayout(self.system_monitor_widget)
+        status_layout.setContentsMargins(8, 2, 8, 2)
+        status_layout.setSpacing(8)
+
+        # CPU status with percentage
+        self.cpu_status = QLabel("CPU: 0%")
+        self.cpu_status.setStyleSheet(
+            """
+            QLabel {
+                color: #2c3e50;
+                font-size: 10px;
+                font-weight: 500;
+                padding: 2px 4px;
+                border-radius: 3px;
+                background-color: #e8f5e8;
+            }
+        """
+        )
+        status_layout.addWidget(self.cpu_status)
+
+        # Memory status with percentage
+        self.memory_status = QLabel("RAM: 0%")
+        self.memory_status.setStyleSheet(
+            """
+            QLabel {
+                color: #2c3e50;
+                font-size: 10px;
+                font-weight: 500;
+                padding: 2px 4px;
+                border-radius: 3px;
+                background-color: #e8f5e8;
+            }
+        """
+        )
+        status_layout.addWidget(self.memory_status)
+
+        # App memory status
+        self.app_status = QLabel("App: 0MB")
+        self.app_status.setStyleSheet(
+            """
+            QLabel {
+                color: #2c3e50;
+                font-size: 10px;
+                font-weight: 500;
+                padding: 2px 4px;
+                border-radius: 3px;
+                background-color: #e8f5e8;
+            }
+        """
+        )
+        status_layout.addWidget(self.app_status)
+
+        # Overall status indicator
+        self.overall_status = QLabel("●")
+        self.overall_status.setStyleSheet(
+            """
+            QLabel {
+                color: #27ae60;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """
+        )
+        status_layout.addWidget(self.overall_status)
+
+        # Add the widget to the main status bar layout
+        self.layout().addWidget(self.system_monitor_widget)
+
+        # Set up the system monitor
+        self.setup_system_monitor()
+
+        # Set up timer for status updates
+        self.status_update_timer = QTimer()
+        self.status_update_timer.timeout.connect(self._update_status_display)
+        self.status_update_timer.start(5000)  # Update every 5 seconds
+
+        # Initial update
+        self._update_status_display()
+
+    def _on_system_monitor_click(self, event):
+        """Handle click on system monitor status display"""
+        if event.button() == Qt.LeftButton:
+            self._show_system_monitor_panel()
+
+    def _update_status_display(self):
+        """Update the status bar display with current system metrics"""
+        try:
+            if not self.system_monitor or self._is_cleaned_up:
+                return
+
+            resources = self.system_monitor.get_resources()
+            if not resources:
+                return
+
+            # Update CPU status with percentage and color
+            cpu_text = f"CPU: {resources.cpu_percent:.0f}%"
+            if resources.cpu_percent < 50:
+                cpu_color = "#e8f5e8"  # Light green
+                text_color = "#27ae60"
+            elif resources.cpu_percent < 80:
+                cpu_color = "#fff3cd"  # Light yellow
+                text_color = "#f39c12"
+            else:
+                cpu_color = "#f8d7da"  # Light red
+                text_color = "#dc3545"
+
+            self.cpu_status.setText(cpu_text)
+            self.cpu_status.setStyleSheet(
+                f"""
+                QLabel {{
+                    color: {text_color};
+                    font-size: 10px;
+                    font-weight: 500;
+                    padding: 2px 4px;
+                    border-radius: 3px;
+                    background-color: {cpu_color};
+                }}
+            """
+            )
+
+            # Update Memory status with percentage and color
+            mem_text = f"RAM: {resources.memory_percent:.0f}%"
+            if resources.memory_percent < 60:
+                mem_color = "#e8f5e8"  # Light green
+                text_color = "#27ae60"
+            elif resources.memory_percent < 85:
+                mem_color = "#fff3cd"  # Light yellow
+                text_color = "#f39c12"
+            else:
+                mem_color = "#f8d7da"  # Light red
+                text_color = "#dc3545"
+
+            self.memory_status.setText(mem_text)
+            self.memory_status.setStyleSheet(
+                f"""
+                QLabel {{
+                    color: {text_color};
+                    font-size: 10px;
+                    font-weight: 500;
+                    padding: 2px 4px;
+                    border-radius: 3px;
+                    background-color: {mem_color};
+                }}
+            """
+            )
+
+            # Update App memory status with color
+            app_text = f"App: {resources.app_memory_mb:.0f}MB"
+            if resources.app_memory_mb < 200:
+                app_color = "#e8f5e8"  # Light green
+                text_color = "#27ae60"
+            elif resources.app_memory_mb < 500:
+                app_color = "#fff3cd"  # Light yellow
+                text_color = "#f39c12"
+            else:
+                app_color = "#f8d7da"  # Light red
+                text_color = "#dc3545"
+
+            self.app_status.setText(app_text)
+            self.app_status.setStyleSheet(
+                f"""
+                QLabel {{
+                    color: {text_color};
+                    font-size: 10px;
+                    font-weight: 500;
+                    padding: 2px 4px;
+                    border-radius: 3px;
+                    background-color: {app_color};
+                }}
+            """
+            )
+
+            # Update overall status indicator
+            if resources.cpu_percent < 30 and resources.memory_percent < 50:
+                self.overall_status.setText("●")
+                self.overall_status.setStyleSheet(
+                    """
+                    QLabel {
+                        color: #27ae60;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                """
+                )
+            elif resources.cpu_percent < 70 and resources.memory_percent < 80:
+                self.overall_status.setText("●")
+                self.overall_status.setStyleSheet(
+                    """
+                    QLabel {
+                        color: #f39c12;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                """
+                )
+            else:
+                self.overall_status.setText("●")
+                self.overall_status.setStyleSheet(
+                    """
+                    QLabel {
+                        color: #dc3545;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                """
+                )
+
+        except Exception as e:
+            if hasattr(self, "logger"):
+                self.logger.error(f"Failed to update status display: {e}")
+
+    def _show_system_monitor_panel(self):
+        """Show the system monitor panel"""
+        try:
+            # Get the main window
+            main_window = self.window()
+            if not main_window:
+                return
+
+            # If panel exists and is visible, hide it
+            if (
+                hasattr(main_window, "system_monitor_panel")
+                and main_window.system_monitor_panel
+                and main_window.system_monitor_panel.isVisible()
+            ):
+                main_window.system_monitor_panel.hide()
+                return
+
+            # If panel exists but is hidden, show it
+            if (
+                hasattr(main_window, "system_monitor_panel")
+                and main_window.system_monitor_panel
+                and not main_window.system_monitor_panel.isVisible()
+            ):
+                main_window.system_monitor_panel.show()
+                return
+
+            # Create new panel
+            main_window.system_monitor_panel = SystemMonitorPanel(main_window)
+
+            # Position panel as overlay in bottom-right corner
+            panel = main_window.system_monitor_panel
+            panel.setParent(main_window)
+            panel.raise_()
+
+            # Calculate position (bottom-right corner with some margin)
+            window_rect = main_window.rect()
+            panel_x = window_rect.width() - panel.width() - 20
+            panel_y = window_rect.height() - panel.height() - 80  # Above status bar
+
+            panel.move(panel_x, panel_y)
+            panel.show()
+
+        except Exception as e:
+            if hasattr(self, "logger"):
+                self.logger.error(f"Error showing system monitor panel: {e}")
 
     def setup_system_monitor(self):
-        """Set up the system resource monitor"""
+        """Set up the system monitor"""
         try:
             from ..utils.system_monitor import get_system_monitor
 
             self.system_monitor = get_system_monitor()
             self.system_monitor.start_monitoring()
 
-            # Set up timer to update system monitor display
-            from PySide6.QtCore import QTimer
-
-            self.update_timer = QTimer()
-            self.update_timer.timeout.connect(self._update_system_monitor)
-            self.update_timer.start(2000)  # Update every 2 seconds
-
-            self.logger = get_logger("helpmesign.status_bar")
-            self.logger.debug("System monitor initialized")
-
-        except Exception as e:
-            # If system monitoring fails, just show a static message
-            self.system_monitor_label.setText("System: Monitoring unavailable")
-            self.logger = get_logger("helpmesign.status_bar")
-            self.logger.warning(f"Failed to initialize system monitor: {e}")
-
-    def _update_system_monitor(self):
-        """Update the system monitor display"""
-        try:
-            if hasattr(self, "system_monitor"):
-                status_text = self.system_monitor.get_formatted_status(compact=True)
-                self.system_monitor_label.setText(status_text)
-
-                # Check for alerts and update styling
-                alerts = self.system_monitor.get_resource_alerts()
-                if alerts:
-                    self.system_monitor_label.setStyleSheet(
-                        "color: #ff6b6b; font-weight: bold;"
-                    )
-                else:
-                    self.system_monitor_label.setStyleSheet("color: #666;")
-
         except Exception as e:
             if hasattr(self, "logger"):
-                self.logger.error(f"Error updating system monitor: {e}")
-            self.system_monitor_label.setText("System: Error")
+                self.logger.error(f"Error setting up system monitor: {e}")
+            self.system_monitor = None
 
     def cleanup(self):
-        """Clean up resources when status bar is destroyed"""
+        """Clean up system monitor resources"""
+        if self._is_cleaned_up:
+            return
+
+        self._is_cleaned_up = True
+
         try:
-            if hasattr(self, "update_timer"):
-                self.update_timer.stop()
-            if hasattr(self, "system_monitor"):
+            # Stop status update timer
+            if hasattr(self, "status_update_timer"):
+                self.status_update_timer.stop()
+                self.status_update_timer.deleteLater()
+
+            # Stop system monitor
+            if hasattr(self, "system_monitor") and self.system_monitor:
                 self.system_monitor.stop_monitoring()
+                self.system_monitor = None
+
+            # Clean up panel if exists
+            main_window = self.window()
+            if (
+                main_window
+                and hasattr(main_window, "system_monitor_panel")
+                and main_window.system_monitor_panel
+            ):
+                main_window.system_monitor_panel.cleanup()
+                main_window.system_monitor_panel.deleteLater()
+                main_window.system_monitor_panel = None
+
         except Exception as e:
             if hasattr(self, "logger"):
-                self.logger.error(f"Error cleaning up system monitor: {e}")
+                self.logger.error(f"Error during cleanup: {e}")
 
     def set_status(self, message: str) -> None:
         """Set status message"""
@@ -315,7 +570,7 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        # Main layout
+        # Main layout - vertical for main content
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
@@ -325,10 +580,13 @@ class MainWindow(QMainWindow):
         self.output_frame = OutputFrame()
         self.status_bar = StatusBar()
 
-        # Add components to layout
+        # Add components to main layout
         main_layout.addWidget(self.text_input_frame)
         main_layout.addWidget(self.output_frame)
         main_layout.addWidget(self.status_bar)
+
+        # Initialize system monitor panel as None
+        self.system_monitor_panel = None
 
         # Connect signals
         self.text_input_frame.process_requested.connect(self.process_requested.emit)
@@ -540,9 +798,14 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Handle window close event"""
         try:
-            # Clean up system monitor
+            # Clean up status bar (includes system monitor)
             if hasattr(self, "status_bar"):
                 self.status_bar.cleanup()
+
+            # Force garbage collection to help prevent memory issues
+            import gc
+
+            gc.collect()
 
             self.logger.info("MainWindow closing - cleanup completed")
 
@@ -551,3 +814,312 @@ class MainWindow(QMainWindow):
 
         # Accept the close event
         event.accept()
+
+
+class SystemMonitorPanel(QWidget):
+    """Innovative overlay panel for system monitoring details"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedWidth(320)
+        self.setFixedHeight(300)
+        self.setup_ui()
+        self.setup_system_monitor()
+
+        # Set up timer for updates
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self._update_display)
+        self.update_timer.start(3000)  # Update every 3 seconds
+
+        # Animation properties
+        self.animation = None
+        self.target_opacity = 0.95
+
+        # Initial update
+        self._update_display()
+
+    def setup_ui(self):
+        """Set up the innovative panel UI"""
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Simple flat layout - no nested containers
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(8)
+
+        # Header
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Title
+        title_label = QLabel("System Analytics")
+        title_label.setFont(get_small_font())
+        title_label.setStyleSheet(
+            """
+            QLabel {
+                color: #2c3e50;
+                font-weight: bold;
+                font-size: 12px;
+            }
+        """
+        )
+        header_layout.addWidget(title_label)
+
+        header_layout.addStretch()
+
+        # Close button
+        self.close_button = QPushButton("×")
+        self.close_button.setFixedSize(20, 20)
+        self.close_button.setToolTip("Close")
+        self.close_button.clicked.connect(self._close_panel)
+        self.close_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #f8f9fa;
+                color: #6c757d;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+                border-color: #adb5bd;
+            }
+        """
+        )
+        header_layout.addWidget(self.close_button)
+
+        main_layout.addLayout(header_layout)
+
+        # Create metrics display directly in main layout
+        self._create_metrics_display(main_layout)
+
+    def _create_metrics_display(self, parent_layout):
+        """Create simple metrics display without nested containers"""
+        # Create metric rows directly in parent layout
+        self._create_metric_card("CPU", "cpu_label", "#4a5568")
+        self._create_metric_card("Memory", "memory_label", "#4a5568")
+        self._create_metric_card("Application", "app_memory_label", "#4a5568")
+        self._create_metric_card("Disk", "disk_label", "#4a5568")
+        self._create_metric_card("Uptime", "uptime_label", "#4a5568")
+
+        # Add insights and recommendations
+        self._create_insights_card()
+        self._create_recommendations_card()
+
+    def _create_metric_card(self, title, label_attr, color):
+        """Create a clean metric row"""
+        # Create a simple row layout without card borders
+        row_widget = QWidget()
+        row_widget.setFixedHeight(24)
+
+        row_layout = QHBoxLayout(row_widget)
+        row_layout.setContentsMargins(0, 2, 0, 2)
+        row_layout.setSpacing(8)
+
+        # Title
+        title_label = QLabel(title)
+        title_label.setStyleSheet(
+            """
+            QLabel {
+                color: #6c757d;
+                font-weight: 500;
+                font-size: 11px;
+                min-width: 80px;
+            }
+        """
+        )
+        row_layout.addWidget(title_label)
+
+        # Value
+        value_label = QLabel("--")
+        value_label.setStyleSheet(
+            """
+            QLabel {
+                color: #212529;
+                font-weight: 600;
+                font-size: 11px;
+            }
+        """
+        )
+        row_layout.addWidget(value_label)
+        row_layout.addStretch()
+
+        # Store reference to the label
+        setattr(self, label_attr, value_label)
+
+        # Add to the main layout (parent_layout)
+        # We need to find the main layout from the parent
+        if hasattr(self, "main_layout"):
+            self.main_layout.addWidget(row_widget)
+        else:
+            # Store the main layout reference
+            self.main_layout = self.layout()
+            self.main_layout.addWidget(row_widget)
+
+    def _create_insights_card(self):
+        """Create insights section"""
+        # Add a separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setStyleSheet("QFrame { background-color: #e9ecef; }")
+        separator.setFixedHeight(1)
+        self.main_layout.addWidget(separator)
+
+        # Add some spacing
+        spacer = QWidget()
+        spacer.setFixedHeight(4)
+        self.main_layout.addWidget(spacer)
+
+        # Insights label
+        self.insights_label = QLabel("System is running well")
+        self.insights_label.setStyleSheet(
+            """
+            QLabel {
+                color: #28a745;
+                font-weight: 500;
+                font-size: 10px;
+                padding: 2px 0;
+            }
+        """
+        )
+        self.insights_label.setWordWrap(True)
+        self.main_layout.addWidget(self.insights_label)
+
+    def _create_recommendations_card(self):
+        """Create recommendations section"""
+        # Recommendations label
+        self.recommendations_label = QLabel("No actions needed")
+        self.recommendations_label.setStyleSheet(
+            """
+            QLabel {
+                color: #6c757d;
+                font-weight: 500;
+                font-size: 10px;
+                padding: 2px 0;
+            }
+        """
+        )
+        self.recommendations_label.setWordWrap(True)
+        self.main_layout.addWidget(self.recommendations_label)
+
+    def setup_system_monitor(self):
+        """Set up the system monitor"""
+        try:
+            from ..utils.system_monitor import get_system_monitor
+
+            self.system_monitor = get_system_monitor()
+        except Exception as e:
+            self.system_monitor = None
+
+    def _update_display(self):
+        """Update the system monitor display"""
+        try:
+            if not self.system_monitor:
+                return
+
+            resources = self.system_monitor.get_resources()
+            if not resources:
+                return
+
+            # Update metrics
+            self._update_metrics_display(resources)
+
+            # Update insights
+            self._update_insights_display(resources)
+
+            # Update recommendations
+            self._update_recommendations_display(resources)
+
+        except Exception as e:
+            pass
+
+    def _update_metrics_display(self, resources):
+        """Update the metrics display with professional formatting"""
+        # CPU - Show percentage and app usage
+        cpu_text = (
+            f"{resources.cpu_percent:.1f}% (App: {resources.app_cpu_percent:.1f}%)"
+        )
+        self.cpu_label.setText(cpu_text)
+
+        # Memory - Show percentage and total
+        mem_text = f"{resources.memory_percent:.1f}% ({resources.memory_used_mb:.0f}MB / {resources.memory_total_mb:.0f}MB)"
+        self.memory_label.setText(mem_text)
+
+        # App Memory - Show usage and threads
+        app_text = f"{resources.app_memory_mb:.0f}MB ({resources.app_threads} threads)"
+        self.app_memory_label.setText(app_text)
+
+        # Disk - Show percentage and total
+        disk_text = f"{resources.disk_usage_percent:.1f}% ({resources.disk_used_gb:.1f}GB / {resources.disk_total_gb:.1f}GB)"
+        self.disk_label.setText(disk_text)
+
+        # Uptime - Show hours
+        uptime_text = f"{resources.uptime_hours:.1f} hours"
+        self.uptime_label.setText(uptime_text)
+
+    def _update_insights_display(self, resources):
+        """Update the insights display"""
+        insights = []
+
+        if resources.cpu_percent > 80:
+            insights.append("🔥 High CPU usage detected")
+        elif resources.cpu_percent < 20:
+            insights.append("✅ CPU usage is optimal")
+
+        if resources.memory_percent > 85:
+            insights.append("⚠️ High memory usage")
+        elif resources.memory_percent < 40:
+            insights.append("✅ Memory usage is healthy")
+
+        if resources.app_memory_mb > 500:
+            insights.append("📱 App memory usage is high")
+        else:
+            insights.append("✅ App memory usage is normal")
+
+        if resources.disk_usage_percent > 90:
+            insights.append("💾 Disk space is running low")
+        elif resources.disk_usage_percent < 50:
+            insights.append("✅ Plenty of disk space available")
+
+        if not insights:
+            insights.append("💡 System is running well")
+
+        self.insights_label.setText(" | ".join(insights[:2]))  # Show top 2 insights
+
+    def _update_recommendations_display(self, resources):
+        """Update the recommendations display"""
+        recommendations = []
+
+        if resources.cpu_percent > 80:
+            recommendations.append("Close unnecessary applications")
+        if resources.memory_percent > 85:
+            recommendations.append("Consider adding more RAM")
+        if resources.app_memory_mb > 500:
+            recommendations.append("Restart HelpMeSign if needed")
+        if resources.disk_usage_percent > 90:
+            recommendations.append("Clean up disk space")
+        if resources.uptime_hours > 168:  # 7 days
+            recommendations.append("Consider system restart")
+
+        if not recommendations:
+            recommendations.append("🎯 No actions needed")
+
+        self.recommendations_label.setText(
+            " | ".join(recommendations[:1])
+        )  # Show top 1 recommendation
+
+    def _close_panel(self):
+        """Close the panel"""
+        self.hide()
+
+    def cleanup(self):
+        """Clean up resources"""
+        if hasattr(self, "update_timer"):
+            self.update_timer.stop()
+            self.update_timer.deleteLater()
+        if hasattr(self, "system_monitor") and self.system_monitor:
+            self.system_monitor.stop_monitoring()

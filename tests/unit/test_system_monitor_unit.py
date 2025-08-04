@@ -99,7 +99,7 @@ class TestSystemMonitor(unittest.TestCase):
         mock_process.memory_info.return_value = Mock(rss=268435456)  # 256MB
         mock_process.cpu_percent.return_value = 5.0
         mock_process.num_threads.return_value = 8
-        mock_process.connections.return_value = [Mock(), Mock()]
+        mock_process.net_connections.return_value = [Mock(), Mock()]
 
         with patch("psutil.Process", return_value=mock_process):
             self.monitor._app_process = mock_process
@@ -192,10 +192,10 @@ class TestSystemMonitor(unittest.TestCase):
 
         status = self.monitor.get_formatted_status(compact=True)
 
-        # Should contain CPU, memory, and app memory info
-        self.assertIn("🟢 25%", status)
-        self.assertIn("🟡 60%", status)
-        self.assertIn("💛 256MB", status)
+        # Should contain CPU, memory, and app memory info with labels
+        self.assertIn("🟢CPU:25%", status)
+        self.assertIn("🟡RAM:60%", status)
+        self.assertIn("💛App:256MB", status)
 
     def test_get_formatted_status_detailed(self):
         """Test detailed status formatting"""
@@ -222,13 +222,13 @@ class TestSystemMonitor(unittest.TestCase):
 
         status = self.monitor.get_formatted_status(compact=False)
 
-        # Should contain detailed information
-        self.assertIn("CPU: 25.0%", status)
-        self.assertIn("RAM: 60.0%", status)
-        self.assertIn("8192MB", status)
-        self.assertIn("Disk: 45.0%", status)
-        self.assertIn("App: 256MB", status)
-        self.assertIn("Uptime: 24.0h", status)
+        # Should contain detailed information with icons and labels
+        self.assertIn("🟢CPU:25.0%", status)
+        self.assertIn("🟡RAM:60.0%", status)
+        self.assertIn("8192/16384MB", status)
+        self.assertIn("💾Disk:45.0%", status)
+        self.assertIn("💛App:256MB", status)
+        self.assertIn("⏱️Uptime:24.0h", status)
 
     def test_get_formatted_status_no_resources(self):
         """Test status formatting when no resources available"""
@@ -237,6 +237,151 @@ class TestSystemMonitor(unittest.TestCase):
             status = self.monitor.get_formatted_status()
 
             self.assertEqual(status, "System: Unavailable")
+
+    def test_get_formatted_status_minimal_mode(self):
+        """Test minimal display mode"""
+        mock_resources = SystemResources(
+            cpu_percent=25.0,
+            memory_percent=60.0,
+            memory_used_mb=8192.0,
+            memory_total_mb=16384.0,
+            disk_usage_percent=45.0,
+            disk_used_gb=500.0,
+            disk_total_gb=1000.0,
+            network_sent_mb=1024.0,
+            network_recv_mb=2048.0,
+            process_count=150,
+            uptime_hours=24.0,
+            app_memory_mb=256.0,
+            app_cpu_percent=5.0,
+            app_threads=8,
+            app_connections=2,
+        )
+        self.monitor._current_resources = mock_resources
+
+        status = self.monitor.get_formatted_status(mode="minimal")
+
+        # Should contain icons and values without labels
+        self.assertIn("🟢25%", status)
+        self.assertIn("🟡60%", status)
+        self.assertIn("💛256MB", status)
+
+    def test_get_formatted_status_performance_mode(self):
+        """Test performance display mode"""
+        mock_resources = SystemResources(
+            cpu_percent=25.0,
+            memory_percent=60.0,
+            memory_used_mb=8192.0,
+            memory_total_mb=16384.0,
+            disk_usage_percent=45.0,
+            disk_used_gb=500.0,
+            disk_total_gb=1000.0,
+            network_sent_mb=1024.0,
+            network_recv_mb=2048.0,
+            process_count=150,
+            uptime_hours=24.0,
+            app_memory_mb=256.0,
+            app_cpu_percent=5.0,
+            app_threads=8,
+            app_connections=2,
+        )
+        self.monitor._current_resources = mock_resources
+
+        status = self.monitor.get_formatted_status(mode="performance")
+
+        # Should contain performance indicators
+        self.assertIn("⚡", status)
+        self.assertIn("CPU:", status)
+        self.assertIn("RAM:", status)
+        self.assertIn("App:", status)
+
+    def test_get_formatted_status_health_mode(self):
+        """Test health display mode"""
+        mock_resources = SystemResources(
+            cpu_percent=25.0,
+            memory_percent=60.0,
+            memory_used_mb=8192.0,
+            memory_total_mb=16384.0,
+            disk_usage_percent=45.0,
+            disk_used_gb=500.0,
+            disk_total_gb=1000.0,
+            network_sent_mb=1024.0,
+            network_recv_mb=2048.0,
+            process_count=150,
+            uptime_hours=24.0,
+            app_memory_mb=256.0,
+            app_cpu_percent=5.0,
+            app_threads=8,
+            app_connections=2,
+        )
+        self.monitor._current_resources = mock_resources
+
+        status = self.monitor.get_formatted_status(mode="health")
+
+        # Should contain health indicators
+        self.assertIn("✅Healthy", status)
+        self.assertIn("CPU:", status)
+        self.assertIn("RAM:", status)
+        self.assertIn("App:", status)
+
+    def test_get_formatted_status_developer_mode(self):
+        """Test developer display mode"""
+        mock_resources = SystemResources(
+            cpu_percent=25.0,
+            memory_percent=60.0,
+            memory_used_mb=8192.0,
+            memory_total_mb=16384.0,
+            disk_usage_percent=45.0,
+            disk_used_gb=500.0,
+            disk_total_gb=1000.0,
+            network_sent_mb=1024.0,
+            network_recv_mb=2048.0,
+            process_count=150,
+            uptime_hours=24.0,
+            app_memory_mb=256.0,
+            app_cpu_percent=5.0,
+            app_threads=8,
+            app_connections=2,
+        )
+        self.monitor._current_resources = mock_resources
+
+        status = self.monitor.get_formatted_status(mode="developer")
+
+        # Should contain technical details
+        self.assertIn("🔧CPU:", status)
+        self.assertIn("RAM:", status)
+        self.assertIn("App:", status)
+        self.assertIn("8t", status)  # threads
+        self.assertIn("Disk:", status)
+        self.assertIn("Uptime:", status)
+
+    def test_get_available_display_modes(self):
+        """Test getting available display modes"""
+        modes = self.monitor.get_available_display_modes()
+        expected_modes = ["standard", "minimal", "performance", "health", "developer"]
+        self.assertEqual(modes, expected_modes)
+
+    def test_get_display_mode_description(self):
+        """Test getting display mode descriptions"""
+        # Test valid modes
+        self.assertIn(
+            "Standard view", self.monitor.get_display_mode_description("standard")
+        )
+        self.assertIn(
+            "Minimal view", self.monitor.get_display_mode_description("minimal")
+        )
+        self.assertIn(
+            "Performance", self.monitor.get_display_mode_description("performance")
+        )
+        self.assertIn("Health", self.monitor.get_display_mode_description("health"))
+        self.assertIn(
+            "Developer", self.monitor.get_display_mode_description("developer")
+        )
+
+        # Test unknown mode
+        self.assertEqual(
+            self.monitor.get_display_mode_description("unknown"), "Unknown mode"
+        )
 
     def test_cpu_icon_selection(self):
         """Test CPU icon selection based on usage"""
@@ -533,7 +678,7 @@ class TestSystemMonitorIntegration(unittest.TestCase):
         mock_process.memory_info.return_value = Mock(rss=134217728)  # 128MB
         mock_process.cpu_percent.return_value = 3.0
         mock_process.num_threads.return_value = 6
-        mock_process.connections.return_value = [Mock()]
+        mock_process.net_connections.return_value = [Mock()]
 
         with patch("psutil.Process", return_value=mock_process):
             self.monitor._app_process = mock_process
