@@ -225,9 +225,14 @@ class MainWindow(QMainWindow):
     def __init__(self, title: str = get_text("app.name")):
         super().__init__()
         self.title = title
+        self.setWindowTitle(title)
         self.setup_ui()
         self.setup_menu()
         self.setup_shortcuts()
+        
+        # Initialize logger
+        from ..utils.logger import get_logger
+        self.logger = get_logger("helpmesign.main_window")
 
     def setup_ui(self):
         """Set up the main window UI"""
@@ -395,3 +400,67 @@ class MainWindow(QMainWindow):
     def focus_input(self) -> None:
         """Focus on the input field"""
         self.text_input_frame.focus_input()
+
+    def update_fonts(self) -> None:
+        """Update all fonts in the window to use current font size"""
+        try:
+            # Update text input frame fonts
+            if hasattr(self, "text_input_frame"):
+                # Update label
+                label = self.text_input_frame.findChild(QLabel)
+                if label:
+                    label.setFont(get_label_font())
+                    self.logger.debug("Updated text input frame label font")
+                
+                # Update text input
+                if hasattr(self.text_input_frame, "text_input"):
+                    self.text_input_frame.text_input.setFont(get_input_font())
+                    self.logger.debug("Updated text input font")
+                
+                # Update buttons
+                if hasattr(self.text_input_frame, "process_button"):
+                    self.text_input_frame.process_button.setFont(get_button_font())
+                    self.logger.debug("Updated process button font")
+                if hasattr(self.text_input_frame, "clear_button"):
+                    self.text_input_frame.clear_button.setFont(get_button_font())
+                    self.logger.debug("Updated clear button font")
+
+            # Update output frame fonts
+            if hasattr(self, "output_frame"):
+                # Update label
+                label = self.output_frame.findChild(QLabel)
+                if label:
+                    label.setFont(get_label_font())
+                    self.logger.debug("Updated output frame label font")
+                
+                # Update text output
+                if hasattr(self.output_frame, "text_output"):
+                    self.output_frame.text_output.setFont(get_body_font())
+                    self.logger.debug("Updated text output font")
+
+            # Update status bar fonts
+            if hasattr(self, "status_bar"):
+                if hasattr(self.status_bar, "status_label"):
+                    self.status_bar.status_label.setFont(get_small_font())
+                    self.logger.debug("Updated status label font")
+                if hasattr(self.status_bar, "mode_label"):
+                    self.status_bar.mode_label.setFont(get_small_font())
+                    self.logger.debug("Updated mode label font")
+
+            # Update menu bar font
+            if hasattr(self, "menuBar"):
+                menu_bar = self.menuBar()
+                if menu_bar:
+                    menu_bar.setFont(get_small_font())
+                    self.logger.debug("Updated menu bar font")
+
+            # Force refresh
+            self.update()
+            self.repaint()
+            
+            self.logger.debug("MainWindow fonts updated successfully")
+
+        except Exception as e:
+            # Log error but don't crash
+            import logging
+            logging.error(f"Error updating fonts: {e}")

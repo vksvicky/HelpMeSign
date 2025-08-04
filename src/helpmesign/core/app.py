@@ -36,6 +36,9 @@ class HelpMeSignApp:
             get_logger(), "HelpMeSignApp.__init__", environment=environment
         )
 
+        # Add shutdown flag to prevent operations during shutdown
+        self._shutting_down = False
+
         self.resource_manager = ResourceManager()
 
         # Load configuration based on environment
@@ -64,10 +67,28 @@ class HelpMeSignApp:
         # Apply saved theme and font settings
         self.apply_theme_and_font_settings()
 
+        # Add a small delay to ensure all components are fully initialized
+        # before applying font settings
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self._delayed_font_application)
+
         # Set up application shutdown handling
         self._setup_shutdown_handling()
 
         log_function_exit(get_logger(), "HelpMeSignApp.__init__")
+
+    def _delayed_font_application(self) -> None:
+        """Apply font settings after a delay to ensure all components are initialized"""
+        try:
+            from .startup import get_font_size
+            font_size = get_font_size(self.environment)
+            self.logger.debug(f"Delayed font application for size: {font_size}px")
+            
+            # Re-apply font size to ensure all components are updated
+            self._apply_font_size_setting(font_size)
+            
+        except Exception as e:
+            self.logger.error(f"Error in delayed font application: {e}")
 
     def _setup_shutdown_handling(self):
         """Set up proper application shutdown handling"""
@@ -85,9 +106,24 @@ class HelpMeSignApp:
     def _cleanup_on_shutdown(self):
         """Clean up resources when application is shutting down"""
         try:
+            # Set shutdown flag to prevent further operations
+            self._shutting_down = True
+            
             self.logger.info("Application shutting down, cleaning up resources...")
 
-            # Simple cleanup - just log the event
+            # Disconnect all signals to prevent callbacks during shutdown
+            try:
+                if hasattr(self, 'main_window') and self.main_window:
+                    self.main_window.process_requested.disconnect()
+                    self.main_window.clear_requested.disconnect()
+                    self.main_window.settings_requested.disconnect()
+            except Exception as e:
+                self.logger.debug(f"Error disconnecting signals: {e}")
+
+            # Clear references to prevent circular references
+            self.main_window = None
+            self.resource_manager = None
+
             self.logger.info("Cleanup completed")
         except Exception as e:
             self.logger.error(f"Error during shutdown cleanup: {e}")
@@ -403,20 +439,92 @@ class HelpMeSignApp:
     def _apply_font_size_setting(self, font_size: int) -> None:
         """Apply font size setting to the main window using centralized system"""
         try:
+            # Check if app is shutting down
+            if hasattr(self, '_shutting_down') and self._shutting_down:
+                self.logger.debug("App shutting down, skipping font size application")
+                return
+
             from ..utils.theme_manager import (
                 apply_font_size_to_widget_tree,
                 set_font_size,
             )
 
-            # Set the font size in the theme manager
+            # Set the font size in the theme manager FIRST
             set_font_size(font_size)
+            self.logger.debug(f"Font size set in theme manager: {font_size}px")
 
             # Apply font size to the entire main window widget tree
             apply_font_size_to_widget_tree(self.main_window)
 
+            # Apply font size directly to specific components for immediate effect
+            self._apply_font_size_directly(font_size)
+
+            # Force a small delay to ensure all components are updated
+            from PySide6.QtCore import QCoreApplication
+            QCoreApplication.processEvents()
+
             self.logger.info(f"Font size applied to main window: {font_size}px")
         except Exception as e:
             self.logger.error(f"Error applying font size setting: {e}")
+
+    def _apply_font_size_directly(self, font_size: int) -> None:
+        """Apply font size directly to specific UI components for immediate effect"""
+        try:
+            # Check if app is shutting down
+            if hasattr(self, '_shutting_down') and self._shutting_down:
+                self.logger.debug("App shutting down, skipping direct font application")
+                return
+
+            # Check if main window is still valid
+            if not hasattr(self, 'main_window') or self.main_window is None:
+                self.logger.debug("Main window not available, skipping direct font application")
+                return
+
+            from PySide6.QtGui import QFont
+
+            # Create a new font with the specified size
+            new_font = QFont()
+            new_font.setPointSize(font_size)
+
+            # Apply to text input components
+            if hasattr(self.main_window, "text_input_frame"):
+                if hasattr(self.main_window.text_input_frame, "text_input"):
+                    self.main_window.text_input_frame.text_input.setFont(new_font)
+                if hasattr(self.main_window.text_input_frame, "process_button"):
+                    self.main_window.text_input_frame.process_button.setFont(new_font)
+                if hasattr(self.main_window.text_input_frame, "clear_button"):
+                    self.main_window.text_input_frame.clear_button.setFont(new_font)
+
+            # Apply to output components
+            if hasattr(self.main_window, "output_frame"):
+                if hasattr(self.main_window.output_frame, "text_output"):
+                    self.main_window.output_frame.text_output.setFont(new_font)
+
+            # Apply to status bar
+            if hasattr(self.main_window, "status_bar"):
+                if hasattr(self.main_window.status_bar, "status_label"):
+                    self.main_window.status_bar.status_label.setFont(new_font)
+
+            # Apply to menu bar
+            if hasattr(self.main_window, "menuBar"):
+                menu_bar = self.main_window.menuBar()
+                if menu_bar:
+                    menu_bar.setFont(new_font)
+
+            # Update fonts using the MainWindow's update_fonts method LAST
+            # This ensures all font manager functions use the updated font size
+            if hasattr(self.main_window, "update_fonts"):
+                self.main_window.update_fonts()
+                self.logger.debug("MainWindow update_fonts() called successfully")
+
+            # Force refresh
+            self.main_window.update()
+            self.main_window.repaint()
+
+            self.logger.debug(f"Direct font size application completed for {font_size}px")
+
+        except Exception as e:
+            self.logger.error(f"Error applying font size directly: {e}")
 
     def _update_input_fields_theme_with_font_size(self, input_style: str) -> None:
         """Update input field styling with font size"""

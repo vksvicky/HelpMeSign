@@ -94,33 +94,22 @@ class ThemeManager:
             if not hasattr(widget, "setStyleSheet"):
                 return
 
+            # Check if widget is being destroyed
+            if hasattr(widget, "isDestroyed") and widget.isDestroyed():
+                return
+
             # Check if widget is visible and not being destroyed
             if hasattr(widget, "isVisible") and not widget.isVisible():
                 return
 
-            # Additional safety check for widget destruction
-            if hasattr(widget, "isHidden") and widget.isHidden():
-                return
-
-            # Check if widget is being deleted
-            if (
-                hasattr(widget, "parent")
-                and widget.parent() is None
-                and hasattr(widget, "deleteLater")
-            ):
-                return
-
+            # Get the complete style with font size
             complete_style = self.get_complete_style(component, include_font_size=True)
-            if complete_style:
-                widget.setStyleSheet(complete_style)
 
-            # Only call update/repaint if widget is visible
-            if hasattr(widget, "isVisible") and widget.isVisible():
-                widget.update()
-                widget.repaint()
+            # Apply the style
+            widget.setStyleSheet(complete_style)
 
         except Exception as e:
-            self.logger.error(f"Error forcing font size update: {e}")
+            self.logger.warning(f"Error forcing font size update: {e}")
 
     def apply_font_size_to_widget_tree(
         self, root_widget, component_map: Optional[Dict[str, str]] = None
@@ -137,6 +126,13 @@ class ThemeManager:
             if not hasattr(root_widget, "setStyleSheet"):
                 self.logger.warning(
                     "Root widget is not a valid Qt widget, skipping font size application"
+                )
+                return
+
+            # Check if widget is being destroyed
+            if hasattr(root_widget, "isDestroyed") and root_widget.isDestroyed():
+                self.logger.warning(
+                    "Root widget is being destroyed, skipping font size application"
                 )
                 return
 
@@ -177,6 +173,10 @@ class ThemeManager:
                 # Apply font size to each child widget
                 for i, child in enumerate(all_children):
                     try:
+                        # Check if child is being destroyed
+                        if hasattr(child, "isDestroyed") and child.isDestroyed():
+                            continue
+
                         if child is None or not child.isVisible():
                             continue
 

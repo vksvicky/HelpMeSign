@@ -97,39 +97,70 @@ class FontManager:
 
     def get_title_font(self) -> QFont:
         """Get font for titles"""
-        return self.get_font("Roboto", 20, QFont.Bold)  # type: ignore
+        # Use current font size from theme manager with title adjustment
+        current_size = self._get_current_font_size()
+        title_size = min(24, current_size + 4)  # Title is larger than base
+        return self.get_font("Roboto", title_size, QFont.Bold)  # type: ignore
 
     def get_heading_font(self) -> QFont:
         """Get font for headings"""
-        return self.get_font("Roboto", 16, QFont.Bold)  # type: ignore
+        # Use current font size from theme manager with heading adjustment
+        current_size = self._get_current_font_size()
+        heading_size = min(20, current_size + 2)  # Heading is larger than base
+        return self.get_font("Roboto", heading_size, QFont.Bold)  # type: ignore
 
     def get_subheading_font(self) -> QFont:
         """Get font for subheadings"""
-        return self.get_font("Roboto", 14, QFont.Bold)  # type: ignore
+        # Use current font size from theme manager with subheading adjustment
+        current_size = self._get_current_font_size()
+        subheading_size = min(18, current_size + 1)  # Subheading is slightly larger than base
+        return self.get_font("Roboto", subheading_size, QFont.Bold)  # type: ignore
 
     def get_body_font(self) -> QFont:
         """Get font for body text"""
-        return self.get_font("Roboto", 12, QFont.Normal)  # type: ignore
+        # Use current font size from theme manager
+        current_size = self._get_current_font_size()
+        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
 
     def get_small_font(self) -> QFont:
         """Get font for small text"""
-        return self.get_font("Roboto", 10, QFont.Normal)  # type: ignore
+        # Use current font size from theme manager with small adjustment
+        current_size = self._get_current_font_size()
+        small_size = max(8, current_size - 2)  # Small is smaller than base
+        return self.get_font("Roboto", small_size, QFont.Normal)  # type: ignore
 
     def get_button_font(self) -> QFont:
         """Get font for buttons"""
-        return self.get_font("Roboto", 11, QFont.Bold)  # type: ignore
+        # Use current font size from theme manager
+        current_size = self._get_current_font_size()
+        return self.get_font("Roboto", current_size, QFont.Bold)  # type: ignore
 
     def get_label_font(self) -> QFont:
         """Get font for labels"""
-        return self.get_font("Roboto", 11, QFont.Normal)  # type: ignore
+        # Use current font size from theme manager
+        current_size = self._get_current_font_size()
+        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
 
     def get_input_font(self) -> QFont:
         """Get font for input fields"""
-        return self.get_font("Roboto", 11, QFont.Normal)  # type: ignore
+        # Use current font size from theme manager
+        current_size = self._get_current_font_size()
+        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
 
     def get_menu_font(self) -> QFont:
         """Get font for menu items"""
-        return self.get_font("Roboto", 11, QFont.Normal)  # type: ignore
+        # Use current font size from theme manager
+        current_size = self._get_current_font_size()
+        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
+
+    def _get_current_font_size(self) -> int:
+        """Get the current font size from the theme manager"""
+        try:
+            from .theme_manager import get_font_size
+            return get_font_size()
+        except Exception:
+            # Fallback to default size if theme manager is not available
+            return 12
 
 
 # Global font manager instance
