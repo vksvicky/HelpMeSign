@@ -3,10 +3,10 @@
 Unit tests for resource manager functionality - Comprehensive coverage with pytest
 """
 
-from unittest.mock import MagicMock, patch, mock_open
 import json
 import os
 from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
@@ -257,8 +257,8 @@ class TestResourceManagerMethods:
         """Test initialization with default path"""
         # Test default initialization
         assert self.resource_manager is not None
-        assert hasattr(self.resource_manager, 'logger')
-        assert hasattr(self.resource_manager, 'base_path')
+        assert hasattr(self.resource_manager, "logger")
+        assert hasattr(self.resource_manager, "base_path")
 
     def test_init_with_custom_path(self):
         """Test initialization with custom path"""
@@ -266,11 +266,11 @@ class TestResourceManagerMethods:
         custom_path = "/custom/path"
         mock_path = MagicMock()
         mock_path.resolve.return_value.parent.parent.parent.parent = MagicMock()
-        
+
         # Simulate custom path initialization
         resource_manager = MagicMock()
         resource_manager.base_path = custom_path
-        
+
         assert resource_manager.base_path == custom_path
 
     def test_get_image_path(self):
@@ -278,11 +278,11 @@ class TestResourceManagerMethods:
         # Test image path retrieval
         filename = "test.png"
         expected_path = f"resources/images/{filename}"
-        
+
         # Simulate path construction
         mock_path = MagicMock()
         mock_path.__truediv__.return_value = expected_path
-        
+
         result = expected_path
         assert result == expected_path
         assert "images" in result
@@ -293,11 +293,11 @@ class TestResourceManagerMethods:
         # Test data path retrieval
         filename = "config.json"
         expected_path = f"resources/data/{filename}"
-        
+
         # Simulate path construction
         mock_path = MagicMock()
         mock_path.__truediv__.return_value = expected_path
-        
+
         result = expected_path
         assert result == expected_path
         assert "data" in result
@@ -308,11 +308,11 @@ class TestResourceManagerMethods:
         # Test font path retrieval
         filename = "Roboto-Regular.ttf"
         expected_path = f"resources/fonts/{filename}"
-        
+
         # Simulate path construction
         mock_path = MagicMock()
         mock_path.__truediv__.return_value = expected_path
-        
+
         result = expected_path
         assert result == expected_path
         assert "fonts" in result
@@ -324,7 +324,7 @@ class TestResourceManagerMethods:
         filename = "test.png"
         mock_exists = MagicMock()
         mock_exists.return_value = True
-        
+
         result = mock_exists(filename)
         assert result is True
         mock_exists.assert_called_once_with(filename)
@@ -335,7 +335,7 @@ class TestResourceManagerMethods:
         filename = "nonexistent.png"
         mock_exists = MagicMock()
         mock_exists.return_value = False
-        
+
         result = mock_exists(filename)
         assert result is False
         mock_exists.assert_called_once_with(filename)
@@ -343,15 +343,11 @@ class TestResourceManagerMethods:
     def test_load_config_success(self):
         """Test load_config method success"""
         # Test successful config loading
-        config_data = {
-            "app_name": "TestApp",
-            "version": "1.0.0",
-            "theme": "Light"
-        }
-        
+        config_data = {"app_name": "TestApp", "version": "1.0.0", "theme": "Light"}
+
         mock_json_load = MagicMock()
         mock_json_load.return_value = config_data
-        
+
         result = mock_json_load()
         assert result == config_data
         assert "app_name" in result
@@ -363,13 +359,10 @@ class TestResourceManagerMethods:
         # Test config loading when file doesn't exist
         mock_exists = MagicMock()
         mock_exists.return_value = False
-        
+
         # Should return default config when file doesn't exist
-        default_config = {
-            "app_name": "HelpMeSign",
-            "version": "1.0.0"
-        }
-        
+        default_config = {"app_name": "HelpMeSign", "version": "1.0.0"}
+
         result = default_config
         assert result == default_config
         assert "app_name" in result
@@ -379,26 +372,23 @@ class TestResourceManagerMethods:
         # Test config loading with corrupted JSON
         mock_json_load = MagicMock()
         mock_json_load.side_effect = ValueError("Invalid JSON")
-        
+
         try:
             mock_json_load()
         except ValueError:
             # Should handle corrupted JSON gracefully
             fallback_config = {"app_name": "HelpMeSign"}
-        
+
         assert "app_name" in fallback_config
 
     def test_save_config_success(self):
         """Test save_config method success"""
         # Test successful config saving
-        config_data = {
-            "app_name": "TestApp",
-            "version": "1.0.0"
-        }
-        
+        config_data = {"app_name": "TestApp", "version": "1.0.0"}
+
         mock_json_dump = MagicMock()
         mock_json_dump.return_value = None
-        
+
         result = mock_json_dump(config_data)
         assert result is None
         mock_json_dump.assert_called_once_with(config_data)
@@ -407,11 +397,11 @@ class TestResourceManagerMethods:
         """Test save_config method when directory doesn't exist"""
         # Test config saving when directory doesn't exist
         config_data = {"app_name": "TestApp"}
-        
+
         # Simulate directory creation
         mock_makedirs = MagicMock()
         mock_makedirs.return_value = None
-        
+
         result = mock_makedirs()
         assert result is None
 
@@ -423,9 +413,9 @@ class TestResourceManagerMethods:
             "version": "1.0.0",
             "window_size": {"width": 1024, "height": 768},
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         assert "app_name" in default_config
         assert "version" in default_config
         assert "window_size" in default_config
@@ -439,9 +429,9 @@ class TestResourceManagerMethods:
             "base_path": "/path/to/resources",
             "images_dir": "/path/to/resources/images",
             "data_dir": "/path/to/resources/data",
-            "fonts_dir": "/path/to/resources/fonts"
+            "fonts_dir": "/path/to/resources/fonts",
         }
-        
+
         assert "base_path" in resource_info
         assert "images_dir" in resource_info
         assert "data_dir" in resource_info
@@ -452,21 +442,21 @@ class TestResourceManagerMethods:
         # Test filename validation
         valid_filename = "test.png"
         invalid_filename = "test/with/path.png"
-        
+
         # Validate filename
         if "/" in valid_filename or "\\" in valid_filename:
             is_valid = False
         else:
             is_valid = True
-        
+
         assert is_valid is True
-        
+
         # Test invalid filename
         if "/" in invalid_filename or "\\" in invalid_filename:
             is_valid = False
         else:
             is_valid = True
-        
+
         assert is_valid is False
 
 
@@ -477,11 +467,11 @@ class TestResourceManagerErrorHandling:
         """Test invalid path handling"""
         # Test handling of invalid paths
         invalid_path = ""
-        
+
         if not invalid_path:
             # Use default path
             default_path = "/default/path"
-        
+
         assert default_path == "/default/path"
 
     def test_permission_error_handling(self):
@@ -493,7 +483,7 @@ class TestResourceManagerErrorHandling:
         except PermissionError:
             # Handle permission error gracefully
             fallback_action = "use_default"
-        
+
         assert fallback_action == "use_default"
 
     def test_io_error_handling(self):
@@ -505,7 +495,7 @@ class TestResourceManagerErrorHandling:
         except IOError:
             # Handle IO error gracefully
             fallback_action = "use_default"
-        
+
         assert fallback_action == "use_default"
 
     def test_json_decode_error_handling(self):
@@ -517,7 +507,7 @@ class TestResourceManagerErrorHandling:
         except ValueError:
             # Handle JSON error gracefully
             fallback_config = {"app_name": "HelpMeSign"}
-        
+
         assert "app_name" in fallback_config
 
     def test_file_not_found_error_handling(self):
@@ -529,7 +519,7 @@ class TestResourceManagerErrorHandling:
         except FileNotFoundError:
             # Handle file not found gracefully
             fallback_action = "create_default"
-        
+
         assert fallback_action == "create_default"
 
 
@@ -540,18 +530,18 @@ class TestResourceManagerBoundaryConditions:
         """Test empty filename handling"""
         # Test handling of empty filenames
         empty_filename = ""
-        
+
         if not empty_filename:
             # Use default filename
             default_filename = "default.png"
-        
+
         assert default_filename == "default.png"
 
     def test_very_long_filename_handling(self):
         """Test very long filename handling"""
         # Test handling of very long filenames
         long_filename = "a" * 1000
-        
+
         assert len(long_filename) == 1000
         assert isinstance(long_filename, str)
 
@@ -559,18 +549,18 @@ class TestResourceManagerBoundaryConditions:
         """Test special characters in filename"""
         # Test handling of special characters
         special_filename = "file@#$%^&*().txt"
-        
+
         # Check for special characters
         special_chars = ["@", "#", "$", "%", "^", "&", "*"]
         has_special_chars = any(char in special_filename for char in special_chars)
-        
+
         assert has_special_chars is True
 
     def test_unicode_filename_handling(self):
         """Test unicode filename handling"""
         # Test handling of unicode filenames
         unicode_filename = "file_中文.txt"
-        
+
         assert isinstance(unicode_filename, str)
         assert len(unicode_filename) > 0
 
@@ -578,11 +568,11 @@ class TestResourceManagerBoundaryConditions:
         """Test None path handling"""
         # Test handling of None paths
         none_path = None
-        
+
         if none_path is None:
             # Use default path
             default_path = "/default/path"
-        
+
         assert default_path == "/default/path"
 
 
@@ -594,10 +584,10 @@ class TestResourceManagerSecurity:
         # Test prevention of path traversal attacks
         malicious_filename = "../../../etc/passwd"
         safe_filename = "config.json"
-        
+
         # Check for path traversal attempts
         has_traversal = ".." in malicious_filename
-        
+
         assert has_traversal is True
         assert ".." not in safe_filename
 
@@ -606,10 +596,10 @@ class TestResourceManagerSecurity:
         # Test prevention of absolute paths
         absolute_path = "/etc/passwd"
         relative_path = "config.json"
-        
+
         # Check for absolute paths
         is_absolute = absolute_path.startswith("/")
-        
+
         assert is_absolute is True
         assert not relative_path.startswith("/")
 
@@ -618,10 +608,10 @@ class TestResourceManagerSecurity:
         # Test prevention of shell injection
         malicious_filename = "file; rm -rf /"
         safe_filename = "config.json"
-        
+
         # Check for shell injection attempts
         has_shell_chars = ";" in malicious_filename or "|" in malicious_filename
-        
+
         assert has_shell_chars is True
         assert ";" not in safe_filename
 
@@ -633,13 +623,13 @@ class TestResourceManagerIntegration:
         """Test config load and save cycle"""
         # Test complete config cycle
         original_config = {"app_name": "TestApp", "version": "1.0.0"}
-        
+
         # Simulate save
         saved_config = original_config.copy()
-        
+
         # Simulate load
         loaded_config = saved_config.copy()
-        
+
         assert loaded_config == original_config
         assert "app_name" in loaded_config
         assert "version" in loaded_config
@@ -648,7 +638,7 @@ class TestResourceManagerIntegration:
         """Test multiple resource types"""
         # Test handling of multiple resource types
         resource_types = ["image", "data", "font", "config"]
-        
+
         for resource_type in resource_types:
             assert isinstance(resource_type, str)
             assert len(resource_type) > 0
@@ -660,7 +650,7 @@ class TestResourceManagerIntegration:
         image_path = f"{base_path}/images"
         data_path = f"{base_path}/data"
         font_path = f"{base_path}/fonts"
-        
+
         assert base_path in image_path
         assert base_path in data_path
         assert base_path in font_path
@@ -673,7 +663,7 @@ class TestResourceManagerPerformance:
         """Test large config handling"""
         # Test handling of large configs
         large_config = {"key" + str(i): "value" + str(i) for i in range(1000)}
-        
+
         assert len(large_config) == 1000
         assert "key0" in large_config
         assert "key999" in large_config
@@ -682,7 +672,7 @@ class TestResourceManagerPerformance:
         """Test frequent file operations"""
         # Test handling of frequent operations
         operations = ["read", "write", "read", "write", "read"]
-        
+
         assert len(operations) == 5
         assert operations.count("read") == 3
         assert operations.count("write") == 2
@@ -691,11 +681,11 @@ class TestResourceManagerPerformance:
         """Test memory usage optimization"""
         # Test memory optimization
         config_cache = {}
-        
+
         # Simulate cache operations
         config_cache["config1"] = {"app_name": "App1"}
         config_cache["config2"] = {"app_name": "App2"}
-        
+
         assert len(config_cache) == 2
         assert "config1" in config_cache
         assert "config2" in config_cache
@@ -704,343 +694,389 @@ class TestResourceManagerPerformance:
 class TestResourceManagerRealImplementation:
     """Test cases for actual ResourceManager implementation"""
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_resource_manager_initialization(self, mock_logger, mock_path):
         """Test ResourceManager initialization"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         assert rm is not None
-        assert hasattr(rm, 'logger')
-        assert hasattr(rm, 'base_path')
+        assert hasattr(rm, "logger")
+        assert hasattr(rm, "base_path")
         mock_logger_instance.debug.assert_called_once()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_get_base_path(self, mock_logger, mock_path):
         """Test _get_base_path method"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Test _get_base_path
         base_path = rm._get_base_path()
         assert base_path == Path("/test/path")
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_get_resource_path(self, mock_logger, mock_path):
         """Test get_resource_path method"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Test get_resource_path
         resource_path = rm.get_resource_path("images", "test.png")
         expected_path = Path("/test/path") / "resources" / "images" / "test.png"
         assert resource_path == expected_path
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_resource_exists(self, mock_logger, mock_path):
         """Test resource_exists method"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock the resource path
         mock_resource_path = MagicMock()
         mock_resource_path.exists.return_value = True
         rm.get_resource_path = MagicMock(return_value=mock_resource_path)
-        
+
         # Test resource_exists
         exists = rm.resource_exists("images", "test.png")
         assert exists is True
         mock_logger_instance.debug.assert_called()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_get_image_path(self, mock_logger, mock_path):
         """Test get_image_path method"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock get_resource_path
-        rm.get_resource_path = MagicMock(return_value=Path("/test/path/resources/images/test.png"))
-        
+        rm.get_resource_path = MagicMock(
+            return_value=Path("/test/path/resources/images/test.png")
+        )
+
         # Test get_image_path
         image_path = rm.get_image_path("test.png")
         assert image_path == "/test/path/resources/images/test.png"
         rm.get_resource_path.assert_called_once_with("images", "test.png")
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_get_data_path(self, mock_logger, mock_path):
         """Test get_data_path method"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock get_resource_path
-        rm.get_resource_path = MagicMock(return_value=Path("/test/path/resources/data/config.json"))
-        
+        rm.get_resource_path = MagicMock(
+            return_value=Path("/test/path/resources/data/config.json")
+        )
+
         # Test get_data_path
         data_path = rm.get_data_path("config.json")
         assert data_path == "/test/path/resources/data/config.json"
         rm.get_resource_path.assert_called_once_with("data", "config.json")
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
-    @patch('src.helpmesign.utils.resource_manager.os.path.exists')
-    @patch('builtins.open', new_callable=mock_open, read_data='{"app_name": "TestApp"}')
-    @patch('src.helpmesign.utils.resource_manager.json.load')
-    def test_load_config_success(self, mock_json_load, mock_file, mock_exists, mock_logger, mock_path):
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
+    @patch("src.helpmesign.utils.resource_manager.os.path.exists")
+    @patch("builtins.open", new_callable=mock_open, read_data='{"app_name": "TestApp"}')
+    @patch("src.helpmesign.utils.resource_manager.json.load")
+    def test_load_config_success(
+        self, mock_json_load, mock_file, mock_exists, mock_logger, mock_path
+    ):
         """Test load_config method with successful file read"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Mock file exists
         mock_exists.return_value = True
-        
+
         # Mock JSON load
         mock_json_load.return_value = {"app_name": "TestApp", "version": "1.0.0"}
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock get_data_path
-        rm.get_data_path = MagicMock(return_value="/test/path/resources/data/config.json")
-        
+        rm.get_data_path = MagicMock(
+            return_value="/test/path/resources/data/config.json"
+        )
+
         # Test load_config
         config = rm.load_config()
         assert config == {"app_name": "TestApp", "version": "1.0.0"}
         mock_logger_instance.info.assert_called()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
-    @patch('src.helpmesign.utils.resource_manager.os.path.exists')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
+    @patch("src.helpmesign.utils.resource_manager.os.path.exists")
     def test_load_config_file_not_exists(self, mock_exists, mock_logger, mock_path):
         """Test load_config method when file doesn't exist"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Mock file doesn't exist
         mock_exists.return_value = False
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock get_data_path
-        rm.get_data_path = MagicMock(return_value="/test/path/resources/data/config.json")
-        
+        rm.get_data_path = MagicMock(
+            return_value="/test/path/resources/data/config.json"
+        )
+
         # Test load_config
         config = rm.load_config()
         assert "app_name" in config
         assert config["app_name"] == "HelpMeSign"
         mock_logger_instance.warning.assert_called()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
-    @patch('src.helpmesign.utils.resource_manager.os.path.exists')
-    @patch('builtins.open', new_callable=mock_open, read_data='invalid json')
-    @patch('src.helpmesign.utils.resource_manager.json.load')
-    def test_load_config_json_error(self, mock_json_load, mock_file, mock_exists, mock_logger, mock_path):
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
+    @patch("src.helpmesign.utils.resource_manager.os.path.exists")
+    @patch("builtins.open", new_callable=mock_open, read_data="invalid json")
+    @patch("src.helpmesign.utils.resource_manager.json.load")
+    def test_load_config_json_error(
+        self, mock_json_load, mock_file, mock_exists, mock_logger, mock_path
+    ):
         """Test load_config method with JSON decode error"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Mock file exists
         mock_exists.return_value = True
-        
+
         # Mock JSON decode error
         mock_json_load.side_effect = json.JSONDecodeError("Invalid JSON", "", 0)
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock get_data_path
-        rm.get_data_path = MagicMock(return_value="/test/path/resources/data/config.json")
-        
+        rm.get_data_path = MagicMock(
+            return_value="/test/path/resources/data/config.json"
+        )
+
         # Test load_config
         config = rm.load_config()
         assert "app_name" in config
         assert config["app_name"] == "HelpMeSign"
         mock_logger_instance.error.assert_called()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
-    @patch('src.helpmesign.utils.resource_manager.os.makedirs')
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('src.helpmesign.utils.resource_manager.json.dump')
-    def test_save_config_success(self, mock_json_dump, mock_file, mock_makedirs, mock_logger, mock_path):
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
+    @patch("src.helpmesign.utils.resource_manager.os.makedirs")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("src.helpmesign.utils.resource_manager.json.dump")
+    def test_save_config_success(
+        self, mock_json_dump, mock_file, mock_makedirs, mock_logger, mock_path
+    ):
         """Test save_config method with successful save"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock get_data_path
-        rm.get_data_path = MagicMock(return_value="/test/path/resources/data/config.json")
-        
+        rm.get_data_path = MagicMock(
+            return_value="/test/path/resources/data/config.json"
+        )
+
         # Test save_config
         config = {"app_name": "TestApp", "version": "1.0.0"}
         result = rm.save_config(config)
-        
+
         assert result is True
         mock_makedirs.assert_called_once()
-        mock_json_dump.assert_called_once_with(config, mock_file(), indent=4, ensure_ascii=False)
+        mock_json_dump.assert_called_once_with(
+            config, mock_file(), indent=4, ensure_ascii=False
+        )
         mock_logger_instance.info.assert_called()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
-    @patch('src.helpmesign.utils.resource_manager.os.makedirs')
-    @patch('builtins.open', new_callable=mock_open)
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
+    @patch("src.helpmesign.utils.resource_manager.os.makedirs")
+    @patch("builtins.open", new_callable=mock_open)
     def test_save_config_error(self, mock_file, mock_makedirs, mock_logger, mock_path):
         """Test save_config method with error"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Mock file open error
         mock_file.side_effect = PermissionError("Permission denied")
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock get_data_path
-        rm.get_data_path = MagicMock(return_value="/test/path/resources/data/config.json")
-        
+        rm.get_data_path = MagicMock(
+            return_value="/test/path/resources/data/config.json"
+        )
+
         # Test save_config
         config = {"app_name": "TestApp", "version": "1.0.0"}
         result = rm.save_config(config)
-        
+
         assert result is False
         mock_logger_instance.error.assert_called()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_get_default_config(self, mock_logger, mock_path):
         """Test _get_default_config method"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Test _get_default_config
         config = rm._get_default_config()
-        
+
         assert "app_name" in config
         assert "version" in config
         assert "window_size" in config
@@ -1050,24 +1086,26 @@ class TestResourceManagerRealImplementation:
         assert config["version"] == "1.0.0"
         mock_logger_instance.info.assert_called()
 
-    @patch('src.helpmesign.utils.resource_manager.Path')
-    @patch('src.helpmesign.utils.resource_manager.get_logger')
+    @patch("src.helpmesign.utils.resource_manager.Path")
+    @patch("src.helpmesign.utils.resource_manager.get_logger")
     def test_get_resource_info(self, mock_logger, mock_path):
         """Test get_resource_info method"""
         from src.helpmesign.utils.resource_manager import ResourceManager
-        
+
         # Mock Path behavior
         mock_path_instance = MagicMock()
-        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path("/test/path")
+        mock_path_instance.resolve.return_value.parent.parent.parent.parent = Path(
+            "/test/path"
+        )
         mock_path.return_value = mock_path_instance
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Create instance
         rm = ResourceManager()
-        
+
         # Mock the get_resource_path method instead
         def mock_get_resource_path(resource_type, filename):
             if resource_type == "images":
@@ -1077,28 +1115,32 @@ class TestResourceManagerRealImplementation:
             elif resource_type == "fonts":
                 return Path("/test/path/resources/fonts/")
             return Path("/test/path/resources/unknown/")
-        
+
         rm.get_resource_path = MagicMock(side_effect=mock_get_resource_path)
-        
+
         # Mock the base_path to return a mock that can be used for path operations
         mock_base_path = MagicMock()
         mock_base_path.__str__ = MagicMock(return_value="/test/path")
-        
+
         # Mock resources directory structure
         mock_resources_dir = MagicMock()
         mock_resources_dir.exists.return_value = True
-        
+
         mock_images_dir = MagicMock()
         mock_images_dir.exists.return_value = True
-        mock_images_dir.iterdir.return_value = [MagicMock(name="test.png", is_file=lambda: True)]
-        
+        mock_images_dir.iterdir.return_value = [
+            MagicMock(name="test.png", is_file=lambda: True)
+        ]
+
         mock_data_dir = MagicMock()
         mock_data_dir.exists.return_value = True
-        mock_data_dir.iterdir.return_value = [MagicMock(name="config.json", is_file=lambda: True)]
-        
+        mock_data_dir.iterdir.return_value = [
+            MagicMock(name="config.json", is_file=lambda: True)
+        ]
+
         mock_fonts_dir = MagicMock()
         mock_fonts_dir.exists.return_value = False
-        
+
         # Mock the path operations
         def mock_truediv(path_part):
             if path_part == "resources":
@@ -1110,13 +1152,13 @@ class TestResourceManagerRealImplementation:
             elif path_part == "fonts":
                 return mock_fonts_dir
             return MagicMock()
-        
+
         mock_base_path.__truediv__ = MagicMock(side_effect=mock_truediv)
         rm.base_path = mock_base_path
-        
+
         # Test get_resource_info
         info = rm.get_resource_info()
-        
+
         assert "base_path" in info
         assert "resources" in info
         assert "images" in info["resources"]

@@ -3,10 +3,10 @@
 Unit tests for Settings Dialog functionality - Comprehensive coverage with pytest
 """
 
-from unittest.mock import MagicMock, patch, mock_open
 import json
 import os
 from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
@@ -409,13 +409,13 @@ class TestFontSizeSelectorMethods:
         # Mock Qt components
         with patch("src.helpmesign.ui.settings_dialog.QWidget") as mock_widget:
             mock_parent = MagicMock()
-            
+
             # Test initialization logic
             parent = mock_parent
             initial_size = 12
             min_size = 8
             max_size = 24
-            
+
             assert parent == mock_parent
             assert initial_size == 12
             assert min_size == 8
@@ -428,11 +428,11 @@ class TestFontSizeSelectorMethods:
         new_size = 14
         min_size = 8
         max_size = 24
-        
+
         # Validate size range
         if min_size <= new_size <= max_size:
             current_size = new_size
-        
+
         assert current_size == new_size
         assert min_size <= current_size <= max_size
 
@@ -440,7 +440,7 @@ class TestFontSizeSelectorMethods:
         """Test get_size method logic"""
         # Test size getting logic
         current_size = 12
-        
+
         result = current_size
         assert result == 12
         assert isinstance(result, int)
@@ -451,10 +451,10 @@ class TestFontSizeSelectorMethods:
         event = MagicMock()
         event.x.return_value = 50
         event.y.return_value = 25
-        
+
         x = event.x()
         y = event.y()
-        
+
         assert x == 50
         assert y == 25
         assert isinstance(x, int)
@@ -466,10 +466,10 @@ class TestFontSizeSelectorMethods:
         event = MagicMock()
         event.x.return_value = 60
         event.y.return_value = 30
-        
+
         x = event.x()
         y = event.y()
-        
+
         assert x == 60
         assert y == 30
         assert isinstance(x, int)
@@ -479,10 +479,10 @@ class TestFontSizeSelectorMethods:
         """Test leave event logic"""
         # Test leave event handling
         event = MagicMock()
-        
+
         # Simulate leaving the widget
         is_hovered = False
-        
+
         assert is_hovered is False
 
     def test_paint_event_logic(self):
@@ -490,11 +490,11 @@ class TestFontSizeSelectorMethods:
         # Test paint event handling
         event = MagicMock()
         painter = MagicMock()
-        
+
         # Simulate painting
         painter.drawRect.return_value = None
         painter.drawText.return_value = None
-        
+
         # Verify painting methods are called
         painter.drawRect.assert_not_called()
         painter.drawText.assert_not_called()
@@ -503,11 +503,11 @@ class TestFontSizeSelectorMethods:
         """Test force color update logic"""
         # Test color update logic
         needs_update = True
-        
+
         if needs_update:
             # Force update
             needs_update = False
-        
+
         assert needs_update is False
 
 
@@ -520,7 +520,7 @@ class TestModernSegmentedControlMethods:
         options = ["Light", "Dark", "System"]
         parent = None
         current_selection = "Light"
-        
+
         assert isinstance(options, list)
         assert len(options) == 3
         assert current_selection in options
@@ -532,10 +532,10 @@ class TestModernSegmentedControlMethods:
         options = ["Light", "Dark", "System"]
         current_selection = "Light"
         new_selection = "Dark"
-        
+
         if new_selection in options:
             current_selection = new_selection
-        
+
         assert current_selection == "Dark"
         assert current_selection in options
 
@@ -543,7 +543,7 @@ class TestModernSegmentedControlMethods:
         """Test get_selection method logic"""
         # Test selection getting logic
         current_selection = "System"
-        
+
         result = current_selection
         assert result == "System"
         assert isinstance(result, str)
@@ -554,10 +554,10 @@ class TestModernSegmentedControlMethods:
         event = MagicMock()
         event.x.return_value = 100
         event.y.return_value = 50
-        
+
         x = event.x()
         y = event.y()
-        
+
         assert x == 100
         assert y == 50
         assert isinstance(x, int)
@@ -569,10 +569,10 @@ class TestModernSegmentedControlMethods:
         event = MagicMock()
         event.x.return_value = 110
         event.y.return_value = 55
-        
+
         x = event.x()
         y = event.y()
-        
+
         assert x == 110
         assert y == 55
         assert isinstance(x, int)
@@ -582,10 +582,10 @@ class TestModernSegmentedControlMethods:
         """Test leave event logic"""
         # Test leave event handling
         event = MagicMock()
-        
+
         # Simulate leaving the widget
         is_hovered = False
-        
+
         assert is_hovered is False
 
     def test_paint_event_logic(self):
@@ -593,11 +593,11 @@ class TestModernSegmentedControlMethods:
         # Test paint event handling
         event = MagicMock()
         painter = MagicMock()
-        
+
         # Simulate painting
         painter.drawRect.return_value = None
         painter.drawText.return_value = None
-        
+
         # Verify painting methods are called
         painter.drawRect.assert_not_called()
         painter.drawText.assert_not_called()
@@ -606,11 +606,11 @@ class TestModernSegmentedControlMethods:
         """Test force color update logic"""
         # Test color update logic
         needs_update = True
-        
+
         if needs_update:
             # Force update
             needs_update = False
-        
+
         assert needs_update is False
 
 
@@ -624,7 +624,7 @@ class TestSettingsDialogMethods:
         current_mode = "Sign & Translate"
         environment = "dev"
         main_window = None
-        
+
         assert parent is None
         assert current_mode == "Sign & Translate"
         assert environment == "dev"
@@ -635,7 +635,7 @@ class TestSettingsDialogMethods:
         # Test UI setup logic
         tabs_created = ["General", "Appearance"]
         controls_created = ["theme_selector", "font_size_selector"]
-        
+
         assert len(tabs_created) == 2
         assert len(controls_created) == 2
         assert "General" in tabs_created
@@ -644,12 +644,8 @@ class TestSettingsDialogMethods:
     def test_load_current_settings_method(self):
         """Test load_current_settings method logic"""
         # Test settings loading logic
-        mock_settings = {
-            "theme": "Light",
-            "font_size": 12,
-            "language": "en"
-        }
-        
+        mock_settings = {"theme": "Light", "font_size": 12, "language": "en"}
+
         assert "theme" in mock_settings
         assert "font_size" in mock_settings
         assert "language" in mock_settings
@@ -658,14 +654,11 @@ class TestSettingsDialogMethods:
     def test_apply_settings_method(self):
         """Test apply_settings method logic"""
         # Test settings application logic
-        settings_to_apply = {
-            "theme": "Dark",
-            "font_size": 14
-        }
-        
+        settings_to_apply = {"theme": "Dark", "font_size": 14}
+
         # Simulate applying settings
         applied_settings = settings_to_apply.copy()
-        
+
         assert applied_settings == settings_to_apply
         assert applied_settings["theme"] == "Dark"
         assert applied_settings["font_size"] == 14
@@ -673,14 +666,10 @@ class TestSettingsDialogMethods:
     def test_reset_to_defaults_method(self):
         """Test reset_to_defaults method logic"""
         # Test reset logic
-        default_settings = {
-            "theme": "Light",
-            "font_size": 12,
-            "language": "en"
-        }
-        
+        default_settings = {"theme": "Light", "font_size": 12, "language": "en"}
+
         current_settings = default_settings.copy()
-        
+
         assert current_settings == default_settings
         assert current_settings["theme"] == "Light"
 
@@ -688,7 +677,7 @@ class TestSettingsDialogMethods:
         """Test get_selected_mode method logic"""
         # Test mode selection logic
         selected_mode = "Sign & Translate"
-        
+
         result = selected_mode
         assert result == "Sign & Translate"
         assert isinstance(result, str)
@@ -697,20 +686,20 @@ class TestSettingsDialogMethods:
         """Test show event logic"""
         # Test show event handling
         event = MagicMock()
-        
+
         # Simulate showing the dialog
         is_visible = True
-        
+
         assert is_visible is True
 
     def test_close_event_logic(self):
         """Test close event logic"""
         # Test close event handling
         event = MagicMock()
-        
+
         # Simulate closing the dialog
         is_visible = False
-        
+
         assert is_visible is False
 
     def test_accept_method_logic(self):
@@ -718,7 +707,7 @@ class TestSettingsDialogMethods:
         # Test accept logic
         settings_saved = True
         dialog_closed = True
-        
+
         assert settings_saved is True
         assert dialog_closed is True
 
@@ -727,7 +716,7 @@ class TestSettingsDialogMethods:
         # Test reject logic
         settings_restored = True
         dialog_closed = True
-        
+
         assert settings_restored is True
         assert dialog_closed is True
 
@@ -736,9 +725,9 @@ class TestSettingsDialogMethods:
         # Test theme change handling
         old_theme = "Light"
         new_theme = "Dark"
-        
+
         theme_changed = old_theme != new_theme
-        
+
         assert theme_changed is True
         assert new_theme in ["Light", "Dark", "System"]
 
@@ -747,9 +736,9 @@ class TestSettingsDialogMethods:
         # Test font size change handling
         old_size = 12
         new_size = 14
-        
+
         size_changed = old_size != new_size
-        
+
         assert size_changed is True
         assert 8 <= new_size <= 24
 
@@ -758,7 +747,7 @@ class TestSettingsDialogMethods:
         # Test light theme application
         theme_name = "Light"
         colors_updated = True
-        
+
         assert theme_name == "Light"
         assert colors_updated is True
 
@@ -767,7 +756,7 @@ class TestSettingsDialogMethods:
         # Test dark theme application
         theme_name = "Dark"
         colors_updated = True
-        
+
         assert theme_name == "Dark"
         assert colors_updated is True
 
@@ -776,7 +765,7 @@ class TestSettingsDialogMethods:
         # Test general tab creation
         tab_created = True
         controls_added = ["mode_selector", "language_selector"]
-        
+
         assert tab_created is True
         assert len(controls_added) == 2
 
@@ -785,7 +774,7 @@ class TestSettingsDialogMethods:
         # Test appearance tab creation
         tab_created = True
         controls_added = ["theme_selector", "font_size_selector"]
-        
+
         assert tab_created is True
         assert len(controls_added) == 2
 
@@ -794,7 +783,7 @@ class TestSettingsDialogMethods:
         # Test dialog theme update
         theme_name = "Dark"
         styling_applied = True
-        
+
         assert theme_name in ["Light", "Dark", "System"]
         assert styling_applied is True
 
@@ -803,7 +792,7 @@ class TestSettingsDialogMethods:
         # Test main window preview update
         theme_name = "Light"
         preview_updated = True
-        
+
         assert theme_name in ["Light", "Dark", "System"]
         assert preview_updated is True
 
@@ -819,7 +808,7 @@ class TestShowSettingsDialogFunction:
         callback = MagicMock()
         environment = "dev"
         main_window = None
-        
+
         # Test parameter validation
         assert parent is None
         assert current_mode == "Sign & Translate"
@@ -832,7 +821,7 @@ class TestShowSettingsDialogFunction:
         # Test dialog creation
         dialog_created = True
         dialog_shown = True
-        
+
         assert dialog_created is True
         assert dialog_shown is True
 
@@ -841,17 +830,17 @@ class TestShowSettingsDialogFunction:
         # Test callback execution
         callback = MagicMock()
         selected_mode = "Learn"
-        
+
         # Simulate callback execution
         callback(selected_mode)
-        
+
         callback.assert_called_once_with(selected_mode)
 
     def test_return_value_logic(self):
         """Test return value logic"""
         # Test return value
         selected_mode = "Sign & Translate"
-        
+
         result = selected_mode
         assert result == "Sign & Translate"
         assert isinstance(result, str)
@@ -860,77 +849,81 @@ class TestShowSettingsDialogFunction:
 class TestSettingsDialogRealImplementation:
     """Test cases for actual SettingsDialog implementation"""
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    def test_settings_dialog_initialization(self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    def test_settings_dialog_initialization(
+        self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog
+    ):
         """Test SettingsDialog initialization"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         assert dialog is not None
-        assert hasattr(dialog, 'logger')
-        assert hasattr(dialog, 'environment')
-        assert hasattr(dialog, 'current_mode')
+        assert hasattr(dialog, "logger")
+        assert hasattr(dialog, "environment")
+        assert hasattr(dialog, "current_mode")
         mock_logger_instance.info.assert_called()
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    def test_load_current_settings(self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    def test_load_current_settings(
+        self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog
+    ):
         """Test load_current_settings method"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         # Test load_current_settings
         dialog.load_current_settings()
-        
+
         assert "user_mode" in dialog.current_settings
         assert "theme" in dialog.current_settings
         assert "font_size" in dialog.current_settings
@@ -938,77 +931,86 @@ class TestSettingsDialogRealImplementation:
         assert dialog.current_settings["theme"] == "Light"
         assert dialog.current_settings["font_size"] == 12
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    def test_load_current_settings_error_handling(self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    def test_load_current_settings_error_handling(
+        self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog
+    ):
         """Test load_current_settings error handling"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Mock get_all_settings to raise an exception
         mock_get_settings.side_effect = Exception("Settings error")
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         # Test load_current_settings with error
         dialog.load_current_settings()
-        
+
         # Should have default settings
         assert "user_mode" in dialog.current_settings
         assert "theme" in dialog.current_settings
         assert "font_size" in dialog.current_settings
         mock_logger_instance.error.assert_called()
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    @patch('src.helpmesign.ui.settings_dialog.save_all_settings')
-    def test_apply_settings_success(self, mock_save_settings, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    @patch("src.helpmesign.ui.settings_dialog.save_all_settings")
+    def test_apply_settings_success(
+        self,
+        mock_save_settings,
+        mock_get_text,
+        mock_get_settings,
+        mock_logger,
+        mock_qdialog,
+    ):
         """Test apply_settings method with success"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         mock_save_settings.return_value = True
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         # Mock UI controls
         dialog.segmented_control = MagicMock()
         dialog.segmented_control.get_selection.return_value = "Learn Sign Language"
@@ -1016,52 +1018,58 @@ class TestSettingsDialogRealImplementation:
         dialog.theme_control.get_selection.return_value = "Dark"
         dialog.font_size_selector = MagicMock()
         dialog.font_size_selector.get_size.return_value = 14
-        
+
         # Test apply_settings
         dialog.apply_settings()
-        
+
         # Verify save_all_settings was called with correct settings
-        mock_save_settings.assert_called_once_with({
-            "user_mode": "Learn Sign Language",
-            "theme": "Dark",
-            "font_size": 14
-        }, "dev")
+        mock_save_settings.assert_called_once_with(
+            {"user_mode": "Learn Sign Language", "theme": "Dark", "font_size": 14},
+            "dev",
+        )
         mock_logger_instance.info.assert_called()
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    @patch('src.helpmesign.ui.settings_dialog.save_all_settings')
-    def test_apply_settings_failure(self, mock_save_settings, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    @patch("src.helpmesign.ui.settings_dialog.save_all_settings")
+    def test_apply_settings_failure(
+        self,
+        mock_save_settings,
+        mock_get_text,
+        mock_get_settings,
+        mock_logger,
+        mock_qdialog,
+    ):
         """Test apply_settings method with failure"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         mock_save_settings.return_value = False
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         # Mock UI controls
         dialog.segmented_control = MagicMock()
         dialog.segmented_control.get_selection.return_value = "Learn Sign Language"
@@ -1069,66 +1077,76 @@ class TestSettingsDialogRealImplementation:
         dialog.theme_control.get_selection.return_value = "Dark"
         dialog.font_size_selector = MagicMock()
         dialog.font_size_selector.get_size.return_value = 14
-        
+
         # Test apply_settings
         dialog.apply_settings()
-        
+
         # Verify error was logged
         mock_logger_instance.error.assert_called()
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    @patch('src.helpmesign.ui.settings_dialog.save_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.apply_theme')
-    def test_reset_to_defaults(self, mock_apply_theme, mock_save_settings, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    @patch("src.helpmesign.ui.settings_dialog.save_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.apply_theme")
+    def test_reset_to_defaults(
+        self,
+        mock_apply_theme,
+        mock_save_settings,
+        mock_get_text,
+        mock_get_settings,
+        mock_logger,
+        mock_qdialog,
+    ):
         """Test reset_to_defaults method"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         # Mock save_all_settings to prevent error dialogs
         mock_save_settings.return_value = True
-        
+
         # Mock apply_theme to prevent theme application issues
         mock_apply_theme.return_value = True
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         # Mock UI controls
         dialog.segmented_control = MagicMock()
         dialog.theme_control = MagicMock()
         dialog.font_size_selector = MagicMock()
-        
+
         # Mock apply_settings to prevent any save operations and error dialogs
-        with patch.object(dialog, 'apply_settings') as mock_apply_settings:
+        with patch.object(dialog, "apply_settings") as mock_apply_settings:
             mock_apply_settings.return_value = None
-            
+
             # Test reset_to_defaults
             dialog.reset_to_defaults()
-            
+
             # Verify UI controls were updated
-            dialog.segmented_control.set_selection.assert_called_once_with("Sign & Translate")
+            dialog.segmented_control.set_selection.assert_called_once_with(
+                "Sign & Translate"
+            )
             dialog.theme_control.set_selection.assert_called_once_with("Light")
             # set_size is called multiple times during reset (direct call + through _on_font_size_changed)
             dialog.font_size_selector.set_size.assert_called_with(12)
@@ -1136,117 +1154,127 @@ class TestSettingsDialogRealImplementation:
             assert dialog.font_size_selector.set_size.call_count >= 1
             mock_logger_instance.info.assert_called()
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    def test_get_selected_mode(self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    def test_get_selected_mode(
+        self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog
+    ):
         """Test get_selected_mode method"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         # Mock segmented control
         dialog.segmented_control = MagicMock()
         dialog.segmented_control.get_selection.return_value = "Learn Sign Language"
-        
+
         # Test get_selected_mode
         selected_mode = dialog.get_selected_mode()
-        
+
         assert selected_mode == "Learn Sign Language"
         dialog.segmented_control.get_selection.assert_called_once()
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    def test_update_description(self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    def test_update_description(
+        self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog
+    ):
         """Test update_description method"""
         from src.helpmesign.ui.settings_dialog import SettingsDialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Create instance
         dialog = SettingsDialog()
-        
+
         # Mock description label
         dialog.description_label = MagicMock()
-        
+
         # Test update_description for Sign & Translate mode
         dialog.update_description("Sign & Translate")
-        dialog.description_label.setText.assert_called_with("Convert text to sign language symbols and gestures")
-        
+        dialog.description_label.setText.assert_called_with(
+            "Convert text to sign language symbols and gestures"
+        )
+
         # Test update_description for Learn mode
         dialog.update_description("Learn Sign Language")
-        dialog.description_label.setText.assert_called_with("Educational mode for learning sign language vocabulary and grammar")
+        dialog.description_label.setText.assert_called_with(
+            "Educational mode for learning sign language vocabulary and grammar"
+        )
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', True)
-    @patch('src.helpmesign.ui.settings_dialog.QDialog')
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
-    @patch('src.helpmesign.ui.settings_dialog.get_all_settings')
-    @patch('src.helpmesign.ui.settings_dialog.get_text')
-    def test_show_settings_dialog_function(self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog):
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.ui.settings_dialog.QDialog")
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
+    @patch("src.helpmesign.ui.settings_dialog.get_all_settings")
+    @patch("src.helpmesign.ui.settings_dialog.get_text")
+    def test_show_settings_dialog_function(
+        self, mock_get_text, mock_get_settings, mock_logger, mock_qdialog
+    ):
         """Test show_settings_dialog function"""
         from src.helpmesign.ui.settings_dialog import show_settings_dialog
-        
+
         # Mock dependencies
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         mock_get_settings.return_value = {
             "user_mode": "Sign & Translate",
             "theme": "Light",
-            "font_size": 12
+            "font_size": 12,
         }
-        
+
         mock_get_text.side_effect = lambda key: {
             "modes.sign_translate.name": "Sign & Translate",
-            "modes.learn.name": "Learn Sign Language"
+            "modes.learn.name": "Learn Sign Language",
         }.get(key, key)
-        
+
         # Mock QDialog
         mock_dialog_instance = MagicMock()
         mock_qdialog.return_value = mock_dialog_instance
-        
+
         # Test show_settings_dialog
         callback = MagicMock()
         result = show_settings_dialog(
@@ -1254,25 +1282,25 @@ class TestSettingsDialogRealImplementation:
             current_mode="Sign & Translate",
             callback=callback,
             environment="dev",
-            main_window=None
+            main_window=None,
         )
-        
+
         # Should return None for non-modal dialog
         assert result is None
 
-    @patch('src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE', False)
-    @patch('src.helpmesign.ui.settings_dialog.get_logger')
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", False)
+    @patch("src.helpmesign.ui.settings_dialog.get_logger")
     def test_show_settings_dialog_pyside6_not_available(self, mock_logger):
         """Test show_settings_dialog when PySide6 is not available"""
         from src.helpmesign.ui.settings_dialog import show_settings_dialog
-        
+
         # Mock logger
         mock_logger_instance = MagicMock()
         mock_logger.return_value = mock_logger_instance
-        
+
         # Test show_settings_dialog without PySide6
         result = show_settings_dialog()
-        
+
         # Should return None and log error
         assert result is None
         mock_logger_instance.error.assert_called()

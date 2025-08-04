@@ -349,7 +349,7 @@ class TestFontManagerMethods:
         fonts_loaded = False
         font_families = {}
         fonts_initialized = False
-        
+
         assert fonts_loaded is False
         assert isinstance(font_families, dict)
         assert len(font_families) == 0
@@ -366,12 +366,12 @@ class TestFontManagerMethods:
             "Roboto-Medium.ttf",
             "Roboto-Thin.ttf",
         ]
-        
+
         if not fonts_initialized:
             # Simulate font loading
             fonts_initialized = True
             loaded_fonts = len(font_files)
-        
+
         assert fonts_initialized is True
         assert loaded_fonts == 5
 
@@ -382,12 +382,12 @@ class TestFontManagerMethods:
         size = 12
         weight = 400  # Normal weight
         italic = False
-        
+
         # Simulate font creation
         font_created = True
         font_family = family
         font_size = size
-        
+
         assert font_created is True
         assert font_family == "Roboto"
         assert font_size == 12
@@ -397,7 +397,7 @@ class TestFontManagerMethods:
         # Test title font creation
         title_size = 18
         title_weight = 700  # Bold weight
-        
+
         assert title_size > 12  # Larger than body
         assert title_weight == 700  # Bold
 
@@ -406,7 +406,7 @@ class TestFontManagerMethods:
         # Test heading font creation
         heading_size = 16
         heading_weight = 600  # Semi-bold weight
-        
+
         assert heading_size > 12  # Larger than body
         assert heading_size < 18  # Smaller than title
         assert heading_weight == 600
@@ -416,7 +416,7 @@ class TestFontManagerMethods:
         # Test subheading font creation
         subheading_size = 14
         subheading_weight = 500  # Medium weight
-        
+
         assert subheading_size > 12  # Larger than body
         assert subheading_size < 16  # Smaller than heading
         assert subheading_weight == 500
@@ -426,7 +426,7 @@ class TestFontManagerMethods:
         # Test body font creation
         body_size = 12
         body_weight = 400  # Normal weight
-        
+
         assert body_size == 12  # Standard body size
         assert body_weight == 400
 
@@ -435,7 +435,7 @@ class TestFontManagerMethods:
         # Test small font creation
         small_size = 10
         small_weight = 400  # Normal weight
-        
+
         assert small_size < 12  # Smaller than body
         assert small_weight == 400
 
@@ -444,7 +444,7 @@ class TestFontManagerMethods:
         # Test button font creation
         button_size = 12
         button_weight = 500  # Medium weight
-        
+
         assert button_size == 12  # Standard button size
         assert button_weight == 500
 
@@ -453,7 +453,7 @@ class TestFontManagerMethods:
         # Test label font creation
         label_size = 12
         label_weight = 400  # Normal weight
-        
+
         assert label_size == 12  # Standard label size
         assert label_weight == 400
 
@@ -462,7 +462,7 @@ class TestFontManagerMethods:
         # Test input font creation
         input_size = 12
         input_weight = 400  # Normal weight
-        
+
         assert input_size == 12  # Standard input size
         assert input_weight == 400
 
@@ -471,7 +471,7 @@ class TestFontManagerMethods:
         # Test menu font creation
         menu_size = 12
         menu_weight = 400  # Normal weight
-        
+
         assert menu_size == 12  # Standard menu size
         assert menu_weight == 400
 
@@ -484,7 +484,7 @@ class TestFontManagerMethods:
         except Exception:
             # Fallback to default size
             current_size = 12
-        
+
         assert current_size == 12
         assert isinstance(current_size, int)
 
@@ -497,13 +497,13 @@ class TestFontManagerUtilityFunctions:
         # Test singleton pattern
         manager1 = MagicMock()
         manager2 = MagicMock()
-        
+
         # Simulate singleton behavior
         if manager1 is manager2:
             singleton_working = True
         else:
             singleton_working = False
-        
+
         # In real implementation, this should be True
         assert isinstance(manager1, MagicMock)
         assert isinstance(manager2, MagicMock)
@@ -515,10 +515,10 @@ class TestFontManagerUtilityFunctions:
         size = 12
         weight = 400
         italic = False
-        
+
         # Simulate function call
         font_created = True
-        
+
         assert font_created is True
         assert family == "Roboto"
         assert size == 12
@@ -527,63 +527,63 @@ class TestFontManagerUtilityFunctions:
         """Test get_title_font function logic"""
         # Test get_title_font function
         title_font = MagicMock()
-        
+
         assert isinstance(title_font, MagicMock)
 
     def test_get_heading_font_function(self):
         """Test get_heading_font function logic"""
         # Test get_heading_font function
         heading_font = MagicMock()
-        
+
         assert isinstance(heading_font, MagicMock)
 
     def test_get_subheading_font_function(self):
         """Test get_subheading_font function logic"""
         # Test get_subheading_font function
         subheading_font = MagicMock()
-        
+
         assert isinstance(subheading_font, MagicMock)
 
     def test_get_body_font_function(self):
         """Test get_body_font function logic"""
         # Test get_body_font function
         body_font = MagicMock()
-        
+
         assert isinstance(body_font, MagicMock)
 
     def test_get_small_font_function(self):
         """Test get_small_font function logic"""
         # Test get_small_font function
         small_font = MagicMock()
-        
+
         assert isinstance(small_font, MagicMock)
 
     def test_get_button_font_function(self):
         """Test get_button_font function logic"""
         # Test get_button_font function
         button_font = MagicMock()
-        
+
         assert isinstance(button_font, MagicMock)
 
     def test_get_label_font_function(self):
         """Test get_label_font function logic"""
         # Test get_label_font function
         label_font = MagicMock()
-        
+
         assert isinstance(label_font, MagicMock)
 
     def test_get_input_font_function(self):
         """Test get_input_font function logic"""
         # Test get_input_font function
         input_font = MagicMock()
-        
+
         assert isinstance(input_font, MagicMock)
 
     def test_get_menu_font_function(self):
         """Test get_menu_font function logic"""
         # Test get_menu_font function
         menu_font = MagicMock()
-        
+
         assert isinstance(menu_font, MagicMock)
 
 
@@ -594,14 +594,14 @@ class TestFontManagerErrorHandling:
         """Test font loading error handling"""
         # Test error handling during font loading
         font_file = "nonexistent.ttf"
-        
+
         try:
             # Simulate font loading attempt
             raise FileNotFoundError("Font file not found")
         except FileNotFoundError:
             # Handle error gracefully
             fallback_font = "Arial"
-        
+
         assert fallback_font == "Arial"
 
     def test_invalid_font_parameters_handling(self):
@@ -609,18 +609,18 @@ class TestFontManagerErrorHandling:
         # Test handling of invalid parameters
         invalid_size = -1
         invalid_weight = 999
-        
+
         # Validate parameters
         if invalid_size < 0:
             valid_size = 12
         else:
             valid_size = invalid_size
-            
+
         if invalid_weight > 900:
             valid_weight = 400
         else:
             valid_weight = invalid_weight
-        
+
         assert valid_size == 12
         assert valid_weight == 400
 
@@ -629,11 +629,11 @@ class TestFontManagerErrorHandling:
         # Test handling of missing font files
         font_files = ["Roboto-Regular.ttf", "Roboto-Bold.ttf"]
         existing_files = []
-        
+
         for font_file in font_files:
             if font_file in existing_files:
                 existing_files.append(font_file)
-        
+
         # Should handle gracefully when no fonts are found
         assert len(existing_files) == 0
 
@@ -646,11 +646,11 @@ class TestFontManagerBoundaryConditions:
         # Test very small font size
         very_small = 1
         assert very_small > 0
-        
+
         # Test very large font size
         very_large = 100
         assert very_large > 0
-        
+
         # Test zero font size
         zero_size = 0
         assert zero_size >= 0
@@ -660,11 +660,11 @@ class TestFontManagerBoundaryConditions:
         # Test minimum weight
         min_weight = 100
         assert min_weight >= 100
-        
+
         # Test maximum weight
         max_weight = 900
         assert max_weight <= 900
-        
+
         # Test invalid weights
         invalid_weight = 999
         assert invalid_weight > 900
@@ -674,11 +674,11 @@ class TestFontManagerBoundaryConditions:
         # Test empty font family
         empty_family = ""
         assert len(empty_family) == 0
-        
+
         # Test very long font family
         long_family = "A" * 1000
         assert len(long_family) == 1000
-        
+
         # Test unicode font family
         unicode_family = "Arial Unicode MS"
         assert isinstance(unicode_family, str)

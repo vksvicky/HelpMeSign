@@ -413,7 +413,9 @@ class TestHelpMeSignAppMethods:
         primary_style = "primary_style"
         secondary_style = "secondary_style"
         mock_main_window.update_buttons_theme(primary_style, secondary_style)
-        mock_main_window.update_buttons_theme.assert_called_once_with(primary_style, secondary_style)
+        mock_main_window.update_buttons_theme.assert_called_once_with(
+            primary_style, secondary_style
+        )
 
     def test_update_input_fields_font_size(self):
         """Test _update_input_fields_font_size method logic"""

@@ -1277,7 +1277,11 @@ class SettingsDialog(QDialog):
             else:
                 # Only show error dialog if not in test environment
                 import sys
-                if 'pytest' not in sys.modules and 'test' not in self.environment.lower():
+
+                if (
+                    "pytest" not in sys.modules
+                    and "test" not in self.environment.lower()
+                ):
                     from PySide6.QtWidgets import QMessageBox
 
                     QMessageBox.critical(
@@ -1291,7 +1295,8 @@ class SettingsDialog(QDialog):
             self.logger.error(f"Error applying settings: {e}")
             # Only show error dialog if not in test environment
             import sys
-            if 'pytest' not in sys.modules and 'test' not in self.environment.lower():
+
+            if "pytest" not in sys.modules and "test" not in self.environment.lower():
                 from PySide6.QtWidgets import QMessageBox
 
                 QMessageBox.critical(
