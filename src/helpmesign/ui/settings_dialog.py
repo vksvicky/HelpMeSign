@@ -292,7 +292,7 @@ class ModernSegmentedControl(QFrame):
 
     selection_changed = Signal(str)
 
-    def __init__(self, options: list[str], parent=None):
+    def __init__(self, options: List[str], parent=None):
         if not PYSIDE6_AVAILABLE:
             raise ImportError("PySide6 is required for ModernSegmentedControl")
 

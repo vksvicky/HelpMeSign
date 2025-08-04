@@ -8,7 +8,7 @@ import platform
 import time
 from dataclasses import dataclass
 from threading import Event, Thread
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import psutil
 
@@ -305,7 +305,7 @@ class SystemMonitor:
         else:
             return "❤️"
 
-    def get_resource_alerts(self) -> list[str]:
+    def get_resource_alerts(self) -> List[str]:
         """Get any resource alerts that should be shown to the user
 
         Returns:
@@ -339,7 +339,7 @@ class SystemMonitor:
 
         return alerts
 
-    def get_available_display_modes(self) -> list[str]:
+    def get_available_display_modes(self) -> List[str]:
         """Get list of available display modes
 
         Returns:
