@@ -7,11 +7,11 @@ requests>=2.25.4
 psutil>=5.8.0
 
 # Code quality and formatting tools
-black==24.8.0  # Last version supporting Python 3.8
-isort==5.13.2  # Last version supporting Python 3.8
-mypy==1.8.0  # Last version supporting Python 3.8
-pytest==7.4.4  # Last version supporting Python 3.8
-pytest-cov==4.1.0  # Last version supporting Python 3.8
+black>=24.8.0  # Version supporting Python 3.8+
+isort>=5.13.2  # Version supporting Python 3.8+
+mypy>=1.8.0  # Version supporting Python 3.8+
+pytest>=7.4.4  # Version supporting Python 3.8+
+pytest-cov>=4.1.0  # Version supporting Python 3.8+
 
 # Optional dependencies for enhanced functionality
 # Pillow>=9.0.0  # For advanced image processing (commented out as not currently used)
