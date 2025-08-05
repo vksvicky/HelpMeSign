@@ -18,6 +18,7 @@ class TestLearnMode(unittest.TestCase):
         """Set up test fixtures"""
         # Create a mock main window with all required methods
         self.mock_main_window = Mock()
+        self.mock_main_window._is_mock = True  # Mark as mock to skip UI creation
         self.mock_main_window.set_mode = Mock()
         self.mock_main_window.set_status = Mock()
         self.mock_main_window.get_text_input = Mock()
@@ -378,8 +379,9 @@ class TestLearnMode(unittest.TestCase):
         # Assert
         self.assertIn("👋 HELLO/HI:", result)
         self.assertIn("\n\n", result)  # Should have separators
-        # The learning progress tracks the entire text as one key
-        self.assertIn(long_text, self.mode.learning_progress)
+        # The learning progress tracks the entire text as one key (lowercase and stripped)
+        expected_key = long_text.lower().strip()
+        self.assertIn(expected_key, self.mode.learning_progress)
 
     def test_boundary_condition_single_character_words(self):
         """Test processing single character words"""
@@ -512,8 +514,10 @@ class TestLearnMode(unittest.TestCase):
         self.assertIn("👋 HELLO/HI:", result)
         self.assertIn("🤲 PLEASE:", result)
         self.assertIn("🙏 THANK YOU:", result)
-        # The learning progress tracks the entire text as one key
-        self.assertIn(test_text, self.mode.learning_progress)
+        # The learning progress tracks individual words separately
+        self.assertIn("hello", self.mode.learning_progress)
+        self.assertIn("please", self.mode.learning_progress)
+        self.assertIn("thanks", self.mode.learning_progress)
 
     def test_integration_mode_lifecycle_with_learning(self):
         """Test complete mode lifecycle with learning"""

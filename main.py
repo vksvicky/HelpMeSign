@@ -102,11 +102,6 @@ def main():
     
     # Set additional properties for macOS
     if sys.platform == "darwin":  # macOS
-        app.setAttribute(QApplication.AA_DontShowIconsInMenus, False)
-        app.setAttribute(QApplication.AA_EnableHighDpiScaling, True)
-        app.setAttribute(QApplication.AA_UseHighDpiPixmaps, True)
-        app.setAttribute(QApplication.AA_MacDontSwapCtrlAndCmd, True)
-        
         # Force the application name in the menu bar
         try:
             from PySide6.QtCore import QTimer
@@ -126,7 +121,7 @@ def main():
     try:
         resource_manager = ResourceManager()
         icon_path = resource_manager.get_image_path('icon.png')
-        if resource_manager.resource_exists('image', 'icon.png'):
+        if resource_manager.resource_exists('images', 'icon.png'):
             app.setWindowIcon(QIcon(icon_path))
             logger.info(f"Application icon set successfully: {icon_path}")
         else:

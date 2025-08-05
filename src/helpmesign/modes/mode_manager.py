@@ -135,3 +135,12 @@ class ModeManager:
         for mode_name, mode in self.modes.items():
             descriptions[mode_name] = mode.get_mode_description()
         return descriptions
+
+    def notify_font_changed(self) -> None:
+        """Notify all modes that font settings have changed"""
+        try:
+            for mode_name, mode in self.modes.items():
+                if hasattr(mode, "update_fonts"):
+                    mode.update_fonts()
+        except Exception as e:
+            print(f"Error notifying modes of font change: {e}")

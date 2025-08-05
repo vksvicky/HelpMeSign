@@ -299,6 +299,7 @@ class ModernSegmentedControl(QFrame):
         super().__init__(parent)
         self.options = options
         self.selected_option = options[0] if options else ""
+        self.selected_index = 0 if options else -1
         self.hover_index = -1
         self.setMouseTracking(True)
         self.setFixedHeight(40)
@@ -451,6 +452,7 @@ class ModernSegmentedControl(QFrame):
         """Set the selected option"""
         if option in self.options:
             self.selected_index = self.options.index(option)
+            self.selected_option = option
             self.update()  # Trigger repaint
             self.selection_changed.emit(option)
         else:
@@ -460,7 +462,7 @@ class ModernSegmentedControl(QFrame):
 
     def get_selection(self) -> str:
         """Get the currently selected option"""
-        return self.options[self.selected_index]
+        return self.selected_option
 
 
 class SettingsDialog(QDialog):

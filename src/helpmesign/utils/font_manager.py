@@ -77,13 +77,17 @@ class FontManager:
 
     def get_font(
         self,
-        family: str = "Roboto",
+        family: Optional[str] = None,
         size: int = 10,
         weight: int = QFont.Normal,  # type: ignore
         italic: bool = False,
     ) -> QFont:
         """Get a QFont object for Qt widgets"""
         self._ensure_fonts_loaded()
+
+        # Use current font family if none specified
+        if family is None:
+            family = self._get_current_font_family()
 
         if not self.fonts_loaded:
             # Fallback to system fonts
@@ -164,6 +168,16 @@ class FontManager:
         except Exception:
             # Fallback to default size if theme manager is not available
             return 12
+
+    def _get_current_font_family(self) -> str:
+        """Get the current font family from the theme manager"""
+        try:
+            from .theme_manager import get_font_family
+
+            return get_font_family()
+        except Exception:
+            # Fallback to default family if theme manager is not available
+            return "Roboto"
 
 
 # Global font manager instance

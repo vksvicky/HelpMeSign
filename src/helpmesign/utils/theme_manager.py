@@ -20,6 +20,7 @@ class ThemeManager:
         self.logger = get_logger("helpmesign.theme")
         self.current_theme = "Light"
         self.current_font_size = 12  # Default font size
+        self.current_font_family = "Roboto"  # Default font family
         self.themes = {
             "Light": self._get_light_theme(),
             "Dark": self._get_dark_theme(),
@@ -34,6 +35,15 @@ class ThemeManager:
     def get_font_size(self) -> int:
         """Get the current font size"""
         return self.current_font_size
+
+    def set_font_family(self, font_family: str) -> None:
+        """Set the current font family"""
+        self.current_font_family = font_family
+        self.logger.info(f"Font family set to: {font_family}")
+
+    def get_font_family(self) -> str:
+        """Get the current font family"""
+        return self.current_font_family
 
     def get_font_size_style(self, component: str = "general") -> str:
         """Get font size style for a specific component"""
@@ -640,6 +650,16 @@ def set_font_size(font_size: int) -> None:
 def get_font_size() -> int:
     """Get the current application font size"""
     return get_theme_manager().get_font_size()
+
+
+def set_font_family(font_family: str) -> None:
+    """Set the application font family"""
+    get_theme_manager().set_font_family(font_family)
+
+
+def get_font_family() -> str:
+    """Get the current application font family"""
+    return get_theme_manager().get_font_family()
 
 
 def get_font_size_style(component: str = "general") -> str:

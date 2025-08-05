@@ -349,6 +349,10 @@ class HelpMeSignApp:
             # Apply theme and font settings
             self.apply_theme_and_font_settings()
 
+            # Notify all modes about font changes
+            if hasattr(self, "mode_manager"):
+                self.mode_manager.notify_font_changed()
+
             self._settings_save_in_progress = False
 
         except Exception as e:
@@ -356,7 +360,11 @@ class HelpMeSignApp:
             self._settings_save_in_progress = False
 
     def apply_theme_and_font_settings(self) -> None:
-        """Apply theme and font size settings to the UI"""
+        """Apply theme and font size settings to the UI following the defined process:
+        A) App Launch - Set default font size if not set
+        B) Use consistent font size across application
+        C) Only update fonts in currently visible window
+        """
         try:
             from PySide6.QtWidgets import QApplication
 
@@ -365,6 +373,14 @@ class HelpMeSignApp:
             # Get current settings (these calls are safe and won't trigger save loops)
             theme = get_theme(self.environment)
             font_size = get_font_size(self.environment)
+
+            # A) App Launch - Set default font size if not set
+            if font_size is None or font_size <= 0:
+                font_size = 12  # Default font size
+                from ..utils.theme_manager import set_font_size
+
+                set_font_size(font_size)
+                self.logger.info(f"Default font size set to: {font_size}px")
 
             # Apply theme to QApplication
             app = QApplication.instance()
@@ -382,12 +398,49 @@ class HelpMeSignApp:
                     "No QApplication instance found for theme application"
                 )
 
-            # Apply font size
-            self._apply_font_size_setting(font_size)
+            # B) Use consistent font size across application
+            # Only apply font size to the currently visible window
+            self._apply_font_size_to_current_window(font_size)
             self.logger.info(f"Font size setting applied: {font_size}")
 
         except Exception as e:
             self.logger.error(f"Error applying theme and font settings: {e}")
+
+    def _apply_font_size_to_current_window(self, font_size: int) -> None:
+        """C) Only update fonts in the currently visible window"""
+        try:
+            # Check if app is shutting down
+            if hasattr(self, "_shutting_down") and self._shutting_down:
+                self.logger.debug("App shutting down, skipping font application")
+                return
+
+            # Check if main window is still valid
+            if not hasattr(self, "main_window") or self.main_window is None:
+                self.logger.debug(
+                    "Main window not available, skipping font application"
+                )
+                return
+
+            from PySide6.QtGui import QFont
+
+            from ..utils.theme_manager import set_font_size
+
+            # Set the font size in the theme manager for consistency
+            set_font_size(font_size)
+            self.logger.debug(f"Font size set in theme manager: {font_size}px")
+
+            # Only apply fonts to the currently visible/active window
+            # This prevents unnecessary font updates to hidden windows
+            if hasattr(self.main_window, "isVisible") and self.main_window.isVisible():
+                self._apply_font_size_directly(font_size)
+                self.logger.info(
+                    f"Font size applied to visible main window: {font_size}px"
+                )
+            else:
+                self.logger.debug("Main window not visible, skipping font application")
+
+        except Exception as e:
+            self.logger.error(f"Error applying font size to current window: {e}")
 
     def _apply_font_size_setting(self, font_size: int) -> None:
         """Apply font size setting to the main window using centralized system"""

@@ -299,7 +299,16 @@ class StatusBar(QFrame):
     def _update_status_display(self):
         """Update the status bar display with current system metrics"""
         try:
-            if not self.system_monitor or self._is_cleaned_up:
+            # Check if we're being cleaned up or if the widget is being destroyed
+            if (
+                self._is_cleaned_up
+                or not hasattr(self, "system_monitor")
+                or not self.system_monitor
+            ):
+                return
+
+            # Check if the widget still exists and is valid
+            if not self.isVisible() or self.isHidden():
                 return
 
             resources = self.system_monitor.get_resources()
@@ -490,10 +499,11 @@ class StatusBar(QFrame):
         self._is_cleaned_up = True
 
         try:
-            # Stop status update timer
-            if hasattr(self, "status_update_timer"):
+            # Stop status update timer immediately
+            if hasattr(self, "status_update_timer") and self.status_update_timer:
                 self.status_update_timer.stop()
                 self.status_update_timer.deleteLater()
+                self.status_update_timer = None
 
             # Stop system monitor
             if hasattr(self, "system_monitor") and self.system_monitor:
@@ -529,6 +539,15 @@ class StatusBar(QFrame):
     def set_mode(self, mode: str) -> None:
         """Set mode display"""
         self.current_mode = mode
+
+        # Set specific text for learning mode
+        if mode == "Learn Sign Language":
+            self.status_label.setText("Mode: Learning")
+            return
+
+        # Show status bar for other modes
+        self.show()
+
         # Update the status to show the new mode
         current_status = self.get_status()
         # Extract just the status part (after the mode)
@@ -575,14 +594,25 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # Create UI components
+        # Create content area for mode switching
+        from PySide6.QtWidgets import QStackedWidget
+
+        self.content_area = QStackedWidget()
+
+        # Create default content (text input + output)
         self.text_input_frame = TextInputFrame()
         self.output_frame = OutputFrame()
-        self.status_bar = StatusBar()
+        self.default_content = QWidget()
+        default_layout = QVBoxLayout(self.default_content)
+        default_layout.addWidget(self.text_input_frame)
+        default_layout.addWidget(self.output_frame)
+        self.content_area.addWidget(self.default_content)
 
-        # Add components to main layout
-        main_layout.addWidget(self.text_input_frame)
-        main_layout.addWidget(self.output_frame)
+        # Add content area to main layout
+        main_layout.addWidget(self.content_area)
+
+        # Create status bar (always visible)
+        self.status_bar = StatusBar()
         main_layout.addWidget(self.status_bar)
 
         # Initialize system monitor panel as None
@@ -731,8 +761,15 @@ class MainWindow(QMainWindow):
         self.text_input_frame.focus_input()
 
     def update_fonts(self) -> None:
-        """Update all fonts in the window to use current font size"""
+        """Update fonts in the window following the defined process:
+        Only update fonts in the currently visible/active window
+        """
         try:
+            # Only update fonts if this window is currently visible
+            if not self.isVisible():
+                self.logger.debug("Window not visible, skipping font updates")
+                return
+
             # Update text input frame fonts
             if hasattr(self, "text_input_frame"):
                 # Update label
@@ -1018,6 +1055,10 @@ class SystemMonitorPanel(QWidget):
     def _update_display(self):
         """Update the system monitor display"""
         try:
+            # Check if the widget is still valid and visible
+            if not self.isVisible() or self.isHidden():
+                return
+
             if not self.system_monitor:
                 return
 
@@ -1035,6 +1076,7 @@ class SystemMonitorPanel(QWidget):
             self._update_recommendations_display(resources)
 
         except Exception as e:
+            # Silently ignore errors during updates to prevent crashes
             pass
 
     def _update_metrics_display(self, resources):
