@@ -4,14 +4,16 @@ Simple mock tests for startup functionality
 Tests various mocking scenarios without complex imports
 """
 
-import unittest
 from unittest.mock import MagicMock
 
+import pytest
 
-class TestStartupMockScenarios(unittest.TestCase):
+
+class TestStartupMockScenarios:
     """Simple mock test scenarios for startup functionality"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Set up test environment"""
         # Create simple mock objects
         self.mock_root = MagicMock()
@@ -29,10 +31,10 @@ class TestStartupMockScenarios(unittest.TestCase):
 
         # Test mock operations
         config = self.mock_config_manager.load_config()
-        self.assertEqual(config["user_mode"], "sign")
+        assert config["user_mode"] == "sign"
 
         success = self.mock_config_manager.save_config(config)
-        self.assertTrue(success)
+        assert success
 
     def test_mock_tkinter_components(self):
         """Test mock Tkinter components"""
@@ -43,10 +45,10 @@ class TestStartupMockScenarios(unittest.TestCase):
         mock_button = MagicMock()
 
         # Test mock components
-        self.assertIsNotNone(mock_window)
-        self.assertIsNotNone(mock_frame)
-        self.assertIsNotNone(mock_label)
-        self.assertIsNotNone(mock_button)
+        assert mock_window is not None
+        assert mock_frame is not None
+        assert mock_label is not None
+        assert mock_button is not None
 
     def test_mock_config_manager(self):
         """Test mock config manager"""
@@ -57,13 +59,13 @@ class TestStartupMockScenarios(unittest.TestCase):
 
         # Test mock methods
         mode = self.mock_config_manager.get_user_mode()
-        self.assertEqual(mode, "sign")
+        assert mode == "sign"
 
         success = self.mock_config_manager.set_user_mode("learn")
-        self.assertTrue(success)
+        assert success
 
         config = self.mock_config_manager.load_config()
-        self.assertEqual(config["user_mode"], "sign")
+        assert config["user_mode"] == "sign"
 
     def test_mock_startup_screen(self):
         """Test mock startup screen"""
@@ -73,9 +75,9 @@ class TestStartupMockScenarios(unittest.TestCase):
         self.mock_startup_screen.parent = self.mock_root
 
         # Test mock startup screen
-        self.assertIsNone(self.mock_startup_screen.choice)
-        self.assertIsNotNone(self.mock_startup_screen.config_manager)
-        self.assertEqual(self.mock_startup_screen.parent, self.mock_root)
+        assert self.mock_startup_screen.choice is None
+        assert self.mock_startup_screen.config_manager is not None
+        assert self.mock_startup_screen.parent == self.mock_root
 
     def test_mock_error_scenarios(self):
         """Test mock error scenarios"""
@@ -86,13 +88,13 @@ class TestStartupMockScenarios(unittest.TestCase):
 
         # Test error scenarios
         mode = self.mock_config_manager.get_user_mode()
-        self.assertIsNone(mode)
+        assert mode is None
 
         success = self.mock_config_manager.set_user_mode("invalid")
-        self.assertFalse(success)
+        assert not success
 
         config = self.mock_config_manager.load_config()
-        self.assertIsNone(config)
+        assert config is None
 
     def test_mock_boundary_conditions(self):
         """Test mock boundary conditions"""
@@ -104,15 +106,15 @@ class TestStartupMockScenarios(unittest.TestCase):
         # Test boundary conditions
         self.mock_config_manager.load_config.return_value = large_data
         config = self.mock_config_manager.load_config()
-        self.assertEqual(len(config["data"]), 1000000)
+        assert len(config["data"]) == 1000000
 
         self.mock_config_manager.load_config.return_value = empty_data
         config = self.mock_config_manager.load_config()
-        self.assertEqual(len(config), 0)
+        assert len(config) == 0
 
         self.mock_config_manager.load_config.return_value = unicode_data
         config = self.mock_config_manager.load_config()
-        self.assertIn("🚀", config["user_mode"])
+        assert "🚀" in config["user_mode"]
 
     def test_mock_security_scenarios(self):
         """Test mock security scenarios"""
@@ -123,11 +125,11 @@ class TestStartupMockScenarios(unittest.TestCase):
         # Test security scenarios
         self.mock_config_manager._verify_data.return_value = True
         result = self.mock_config_manager._verify_data("test", valid_signature)
-        self.assertTrue(result)
+        assert result
 
         self.mock_config_manager._verify_data.return_value = False
         result = self.mock_config_manager._verify_data("test", invalid_signature)
-        self.assertFalse(result)
+        assert not result
 
     def test_mock_performance_scenarios(self):
         """Test mock performance scenarios"""
@@ -138,12 +140,8 @@ class TestStartupMockScenarios(unittest.TestCase):
         # Test performance scenarios
         for i in range(100):
             success = self.mock_config_manager.set_user_mode(f"mode_{i}")
-            self.assertTrue(success)
+            assert success
 
         for i in range(100):
             mode = self.mock_config_manager.get_user_mode()
-            self.assertEqual(mode, "sign")
-
-
-if __name__ == "__main__":
-    unittest.main()
+            assert mode == "sign"

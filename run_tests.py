@@ -8,7 +8,6 @@ import sys
 import os
 import argparse
 import subprocess
-import unittest
 import logging
 from pathlib import Path
 
@@ -23,6 +22,15 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 
+def check_pytest_available():
+    """Check if pytest module is available"""
+    try:
+        import pytest
+        return True
+    except ImportError:
+        return False
+
+
 def check_coverage_available():
     """Check if coverage module is available"""
     try:
@@ -32,73 +40,80 @@ def check_coverage_available():
         return False
 
 
-def run_tests_with_coverage(test_pattern, output_format='term'):
-    """Run tests with coverage reporting"""
+def run_tests_with_coverage(test_path, output_format='term'):
+    """Run tests with coverage reporting using pytest"""
+    if not check_pytest_available():
+        logger.error("❌ pytest not available. Install with: pip install pytest")
+        return False
+    
     if not check_coverage_available():
         logger.warning("⚠️  Coverage module not available. Install with: pip install coverage")
         return False
     
     try:
-        import coverage
-        
-        # Start coverage measurement with specific configuration
-        cov = coverage.Coverage(
-            source=['src'],
-            omit=[
-                '*/tests/*',
-                '*/venv/*',
-                '*/build/*',
-                '*/dist/*',
-                '*/__pycache__/*',
-                '*/pyscript/*',
-                '*/scripts/*',
-                'setup.py',
-                'main.py',
-                'main_prod.py',
-                'run_app.py',
-                'run_tests.py',
-                'build.py',
-                'setup_macos.py'
-            ]
-        )
-        cov.start()
-        
-        # Run tests
-        loader = unittest.TestLoader()
-        suite = loader.discover('tests', pattern=test_pattern)
-        runner = unittest.TextTestRunner(verbosity=2)
-        result = runner.run(suite)
-        
-        # Stop coverage and generate report
-        cov.stop()
-        cov.save()
+        # Build pytest command with coverage
+        cmd = [
+            sys.executable, '-m', 'pytest',
+            test_path,
+            '--cov=src',
+            '--cov-report=term-missing'
+        ]
         
         if output_format == 'html':
-            cov.html_report(directory='htmlcov')
+            cmd.extend(['--cov-report=html:htmlcov'])
+        elif output_format == 'xml':
+            cmd.extend(['--cov-report=xml:coverage.xml'])
+        
+        # Run pytest with coverage
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        # Print output
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        
+        if output_format == 'html':
             logger.info(f"📊 HTML coverage report generated in htmlcov/")
         elif output_format == 'xml':
-            cov.xml_report(outfile='coverage.xml')
             logger.info(f"📊 XML coverage report generated as coverage.xml")
-        else:
-            cov.report()
         
-        return result.wasSuccessful()
+        return result.returncode == 0
         
     except Exception as e:
         logger.error(f"❌ Error running tests with coverage: {e}")
         return False
 
 
-def run_tests_without_coverage(test_pattern, verbose=False):
-    """Run tests without coverage reporting"""
-    loader = unittest.TestLoader()
-    suite = loader.discover('tests', pattern=test_pattern)
+def run_tests_without_coverage(test_path, verbose=False):
+    """Run tests without coverage reporting using pytest"""
+    if not check_pytest_available():
+        logger.error("❌ pytest not available. Install with: pip install pytest")
+        return False
     
-    verbosity = 2 if verbose else 1
-    runner = unittest.TextTestRunner(verbosity=verbosity)
-    result = runner.run(suite)
-    
-    return result.wasSuccessful()
+    try:
+        # Build pytest command
+        cmd = [sys.executable, '-m', 'pytest', test_path]
+        
+        if verbose:
+            cmd.append('-v')
+        else:
+            cmd.append('-q')
+        
+        # Run pytest
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        # Print output
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        
+        return result.returncode == 0
+        
+    except Exception as e:
+        logger.error(f"❌ Error running tests: {e}")
+        return False
 
 
 def main():
@@ -165,26 +180,26 @@ Examples:
     
     args = parser.parse_args()
     
-    # Determine test pattern based on arguments
+    # Determine test path based on arguments
     if args.unit:
-        test_pattern = 'test_*.py'
+        test_path = 'tests/unit'
         test_category = 'unit'
     elif args.integration:
-        test_pattern = 'test_*.py'
+        test_path = 'tests/integration'
         test_category = 'integration'
     elif args.mocks:
-        test_pattern = 'test_*.py'
+        test_path = 'tests/mocks'
         test_category = 'mocks'
     else:
-        test_pattern = 'test_*.py'
+        test_path = 'tests'
         test_category = 'all'
     
     logger.info(f"🧪 Running HelpMeSign Tests ({test_category})")
     logger.info("=" * 50)
     
     # Check if tests directory exists
-    if not os.path.exists('tests'):
-        logger.error("❌ Tests directory not found")
+    if not os.path.exists(test_path):
+        logger.error(f"❌ Test directory '{test_path}' not found")
         sys.exit(1)
     
     # Run tests
@@ -192,10 +207,10 @@ Examples:
     
     if args.coverage:
         logger.info(f"📊 Running tests with {args.coverage} coverage reporting...")
-        success = run_tests_with_coverage(test_pattern, args.coverage)
+        success = run_tests_with_coverage(test_path, args.coverage)
     else:
         logger.info("🔍 Running tests...")
-        success = run_tests_without_coverage(test_pattern, args.verbose)
+        success = run_tests_without_coverage(test_path, args.verbose)
     
     # Print summary
     logger.info("=" * 50)

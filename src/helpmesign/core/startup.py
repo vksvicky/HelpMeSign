@@ -378,6 +378,9 @@ class SecureConfigManager:
     def save_config(self, config: Dict[str, Any]) -> bool:
         """Save configuration with HMAC protection"""
         try:
+            # Ensure config directory exists
+            self.config_dir.mkdir(mode=0o700, exist_ok=True)
+
             # Add metadata
             config["timestamp"] = self.get_timestamp()
             config["environment"] = self.environment
@@ -405,12 +408,12 @@ class SecureConfigManager:
             self.logger.error(f"Error saving configuration: {e}")
             return False
 
-    def load_config(self) -> Optional[Dict[str, Any]]:
+    def load_config(self) -> Dict[str, Any]:
         """Load configuration with HMAC verification"""
         try:
             if not self.config_file.exists():
                 self.logger.debug("Configuration file does not exist")
-                return None
+                return {}
 
             with open(self.config_file, "rb") as f:
                 content = f.read()
@@ -442,24 +445,22 @@ class SecureConfigManager:
 
         except FileNotFoundError:
             self.logger.debug("Configuration file not found")
-            return None
+            return {}
         except json.JSONDecodeError as e:
             self.logger.error(f"Invalid JSON in configuration file: {e}")
-            return None
+            return {}
         except ValueError as e:
             self.logger.error(f"Configuration verification failed: {e}")
-            return None
+            return {}
         except Exception as e:
             self.logger.error(f"Error loading configuration: {e}")
-            return None
+            return {}
 
     def get_user_mode(self) -> Optional[str]:
         """Get user's preferred mode"""
         try:
             config = self.load_config()
-            if config:
-                return config.get("user_mode")
-            return None
+            return config.get("user_mode")
         except Exception as e:
             self.logger.warning(f"Could not get user mode: {e}")
             return None
@@ -534,6 +535,35 @@ class SecureConfigManager:
             self.logger.error(f"Could not save font size: {e}")
             return False
 
+    def get_hand_preference(self) -> str:
+        """Get user's preferred hand"""
+        try:
+            config = self.load_config()
+            if config:
+                return config.get("hand_preference", "right")
+            return "right"
+        except Exception as e:
+            self.logger.warning(f"Could not get hand preference: {e}")
+            return "right"
+
+    def set_hand_preference(self, hand_preference: str) -> bool:
+        """Set user's preferred hand"""
+        try:
+            # Check if we're already in a save operation to prevent infinite loops
+            if hasattr(self, "_saving_settings") and self._saving_settings:
+                self.logger.warning(
+                    "Already saving settings, skipping hand preference save"
+                )
+                return True
+
+            config = self.load_config() or {}
+            config["hand_preference"] = hand_preference
+            config["last_updated"] = self.get_timestamp()
+            return self.save_config(config)
+        except Exception as e:
+            self.logger.error(f"Could not save hand preference: {e}")
+            return False
+
     def get_all_settings(self) -> Dict[str, Any]:
         """Get all user settings"""
         try:
@@ -544,6 +574,7 @@ class SecureConfigManager:
                 ),
                 "theme": config.get("theme", "Light"),
                 "font_size": config.get("font_size", 12),
+                "hand_preference": config.get("hand_preference", "right"),
             }
         except Exception as e:
             self.logger.warning(f"Could not get all settings: {e}")
@@ -551,6 +582,7 @@ class SecureConfigManager:
                 "user_mode": get_text("modes.sign_translate.name"),
                 "theme": "Light",
                 "font_size": 12,
+                "hand_preference": "right",
             }
 
     def save_all_settings(self, settings: Dict[str, Any]) -> bool:
@@ -676,6 +708,28 @@ def set_font_size(font_size: int, environment: str = "dev") -> bool:
         return False
 
 
+def get_hand_preference(environment: str = "dev") -> str:
+    """Get user's preferred hand"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.get_hand_preference()
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error getting hand preference: {e}")
+        return "right"
+
+
+def set_hand_preference(hand_preference: str, environment: str = "dev") -> bool:
+    """Set user's preferred hand"""
+    try:
+        config_manager = SecureConfigManager(environment)
+        return config_manager.set_hand_preference(hand_preference)
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error setting hand preference: {e}")
+        return False
+
+
 def get_all_settings(environment: str = "dev") -> Dict[str, Any]:
     """Get all user settings"""
     try:
@@ -688,6 +742,7 @@ def get_all_settings(environment: str = "dev") -> Dict[str, Any]:
             "user_mode": get_text("modes.sign_translate.name"),
             "theme": "Light",
             "font_size": 12,
+            "hand_preference": "right",
         }
 
 

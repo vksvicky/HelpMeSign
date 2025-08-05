@@ -5,12 +5,13 @@ Unit tests for configuration infinite loop detection
 
 import shutil
 import tempfile
-import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 
-class TestConfigInfiniteLoopDetection(unittest.TestCase):
+
+class TestConfigInfiniteLoopDetection:
     """Test cases for detecting infinite loops in configuration operations"""
 
     def test_save_all_settings_recursive_call_prevention(self):
@@ -40,8 +41,8 @@ class TestConfigInfiniteLoopDetection(unittest.TestCase):
 
         # Test normal save
         result = mock_save_all_settings({"theme": "Dark"})
-        self.assertTrue(result)
-        self.assertEqual(save_count, 1)  # Only one actual save
+        assert result
+        assert save_count == 1  # Only one actual save
 
     def test_individual_setting_methods_recursive_prevention(self):
         """Test that individual setting methods prevent recursive calls"""
@@ -77,11 +78,11 @@ class TestConfigInfiniteLoopDetection(unittest.TestCase):
         result2 = mock_set_font_size(16)
 
         # All should return True but not actually save
-        self.assertTrue(result1)
-        self.assertTrue(result2)
+        assert result1
+        assert result2
 
         # No actual save calls should have been made
-        self.assertEqual(save_count, 0)
+        assert save_count == 0
 
     def test_settings_dialog_save_operation_isolation(self):
         """Test that settings dialog save operations are isolated"""
@@ -104,8 +105,8 @@ class TestConfigInfiniteLoopDetection(unittest.TestCase):
         mock_apply_settings()
 
         # Should have called save_all_settings exactly once
-        self.assertEqual(len(save_calls), 1)
-        self.assertEqual(save_calls[0]["font_size"], 14)
+        assert len(save_calls) == 1
+        assert save_calls[0]["font_size"] == 14
 
     def test_config_manager_instance_isolation(self):
         """Test that different config manager instances don't interfere"""
@@ -128,10 +129,10 @@ class TestConfigInfiniteLoopDetection(unittest.TestCase):
         mock_instance2_save({"font_size": 16})
 
         # Each instance should have its own operation
-        self.assertEqual(len(instance1_operations), 1)
-        self.assertEqual(len(instance2_operations), 1)
-        self.assertEqual(instance1_operations[0]["theme"], "Dark")
-        self.assertEqual(instance2_operations[0]["font_size"], 16)
+        assert len(instance1_operations) == 1
+        assert len(instance2_operations) == 1
+        assert instance1_operations[0]["theme"] == "Dark"
+        assert instance2_operations[0]["font_size"] == 16
 
     def test_save_operation_flag_cleanup(self):
         """Test that save operation flags are properly cleaned up"""
@@ -155,15 +156,11 @@ class TestConfigInfiniteLoopDetection(unittest.TestCase):
 
         # Test normal operation
         result = mock_save_operation()
-        self.assertTrue(result)
-        self.assertFalse(is_saving)  # Flag should be cleaned up
+        assert result
+        assert not is_saving  # Flag should be cleaned up
 
         # Test recursive prevention
         is_saving = True
         result = mock_save_operation()
-        self.assertFalse(result)  # Should be prevented
-        self.assertTrue(is_saving)  # Flag should remain set
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert not result  # Should be prevented
+        assert is_saving  # Flag should remain set

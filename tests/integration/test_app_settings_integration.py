@@ -3,11 +3,12 @@
 Integration tests for main application settings handling
 """
 
-import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
 
-class TestAppSettingsIntegration(unittest.TestCase):
+
+class TestAppSettingsIntegration:
     """Integration tests for main application settings handling"""
 
     def test_handle_settings_changed_does_not_loop(self):
@@ -28,8 +29,8 @@ class TestAppSettingsIntegration(unittest.TestCase):
         mock_handle_settings_changed("learn")
 
         # Should have called apply_theme_and_font_settings exactly once
-        self.assertEqual(len(apply_calls), 1)
-        self.assertEqual(user_mode, "learn")
+        assert len(apply_calls) == 1
+        assert user_mode == "learn"
 
     def test_apply_theme_and_font_settings_isolation(self):
         """Test that apply_theme_and_font_settings operations are isolated"""
@@ -61,10 +62,10 @@ class TestAppSettingsIntegration(unittest.TestCase):
         mock_apply_theme_and_font_settings()
 
         # Should have called each function exactly once
-        self.assertEqual(len(config_calls), 3)
-        self.assertIn("get_theme", config_calls)
-        self.assertIn("get_font_size", config_calls)
-        self.assertIn("apply_theme", config_calls)
+        assert len(config_calls) == 3
+        assert "get_theme" in config_calls
+        assert "get_font_size" in config_calls
+        assert "apply_theme" in config_calls
 
     def test_font_size_application_isolation(self):
         """Test that font size application operations are isolated"""
@@ -89,12 +90,12 @@ class TestAppSettingsIntegration(unittest.TestCase):
         mock_apply_font_size_setting(16)
 
         # Should have called each function exactly once
-        self.assertEqual(len(font_operations), 2)
-        self.assertIn("apply_font_size_to_widget_tree", font_operations)
+        assert len(font_operations) == 2
+        assert "apply_font_size_to_widget_tree" in font_operations
 
         # Check the font size
         font_size_op = [op for op in font_operations if op[0] == "set_font_size"][0]
-        self.assertEqual(font_size_op[1], 16)
+        assert font_size_op[1] == 16
 
     def test_settings_save_prevention_logic(self):
         """Test that settings save prevention logic works correctly"""
@@ -118,15 +119,11 @@ class TestAppSettingsIntegration(unittest.TestCase):
 
         # Test normal save
         mock_save_settings({"theme": "Light"})
-        self.assertEqual(len(save_calls), 1)
-        self.assertIn("save_settings", save_calls)
+        assert len(save_calls) == 1
+        assert "save_settings" in save_calls
 
         # Test infinite loop prevention
         for _ in range(5):
             mock_save_settings({"theme": "Dark"})
 
-        self.assertIn("prevented_infinite_loop", save_calls)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "prevented_infinite_loop" in save_calls

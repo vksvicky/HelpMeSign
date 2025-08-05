@@ -4,14 +4,16 @@ Simple integration tests for startup functionality
 Tests component interactions without complex mocking
 """
 
-import unittest
 from unittest.mock import MagicMock
 
+import pytest
 
-class TestStartupIntegration(unittest.TestCase):
+
+class TestStartupIntegration:
     """Simple integration tests for startup functionality"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Set up test environment"""
         # Create simple mock objects
         self.mock_root = MagicMock()
@@ -21,7 +23,7 @@ class TestStartupIntegration(unittest.TestCase):
     def test_config_manager_integration(self):
         """Test config manager integration"""
         # Test that config manager can be created
-        self.assertIsNotNone(self.mock_config_manager)
+        assert self.mock_config_manager is not None
 
         # Test config manager methods
         self.mock_config_manager.get_user_mode.return_value = "sign"
@@ -29,15 +31,15 @@ class TestStartupIntegration(unittest.TestCase):
 
         # Test integration
         result = self.mock_config_manager.get_user_mode()
-        self.assertEqual(result, "sign")
+        assert result == "sign"
 
         result = self.mock_config_manager.set_user_mode("learn")
-        self.assertTrue(result)
+        assert result
 
     def test_startup_screen_integration(self):
         """Test startup screen integration"""
         # Test that startup screen can be created
-        self.assertIsNotNone(self.mock_startup_screen)
+        assert self.mock_startup_screen is not None
 
         # Test startup screen methods
         self.mock_startup_screen.choice = None
@@ -45,9 +47,9 @@ class TestStartupIntegration(unittest.TestCase):
         self.mock_startup_screen.parent = self.mock_root
 
         # Test integration
-        self.assertIsNone(self.mock_startup_screen.choice)
-        self.assertIsNotNone(self.mock_startup_screen.config_manager)
-        self.assertEqual(self.mock_startup_screen.parent, self.mock_root)
+        assert self.mock_startup_screen.choice is None
+        assert self.mock_startup_screen.config_manager is not None
+        assert self.mock_startup_screen.parent == self.mock_root
 
     def test_component_interaction(self):
         """Test component interaction"""
@@ -57,7 +59,7 @@ class TestStartupIntegration(unittest.TestCase):
 
         # Test interaction
         mode = self.mock_startup_screen.config_manager.get_user_mode()
-        self.assertEqual(mode, "sign")
+        assert mode == "sign"
 
     def test_error_handling_integration(self):
         """Test error handling integration"""
@@ -67,10 +69,10 @@ class TestStartupIntegration(unittest.TestCase):
 
         # Test integration with errors
         result = self.mock_config_manager.get_user_mode()
-        self.assertIsNone(result)
+        assert result is None
 
         result = self.mock_config_manager.set_user_mode("invalid")
-        self.assertFalse(result)
+        assert not result
 
     def test_data_flow_integration(self):
         """Test data flow integration"""
@@ -83,9 +85,5 @@ class TestStartupIntegration(unittest.TestCase):
 
         # Test data flow
         config = self.mock_startup_screen.config_manager.load_config()
-        self.assertEqual(config["user_mode"], "sign")
-        self.assertIn("timestamp", config)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert config["user_mode"] == "sign"
+        assert "timestamp" in config

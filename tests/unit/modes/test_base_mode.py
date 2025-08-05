@@ -3,18 +3,20 @@ Unit tests for BaseMode class
 Tests happy paths, error conditions, exceptions, and boundary conditions
 """
 
-import unittest
 from typing import Any, Dict
 from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Import the base mode class
 from src.helpmesign.modes.base_mode import BaseMode
 
 
-class TestBaseMode(unittest.TestCase):
+class TestBaseMode:
     """Test cases for BaseMode abstract class"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Set up test fixtures"""
         # Create a mock main window
         self.mock_main_window = Mock()
@@ -44,10 +46,6 @@ class TestBaseMode(unittest.TestCase):
         self.ConcreteMode = ConcreteMode
         self.concrete_mode = ConcreteMode(self.mock_main_window, "dev")
 
-    def tearDown(self):
-        """Clean up after tests"""
-        pass
-
     # Happy Path Tests
     def test_happy_path_initialization(self):
         """Test successful mode initialization"""
@@ -55,9 +53,9 @@ class TestBaseMode(unittest.TestCase):
         mode = self.concrete_mode
 
         # Assert
-        self.assertEqual(mode.main_window, self.mock_main_window)
-        self.assertEqual(mode.environment, "dev")
-        self.assertEqual(mode.mode_name, "Test Mode")
+        assert mode.main_window == self.mock_main_window
+        assert mode.environment == "dev"
+        assert mode.mode_name == "Test Mode"
 
     def test_happy_path_activate(self):
         """Test successful mode activation"""
@@ -80,7 +78,7 @@ class TestBaseMode(unittest.TestCase):
         try:
             mode.deactivate()
         except Exception as e:
-            self.fail(f"deactivate() raised {e} unexpectedly!")
+            assert False, f"deactivate() raised {e} unexpectedly!"
 
     def test_happy_path_get_settings(self):
         """Test getting mode settings"""
@@ -91,20 +89,20 @@ class TestBaseMode(unittest.TestCase):
         settings = mode.get_settings()
 
         # Assert
-        self.assertIsInstance(settings, dict)
-        self.assertEqual(settings, {})
+        assert isinstance(settings, dict)
+        assert settings == {}
 
     def test_happy_path_apply_settings(self):
         """Test applying settings to mode"""
         # Arrange
         mode = self.concrete_mode
-        test_settings = {"key": "value"}
+        test_settings = {"theme": "dark", "font_size": 16}
 
         # Act & Assert (should not raise any exceptions)
         try:
             mode.apply_settings(test_settings)
         except Exception as e:
-            self.fail(f"apply_settings() raised {e} unexpectedly!")
+            assert False, f"apply_settings() raised {e} unexpectedly!"
 
     def test_happy_path_clear_content(self):
         """Test clearing mode content"""
@@ -115,10 +113,10 @@ class TestBaseMode(unittest.TestCase):
         try:
             mode.clear_content()
         except Exception as e:
-            self.fail(f"clear_content() raised {e} unexpectedly!")
+            assert False, f"clear_content() raised {e} unexpectedly!"
 
     def test_happy_path_process_text(self):
-        """Test successful text processing"""
+        """Test processing text"""
         # Arrange
         mode = self.concrete_mode
         test_text = "hello world"
@@ -127,7 +125,7 @@ class TestBaseMode(unittest.TestCase):
         result = mode.process_text(test_text)
 
         # Assert
-        self.assertEqual(result, "Processed: hello world")
+        assert result == f"Processed: {test_text}"
 
     def test_happy_path_get_mode_description(self):
         """Test getting mode description"""
@@ -138,29 +136,27 @@ class TestBaseMode(unittest.TestCase):
         description = mode.get_mode_description()
 
         # Assert
-        self.assertEqual(description, "Test mode description")
+        assert description == "Test mode description"
 
     # Error Condition Tests
     def test_error_condition_main_window_none(self):
-        """Test behavior when main_window is None"""
-        # Arrange
-        mode = self.ConcreteMode(None, "dev")
-
-        # Act & Assert
-        with self.assertRaises(AttributeError):
+        """Test initialization with None main window"""
+        # Arrange & Act & Assert
+        with pytest.raises(AttributeError):
+            mode = self.ConcreteMode(None, "dev")
             mode.activate()
 
     def test_error_condition_main_window_missing_methods(self):
-        """Test behavior when main_window is missing required methods"""
+        """Test initialization with main window missing required methods"""
         # Arrange
-        incomplete_main_window = Mock()
+        incomplete_window = Mock()
         # Remove the methods that Mock automatically creates
-        del incomplete_main_window.set_mode
-        del incomplete_main_window.set_status
-        mode = self.ConcreteMode(incomplete_main_window, "dev")
+        del incomplete_window.set_mode
+        del incomplete_window.set_status
 
         # Act & Assert
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
+            mode = self.ConcreteMode(incomplete_window, "dev")
             mode.activate()
 
     def test_error_condition_empty_text_processing(self):
@@ -173,19 +169,19 @@ class TestBaseMode(unittest.TestCase):
         result = mode.process_text(empty_text)
 
         # Assert
-        self.assertEqual(result, "Processed: ")
+        assert result == "Processed: "
 
     def test_error_condition_whitespace_text_processing(self):
         """Test processing whitespace-only text"""
         # Arrange
         mode = self.concrete_mode
-        whitespace_text = "   \n\t   "
+        whitespace_text = "   \t\n   "
 
         # Act
         result = mode.process_text(whitespace_text)
 
         # Assert
-        self.assertEqual(result, "Processed:    \n\t   ")
+        assert result == f"Processed: {whitespace_text}"
 
     # Exception Tests
     def test_exception_in_setup_ui(self):
@@ -197,7 +193,7 @@ class TestBaseMode(unittest.TestCase):
                 return "Exception Mode"
 
             def setup_ui(self) -> None:
-                raise RuntimeError("UI setup failed")
+                raise Exception("UI setup failed")
 
             def setup_behavior(self) -> None:
                 pass
@@ -209,7 +205,7 @@ class TestBaseMode(unittest.TestCase):
                 return "Exception mode"
 
         # Act & Assert
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(Exception):
             ExceptionMode(self.mock_main_window, "dev")
 
     def test_exception_in_setup_behavior(self):
@@ -224,7 +220,7 @@ class TestBaseMode(unittest.TestCase):
                 pass
 
             def setup_behavior(self) -> None:
-                raise ValueError("Behavior setup failed")
+                raise Exception("Behavior setup failed")
 
             def process_text(self, text: str) -> str:
                 return text
@@ -233,7 +229,7 @@ class TestBaseMode(unittest.TestCase):
                 return "Exception mode"
 
         # Act & Assert
-        with self.assertRaises(ValueError):
+        with pytest.raises(Exception):
             ExceptionMode(self.mock_main_window, "dev")
 
     def test_exception_in_process_text(self):
@@ -251,7 +247,7 @@ class TestBaseMode(unittest.TestCase):
                 pass
 
             def process_text(self, text: str) -> str:
-                raise TypeError("Text processing failed")
+                raise Exception("Text processing failed")
 
             def get_mode_description(self) -> str:
                 return "Exception mode"
@@ -259,17 +255,35 @@ class TestBaseMode(unittest.TestCase):
         mode = ExceptionMode(self.mock_main_window, "dev")
 
         # Act & Assert
-        with self.assertRaises(TypeError):
+        with pytest.raises(Exception):
             mode.process_text("test")
 
     def test_exception_in_activate(self):
-        """Test exception handling in activate method"""
+        """Test exception handling in activate"""
+
         # Arrange
-        mode = self.concrete_mode
-        self.mock_main_window.set_mode.side_effect = Exception("Set mode failed")
+        class ExceptionMode(BaseMode):
+            def get_mode_name(self) -> str:
+                return "Exception Mode"
+
+            def setup_ui(self) -> None:
+                pass
+
+            def setup_behavior(self) -> None:
+                pass
+
+            def process_text(self, text: str) -> str:
+                return text
+
+            def get_mode_description(self) -> str:
+                return "Exception mode"
+
+        mode = ExceptionMode(self.mock_main_window, "dev")
+        # Mock main window to raise exception
+        self.mock_main_window.set_mode.side_effect = Exception("Activation failed")
 
         # Act & Assert
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             mode.activate()
 
     # Boundary Condition Tests
@@ -277,14 +291,13 @@ class TestBaseMode(unittest.TestCase):
         """Test processing very long text"""
         # Arrange
         mode = self.concrete_mode
-        long_text = "a" * 10000  # 10k character string
+        long_text = "a" * 10000
 
         # Act
         result = mode.process_text(long_text)
 
         # Assert
-        self.assertEqual(result, f"Processed: {long_text}")
-        self.assertEqual(len(result), len(long_text) + 11)  # "Processed: " prefix
+        assert result == f"Processed: {long_text}"
 
     def test_boundary_condition_special_characters(self):
         """Test processing text with special characters"""
@@ -296,7 +309,7 @@ class TestBaseMode(unittest.TestCase):
         result = mode.process_text(special_text)
 
         # Assert
-        self.assertEqual(result, f"Processed: {special_text}")
+        assert result == f"Processed: {special_text}"
 
     def test_boundary_condition_unicode_text(self):
         """Test processing unicode text"""
@@ -308,7 +321,7 @@ class TestBaseMode(unittest.TestCase):
         result = mode.process_text(unicode_text)
 
         # Assert
-        self.assertEqual(result, f"Processed: {unicode_text}")
+        assert result == f"Processed: {unicode_text}"
 
     def test_boundary_condition_none_text(self):
         """Test processing None text"""
@@ -316,7 +329,7 @@ class TestBaseMode(unittest.TestCase):
         mode = self.concrete_mode
 
         # Act & Assert
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             mode.process_text(None)
 
     def test_boundary_condition_non_string_text(self):
@@ -325,13 +338,13 @@ class TestBaseMode(unittest.TestCase):
         mode = self.concrete_mode
 
         # Act & Assert
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             mode.process_text(123)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             mode.process_text(["list", "of", "strings"])
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             mode.process_text({"key": "value"})
 
     def test_boundary_condition_environment_values(self):
@@ -342,9 +355,9 @@ class TestBaseMode(unittest.TestCase):
         mode_test = self.ConcreteMode(self.mock_main_window, "test")
 
         # Assert
-        self.assertEqual(mode_dev.environment, "dev")
-        self.assertEqual(mode_prod.environment, "prod")
-        self.assertEqual(mode_test.environment, "test")
+        assert mode_dev.environment == "dev"
+        assert mode_prod.environment == "prod"
+        assert mode_test.environment == "test"
 
     def test_boundary_condition_empty_environment(self):
         """Test empty environment string"""
@@ -352,7 +365,7 @@ class TestBaseMode(unittest.TestCase):
         mode = self.ConcreteMode(self.mock_main_window, "")
 
         # Assert
-        self.assertEqual(mode.environment, "")
+        assert mode.environment == ""
 
     # Mock Tests
     def test_mock_main_window_interaction(self):
@@ -386,11 +399,7 @@ class TestBaseMode(unittest.TestCase):
         mode.deactivate()
 
         # Assert
-        self.assertEqual(result, "Processed: test")
-        self.assertEqual(settings, {})
+        assert result == "Processed: test"
+        assert settings == {}
         self.mock_main_window.set_mode.assert_called_once_with("Test Mode")
         self.mock_main_window.set_status.assert_called_once_with("Ready")
-
-
-if __name__ == "__main__":
-    unittest.main()

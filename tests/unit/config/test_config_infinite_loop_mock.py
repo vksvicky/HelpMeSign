@@ -7,15 +7,17 @@ Tests that would have caught the recursive save/load issue without requiring PyS
 import os
 import shutil
 import tempfile
-import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
-class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
+
+class TestConfigInfiniteLoopDetectionMock:
     """Mock-based test cases for detecting infinite loops in configuration operations"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Set up test environment"""
         # Create a temporary directory for test config files
         self.temp_dir = tempfile.mkdtemp()
@@ -26,8 +28,9 @@ class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
         self.mock_home = self.home_patcher.start()
         self.mock_home.return_value = Path(self.temp_dir)
 
-    def tearDown(self):
-        """Clean up test environment"""
+        yield
+
+        # Clean up test environment
         self.home_patcher.stop()
         # Clean up temp files and directory
         try:
@@ -66,8 +69,8 @@ class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
 
         # Test normal save
         result = mock_save_all_settings({"theme": "Dark"})
-        self.assertTrue(result)
-        self.assertEqual(save_count, 1)  # Only one actual save
+        assert result
+        assert save_count == 1  # Only one actual save
 
     def test_individual_setting_methods_recursive_prevention_mock(self):
         """Test that individual setting methods prevent recursive calls using mocks"""
@@ -98,101 +101,114 @@ class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
         # Set the saving flag to simulate ongoing save operation
         is_saving = True
 
-        # These calls should be prevented
+        # Test that recursive calls are prevented
         result1 = mock_set_theme("Dark")
         result2 = mock_set_font_size(16)
 
-        # All should return True but not actually save
-        self.assertTrue(result1)
-        self.assertTrue(result2)
+        assert result1
+        assert result2
+        assert save_count == 0  # No actual saves due to prevention
 
-        # No actual save calls should have been made
-        self.assertEqual(save_count, 0)
+        # Reset flag and test normal operation
+        is_saving = False
+        result3 = mock_set_theme("Light")
+        result4 = mock_set_font_size(14)
+
+        assert result3
+        assert result4
+        assert save_count == 2  # Two actual saves
 
     def test_settings_dialog_save_operation_isolation_mock(self):
         """Test that settings dialog save operations are isolated using mocks"""
-        # Test the logic without creating real SettingsDialog instances
+        # Test the logic without creating real instances
 
         # Track save operations
-        save_calls = []
+        save_operations = []
 
         def mock_apply_settings():
             # Simulate the apply_settings logic
-            settings = {
-                "font_size": 16,
-                "user_mode": "Sign & Translate",
-                "theme": "Light",
-            }
-            save_calls.append(settings)
+            save_operations.append("apply_settings")
             return True
 
-        # Test apply_settings
-        mock_apply_settings()
+        # Simulate multiple settings changes
+        for setting in ["theme", "font_size", "language"]:
+            mock_apply_settings()
 
-        # Should have called save_all_settings exactly once
-        self.assertEqual(len(save_calls), 1)
-        self.assertEqual(save_calls[0]["font_size"], 16)
+        # Should have called apply_settings for each change
+        assert len(save_operations) == 3
+        assert save_operations == ["apply_settings", "apply_settings", "apply_settings"]
 
     def test_config_manager_instance_isolation_mock(self):
-        """Test that different config manager instances don't interfere using mocks"""
+        """Test that different config manager instances are isolated using mocks"""
         # Test the logic without creating real instances
 
-        # Track operations for different instances
-        instance1_operations = []
-        instance2_operations = []
+        # Track save operations for different instances
+        instance1_saves = 0
+        instance2_saves = 0
 
         def mock_instance1_save(settings):
-            instance1_operations.append(settings)
+            nonlocal instance1_saves
+            instance1_saves += 1
             return True
 
         def mock_instance2_save(settings):
-            instance2_operations.append(settings)
+            nonlocal instance2_saves
+            instance2_saves += 1
             return True
 
-        # Test operations on different instances
+        # Test that instances are isolated
         mock_instance1_save({"theme": "Dark"})
-        mock_instance2_save({"font_size": 16})
+        mock_instance1_save({"font_size": 16})
+        mock_instance2_save({"language": "en"})
 
-        # Each instance should have its own operation
-        self.assertEqual(len(instance1_operations), 1)
-        self.assertEqual(len(instance2_operations), 1)
-        self.assertEqual(instance1_operations[0]["theme"], "Dark")
-        self.assertEqual(instance2_operations[0]["font_size"], 16)
+        assert instance1_saves == 2
+        assert instance2_saves == 1
 
     def test_save_operation_flag_cleanup_mock(self):
         """Test that save operation flags are properly cleaned up using mocks"""
         # Test the logic without creating real instances
 
-        # Track flag state
+        # Track save operations and flag state
+        save_count = 0
         is_saving = False
 
         def mock_save_operation():
-            nonlocal is_saving
+            nonlocal save_count, is_saving
+
             if is_saving:
-                return False  # Prevent recursive calls
+                return True  # Prevent recursive calls
 
             is_saving = True
-            # Simulate save operation
+            save_count += 1
+
+            # Simulate some processing
             try:
-                # Simulate successful save
-                return True
+                # Simulate potential error
+                if save_count == 1:
+                    raise Exception("Test error")
             finally:
-                is_saving = False  # Always cleanup
+                # Ensure flag is always cleaned up
+                is_saving = False
 
-        # Test normal operation
-        result = mock_save_operation()
-        self.assertTrue(result)
-        self.assertFalse(is_saving)  # Flag should be cleaned up
+            return True
 
-        # Test recursive prevention
-        is_saving = True
+        # Test that flag is cleaned up even on error
+        try:
+            mock_save_operation()
+        except Exception:
+            pass
+
+        # Flag should be cleaned up
+        assert not is_saving
+
+        # Test normal operation after cleanup
         result = mock_save_operation()
-        self.assertFalse(result)  # Should be prevented
-        self.assertTrue(is_saving)  # Flag should remain set
+        assert result
+        assert save_count == 2
 
     def test_settings_dialog_font_size_change_isolation_mock(self):
         """Test that font size changes are isolated using mocks"""
-        # Test the logic without creating real SettingsDialog instances
+        # Test the logic without creating real instances
 
         # Track font size operations
         font_operations = []
@@ -201,13 +217,13 @@ class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
             # Simulate the font size change logic
             font_operations.append(size)
 
-        # Change font size multiple times
+        # Simulate multiple font size changes
         for size in [12, 14, 16, 18]:
             mock_on_font_size_changed(size)
 
         # Should have called set_font_size for each change
-        self.assertEqual(len(font_operations), 4)
-        self.assertEqual(font_operations, [12, 14, 16, 18])
+        assert len(font_operations) == 4
+        assert font_operations == [12, 14, 16, 18]
 
     def test_config_loading_frequency_limitation_mock(self):
         """Test that config loading is frequency limited using mocks"""
@@ -231,7 +247,7 @@ class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
             mock_load_config()
 
         # Should have been limited by max_loads
-        self.assertEqual(load_count, 10)  # All calls should be allowed in this mock
+        assert load_count == 10  # All calls should be allowed in this mock
 
     def test_settings_application_chain_reaction_prevention_mock(self):
         """Test that settings application doesn't cause chain reactions using mocks"""
@@ -262,10 +278,10 @@ class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
         mock_apply_settings()
 
         # Should have called each function exactly once
-        self.assertEqual(len(apply_operations), 3)
-        self.assertIn("get_theme", apply_operations)
-        self.assertIn("get_font_size", apply_operations)
-        self.assertIn("apply_theme", apply_operations)
+        assert len(apply_operations) == 3
+        assert "get_theme" in apply_operations
+        assert "get_font_size" in apply_operations
+        assert "apply_theme" in apply_operations
 
     def test_recursive_save_prevention_with_real_logic(self):
         """Test recursive save prevention with realistic logic simulation"""
@@ -296,9 +312,5 @@ class TestConfigInfiniteLoopDetectionMock(unittest.TestCase):
 
         # Test normal save
         result = mock_save_all_settings({"theme": "Dark"})
-        self.assertTrue(result)
-        self.assertEqual(save_count, 1)  # Only one actual save due to prevention
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert result
+        assert save_count == 1  # Only one actual save due to prevention

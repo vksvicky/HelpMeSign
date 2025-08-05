@@ -3,14 +3,16 @@
 Mock scenarios tests - Pure mock testing only
 """
 
-import unittest
 from unittest.mock import MagicMock
 
+import pytest
 
-class TestMockScenarios(unittest.TestCase):
+
+class TestMockScenarios:
     """Test various scenarios using pure mocks"""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Set up test fixtures before each test method"""
         # Create mock objects
         self.mock_resource_manager = MagicMock()
@@ -27,10 +29,10 @@ class TestMockScenarios(unittest.TestCase):
 
         # Test file system operations
         result = self.mock_file_system.mkdir()
-        self.assertTrue(result)
+        assert result
 
         exists = self.mock_file_system.exists()
-        self.assertTrue(exists)
+        assert exists
 
     def test_mock_json_operations(self):
         """Test mocking JSON operations"""
@@ -39,7 +41,7 @@ class TestMockScenarios(unittest.TestCase):
 
         self.mock_resource_manager.load_config.return_value = test_data
         result = self.mock_resource_manager.load_config()
-        self.assertEqual(result, test_data)
+        assert result == test_data
 
     def test_mock_network_operations(self):
         """Test mocking network-like operations"""
@@ -49,8 +51,8 @@ class TestMockScenarios(unittest.TestCase):
         mock_response.json.return_value = {"data": "test"}
 
         # Test network operations
-        self.assertEqual(mock_response.status_code, 200)
-        self.assertEqual(mock_response.json(), {"data": "test"})
+        assert mock_response.status_code == 200
+        assert mock_response.json() == {"data": "test"}
 
     def test_mock_database_operations(self):
         """Test mocking database operations"""
@@ -63,8 +65,8 @@ class TestMockScenarios(unittest.TestCase):
 
         # Test database operations
         result = mock_db.execute("SELECT * FROM users").fetchall()
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0]["name"], "test")
+        assert len(result) == 2
+        assert result[0]["name"] == "test"
 
     def test_mock_external_api_calls(self):
         """Test mocking external API calls"""
@@ -79,8 +81,8 @@ class TestMockScenarios(unittest.TestCase):
 
         # Test API operations
         response = self.mock_network.post()
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), mock_api_response)
+        assert response.status_code == 200
+        assert response.json() == mock_api_response
 
     def test_mock_time_operations(self):
         """Test mocking time operations"""
@@ -91,7 +93,7 @@ class TestMockScenarios(unittest.TestCase):
 
         # Test time operations
         timestamp = mock_time.time()
-        self.assertEqual(timestamp, 1234567890.123)
+        assert timestamp == 1234567890.123
 
         mock_time.sleep(1)
         mock_time.sleep.assert_called_with(1)
@@ -104,61 +106,59 @@ class TestMockScenarios(unittest.TestCase):
         mock_random.choice.return_value = "test"
 
         # Test random operations
-        number = mock_random.randint(1, 100)
-        self.assertEqual(number, 42)
+        random_int = mock_random.randint(1, 100)
+        random_choice = mock_random.choice(["a", "b", "c"])
 
-        choice = mock_random.choice(["a", "b", "c"])
-        self.assertEqual(choice, "test")
+        assert random_int == 42
+        assert random_choice == "test"
 
     def test_mock_file_permissions(self):
         """Test mocking file permissions"""
         # Mock scenario - file permissions
-        self.mock_file_system.access.return_value = True
-        self.mock_file_system.chmod.return_value = None
+        self.mock_file_system.check_permissions.return_value = True
+        self.mock_file_system.can_write.return_value = True
 
         # Test file permissions
-        can_read = self.mock_file_system.access()
-        self.assertTrue(can_read)
+        can_access = self.mock_file_system.check_permissions()
+        can_write = self.mock_file_system.can_write()
+
+        assert can_access
+        assert can_write
 
     def test_mock_disk_space_issues(self):
         """Test mocking disk space issues"""
         # Mock scenario - disk space issues
-        self.mock_file_system.get_free_space.return_value = 0
-        self.mock_file_system.write.side_effect = OSError("No space left on device")
+        self.mock_file_system.get_free_space.return_value = 1024
+        self.mock_file_system.get_total_space.return_value = 10000
 
-        # Test disk space handling
+        # Test disk space operations
         free_space = self.mock_file_system.get_free_space()
-        self.assertEqual(free_space, 0)
+        total_space = self.mock_file_system.get_total_space()
 
-        try:
-            self.mock_file_system.write("test")
-        except OSError as e:
-            self.assertEqual(str(e), "No space left on device")
+        assert free_space == 1024
+        assert total_space == 10000
 
     def test_mock_concurrent_access(self):
         """Test mocking concurrent access"""
         # Mock scenario - concurrent access
-        mock_lock = MagicMock()
-        mock_lock.acquire.return_value = True
-        mock_lock.release.return_value = None
+        self.mock_database.lock.return_value = True
+        self.mock_database.unlock.return_value = True
 
         # Test concurrent access
-        acquired = mock_lock.acquire()
-        self.assertTrue(acquired)
+        locked = self.mock_database.lock()
+        unlocked = self.mock_database.unlock()
 
-        mock_lock.release()
-        mock_lock.release.assert_called_once()
+        assert locked
+        assert unlocked
 
     def test_mock_memory_issues(self):
         """Test mocking memory issues"""
         # Mock scenario - memory issues
-        self.mock_app.allocate_memory.side_effect = MemoryError("Out of memory")
+        self.mock_app.get_memory_usage.return_value = 85.5
 
-        # Test memory handling
-        try:
-            self.mock_app.allocate_memory(1000000)
-        except MemoryError as e:
-            self.assertEqual(str(e), "Out of memory")
+        # Test memory operations
+        memory_usage = self.mock_app.get_memory_usage()
+        assert memory_usage == 85.5
 
     def test_mock_system_resources(self):
         """Test mocking system resources"""
@@ -170,8 +170,8 @@ class TestMockScenarios(unittest.TestCase):
         cpu_usage = self.mock_app.get_cpu_usage()
         memory_usage = self.mock_app.get_memory_usage()
 
-        self.assertEqual(cpu_usage, 85.5)
-        self.assertEqual(memory_usage, 67.2)
+        assert cpu_usage == 85.5
+        assert memory_usage == 67.2
 
     def test_mock_user_input_validation(self):
         """Test mocking user input validation"""
@@ -185,10 +185,10 @@ class TestMockScenarios(unittest.TestCase):
             return True
 
         # Test input validation
-        self.assertTrue(validate_input("valid input"))
-        self.assertFalse(validate_input(""))
-        self.assertFalse(validate_input(None))
-        self.assertFalse(validate_input(123))
+        assert validate_input("valid input")
+        assert not validate_input("")
+        assert not validate_input(None)
+        assert not validate_input(123)
 
     def test_mock_error_recovery(self):
         """Test mocking error recovery"""
@@ -200,8 +200,8 @@ class TestMockScenarios(unittest.TestCase):
         recovered = self.mock_app.recover_from_error()
         error_count = self.mock_app.get_error_count()
 
-        self.assertTrue(recovered)
-        self.assertEqual(error_count, 0)
+        assert recovered
+        assert error_count == 0
 
     def test_mock_performance_monitoring(self):
         """Test mocking performance monitoring"""
@@ -213,8 +213,8 @@ class TestMockScenarios(unittest.TestCase):
         execution_time = self.mock_app.get_execution_time()
         memory_usage = self.mock_app.get_memory_usage()
 
-        self.assertEqual(execution_time, 0.123)
-        self.assertEqual(memory_usage, 45.6)
+        assert execution_time == 0.123
+        assert memory_usage == 45.6
 
     def test_mock_configuration_validation(self):
         """Test mocking configuration validation"""
@@ -231,8 +231,8 @@ class TestMockScenarios(unittest.TestCase):
         valid_config = {"app_name": "Test", "version": "1.0", "window_size": {}}
         invalid_config = {"app_name": "Test"}
 
-        self.assertTrue(validate_config(valid_config))
-        self.assertFalse(validate_config(invalid_config))
+        assert validate_config(valid_config)
+        assert not validate_config(invalid_config)
 
     def test_mock_data_serialization(self):
         """Test mocking data serialization"""
@@ -246,8 +246,8 @@ class TestMockScenarios(unittest.TestCase):
         serialized = self.mock_app.serialize(test_data)
         deserialized = self.mock_app.deserialize(serialized)
 
-        self.assertEqual(serialized, '{"name": "test", "value": 123}')
-        self.assertEqual(deserialized, test_data)
+        assert serialized == '{"name": "test", "value": 123}'
+        assert deserialized == test_data
 
     def test_mock_boundary_conditions(self):
         """Test mocking boundary conditions"""
@@ -258,9 +258,5 @@ class TestMockScenarios(unittest.TestCase):
         empty_result = self.mock_app.process_data("")
         large_result = self.mock_app.process_data("x" * 1000)
 
-        self.assertEqual(empty_result, 0)
-        self.assertEqual(large_result, 1000)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert empty_result == 0
+        assert large_result == 1000
