@@ -6,9 +6,35 @@ Handles theme application and UI styling
 
 from typing import Any, Dict, Optional
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPalette
-from PySide6.QtWidgets import QApplication, QWidget
+try:
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QColor, QPalette
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    PYSIDE6_AVAILABLE = True
+except ImportError:
+    PYSIDE6_AVAILABLE = False
+
+    # Create mock classes for when PySide6 is not available
+    class Qt:  # type: ignore
+        pass
+
+    class QColor:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class QPalette:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class QApplication:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class QWidget:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            pass
+
 
 from .logger import get_logger
 
@@ -96,6 +122,10 @@ class ThemeManager:
 
     def force_font_size_update(self, widget, component: str = "general") -> None:
         """Force update a widget's font size"""
+        if not PYSIDE6_AVAILABLE:
+            self.logger.debug("PySide6 not available, skipping font size update")
+            return
+
         try:
             if widget is None:
                 return
@@ -125,6 +155,12 @@ class ThemeManager:
         self, root_widget, component_map: Optional[Dict[str, str]] = None
     ) -> None:
         """Apply font size to an entire widget tree"""
+        if not PYSIDE6_AVAILABLE:
+            self.logger.debug(
+                "PySide6 not available, skipping widget tree font size application"
+            )
+            return
+
         try:
             if root_widget is None:
                 self.logger.warning(
@@ -526,6 +562,10 @@ class ThemeManager:
 
     def apply_theme(self, theme_name: str, app: Optional[QApplication] = None) -> bool:
         """Apply a theme to the application"""
+        if not PYSIDE6_AVAILABLE:
+            self.logger.debug("PySide6 not available, skipping theme application")
+            return True
+
         try:
             if theme_name not in self.themes:
                 self.logger.error(f"Theme '{theme_name}' not found")
@@ -554,6 +594,12 @@ class ThemeManager:
 
     def _apply_to_application(self, app: QApplication, theme: Dict[str, Any]) -> None:
         """Apply theme to QApplication"""
+        if not PYSIDE6_AVAILABLE:
+            self.logger.debug(
+                "PySide6 not available, skipping application theme application"
+            )
+            return
+
         # Set application palette
         palette = QPalette()
         colors = theme["colors"]
@@ -586,6 +632,10 @@ class ThemeManager:
 
     def _refresh_all_widgets(self, app: QApplication) -> None:
         """Force refresh all widgets to apply theme changes"""
+        if not PYSIDE6_AVAILABLE:
+            self.logger.debug("PySide6 not available, skipping widget refresh")
+            return
+
         try:
             # Get all top-level widgets
             for widget in app.topLevelWidgets():

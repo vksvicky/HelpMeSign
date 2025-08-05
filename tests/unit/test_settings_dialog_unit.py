@@ -1077,16 +1077,16 @@ class TestSettingsDialogRealImplementation:
             # Import after mocking
             from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-            # Create instance
-            dialog = SettingsDialog()
+        # Create instance
+        dialog = SettingsDialog()
 
-            # Test load_current_settings
-            dialog.load_current_settings()
+        # Test load_current_settings
+        dialog.load_current_settings()
 
-            # Assert
-            assert dialog.current_settings["user_mode"] == "Sign & Translate"
-            assert dialog.current_settings["theme"] == "Light"
-            assert dialog.current_settings["font_size"] == 12
+        # Assert
+        assert dialog.current_settings["user_mode"] == "Sign & Translate"
+        assert dialog.current_settings["theme"] == "Light"
+        assert dialog.current_settings["font_size"] == 12
 
     def test_load_current_settings_error_handling(self):
         """Test load_current_settings error handling with mocked SettingsDialog"""
@@ -1109,14 +1109,14 @@ class TestSettingsDialogRealImplementation:
             # Import after mocking
             from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-            # Create instance
-            dialog = SettingsDialog()
+        # Create instance
+        dialog = SettingsDialog()
 
-            # Test load_current_settings with error
-            dialog.load_current_settings()
+        # Test load_current_settings with error
+        dialog.load_current_settings()
 
-            # Assert that error was logged
-            dialog.logger.error.assert_called_with("Settings error")
+        # Assert that error was logged
+        dialog.logger.error.assert_called_with("Settings error")
 
     def test_apply_settings_success(self):
         """Test apply_settings method with success using mocked SettingsDialog"""
@@ -1140,15 +1140,15 @@ class TestSettingsDialogRealImplementation:
             # Import after mocking
             from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-            # Create instance
-            dialog = SettingsDialog()
+        # Create instance
+        dialog = SettingsDialog()
 
-            # Test apply_settings
-            result = dialog.apply_settings()
+        # Test apply_settings
+        result = dialog.apply_settings()
 
-            # Assert
-            assert result is True
-            dialog.logger.info.assert_called_with("Settings applied successfully")
+        # Assert
+        assert result is True
+        dialog.logger.info.assert_called_with("Settings applied successfully")
 
     def test_apply_settings_failure(self):
         """Test apply_settings method with failure using mocked SettingsDialog"""
@@ -1172,15 +1172,15 @@ class TestSettingsDialogRealImplementation:
             # Import after mocking
             from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-            # Create instance
-            dialog = SettingsDialog()
+        # Create instance
+        dialog = SettingsDialog()
 
-            # Test apply_settings
-            result = dialog.apply_settings()
+        # Test apply_settings
+        result = dialog.apply_settings()
 
-            # Assert
-            assert result is False
-            dialog.logger.error.assert_called_with("Settings save failed")
+        # Assert
+        assert result is False
+        dialog.logger.error.assert_called_with("Settings save failed")
 
     def test_reset_to_defaults(self):
         """Test reset_to_defaults method with mocked SettingsDialog"""
@@ -1209,19 +1209,19 @@ class TestSettingsDialogRealImplementation:
             # Import after mocking
             from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-            # Create instance
-            dialog = SettingsDialog()
+        # Create instance
+        dialog = SettingsDialog()
 
-            # Test reset_to_defaults
-            dialog.reset_to_defaults()
+        # Test reset_to_defaults
+        dialog.reset_to_defaults()
 
-            # Assert
-            dialog.segmented_control.set_selection.assert_called_once_with(
-                "Sign & Translate"
-            )
-            dialog.theme_control.set_selection.assert_called_once_with("Light")
-            dialog.font_size_selector.set_size.assert_called_once_with(12)
-            dialog.logger.info.assert_called_with("Settings reset to defaults")
+        # Assert
+        dialog.segmented_control.set_selection.assert_called_once_with(
+            "Sign & Translate"
+        )
+        dialog.theme_control.set_selection.assert_called_once_with("Light")
+        dialog.font_size_selector.set_size.assert_called_once_with(12)
+        dialog.logger.info.assert_called_with("Settings reset to defaults")
 
     def test_get_selected_mode(self):
         """Test get_selected_mode method with mocked SettingsDialog"""
@@ -1247,14 +1247,14 @@ class TestSettingsDialogRealImplementation:
             # Import after mocking
             from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-            # Create instance
-            dialog = SettingsDialog()
+        # Create instance
+        dialog = SettingsDialog()
 
-            # Test get_selected_mode
-            selected_mode = dialog.get_selected_mode()
+        # Test get_selected_mode
+        selected_mode = dialog.get_selected_mode()
 
-            # Assert
-            assert selected_mode == "Learn Sign Language"
+        # Assert
+        assert selected_mode == "Learn Sign Language"
 
     def test_update_description(self):
         """Test update_description method with mocked SettingsDialog"""
@@ -1277,14 +1277,14 @@ class TestSettingsDialogRealImplementation:
             # Import after mocking
             from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-            # Create instance
-            dialog = SettingsDialog()
+        # Create instance
+        dialog = SettingsDialog()
 
-            # Test update_description
-            dialog.update_description("Sign & Translate")
+        # Test update_description
+        dialog.update_description("Sign & Translate")
 
-            # Assert
-            dialog.description_label.setText.assert_called_once_with("Test description")
+        # Assert
+        dialog.description_label.setText.assert_called_once_with("Test description")
 
 
 if __name__ == "__main__":
