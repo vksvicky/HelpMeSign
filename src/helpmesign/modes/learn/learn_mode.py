@@ -19,10 +19,13 @@ class LearnMode(BaseMode):
     def __init__(self, main_window, environment: str = "dev"):
         # Initialize font attributes before calling parent __init__
         # Get current font size and family once and store them
-        from src.helpmesign.utils.theme_manager import get_font_family, get_font_size
+        from src.helpmesign.utils.font_manager import get_font_manager
+        from src.helpmesign.utils.theme_manager import get_font_size
 
         self.current_font_size = get_font_size()
-        self.current_font_family = get_font_family()
+        # Use font manager to get proper Roboto font family
+        font_manager = get_font_manager()
+        self.current_font_family = font_manager._get_current_font_family()
 
         # Initialize character tracking variables
         self.current_character: Optional[str] = None
@@ -80,7 +83,7 @@ class LearnMode(BaseMode):
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(20)
 
-        # Left panel - Sign display
+        # Left panel - Sign display with language selector
         left_panel = self.create_sign_display_panel()
         left_panel.setFixedWidth(400)
         main_layout.addWidget(left_panel, 2)  # 2 parts width
@@ -124,7 +127,9 @@ class LearnMode(BaseMode):
         layout.setSpacing(25)  # More spacing between title and grid
 
         # Title
-        self.selection_title = QLabel("Select Character")
+        self.selection_title = QLabel(
+            get_text("ui.language_selection.select_character_title")
+        )
         self.selection_title.setFont(
             QFont(self.current_font_family, self.current_font_size, QFont.Weight.Bold)
         )
@@ -207,19 +212,347 @@ class LearnMode(BaseMode):
 
         return panel
 
-    def create_sign_display_panel(self):
-        """Create the right panel for sign display"""
+    def create_language_selector(self):
+        """Create the language selection component"""
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QFont
         from PySide6.QtWidgets import (
-            QButtonGroup,
+            QComboBox,
             QFrame,
             QGroupBox,
             QHBoxLayout,
             QLabel,
+            QLineEdit,
+            QPushButton,
+            QScrollArea,
+            QVBoxLayout,
+            QWidget,
+        )
+
+        from ...utils.language_loader import get_all_languages, get_language_categories
+
+        # Create language selector group
+        language_group = QGroupBox(get_text("ui.language_selection.title"))
+        language_group.setFont(
+            QFont(
+                self.current_font_family, self.current_font_size - 1, QFont.Weight.Bold
+            )
+        )
+        language_group.setStyleSheet(
+            """
+            QGroupBox {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """
+        )
+
+        layout = QVBoxLayout(language_group)
+        layout.setSpacing(10)
+
+        # Search box
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText(
+            get_text("ui.language_selection.search_placeholder")
+        )
+        self.search_box.textChanged.connect(self.on_search_changed)
+        self.search_box.setStyleSheet(
+            """
+            QLineEdit {
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+            }
+            QLineEdit:focus {
+                border-color: #007bff;
+            }
+        """
+        )
+        layout.addWidget(self.search_box)
+
+        # Category selector
+        self.category_combo = QComboBox()
+        self.category_combo.addItem(
+            get_text("ui.language_selection.category_popular"), "popular"
+        )
+        self.category_combo.addItem(
+            get_text("ui.language_selection.category_beginner"), "beginner"
+        )
+        self.category_combo.addItem(
+            get_text("ui.language_selection.category_intermediate"), "intermediate"
+        )
+        self.category_combo.addItem(
+            get_text("ui.language_selection.category_advanced"), "advanced"
+        )
+        self.category_combo.addItem(
+            get_text("ui.language_selection.category_all"), "all"
+        )
+        self.category_combo.currentTextChanged.connect(self.on_category_changed)
+        self.category_combo.setStyleSheet(
+            """
+            QComboBox {
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #6c757d;
+            }
+        """
+        )
+        layout.addWidget(self.category_combo)
+
+        # Language list area
+        self.language_list_area = QScrollArea()
+        self.language_list_area.setWidgetResizable(True)
+        self.language_list_area.setMaximumHeight(
+            280
+        )  # Increased height for better space utilization
+        self.language_list_area.setStyleSheet(
+            """
+            QScrollArea {
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QScrollBar:vertical {
+                background-color: #f8f9fa;
+                width: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #ced4da;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #adb5bd;
+            }
+        """
+        )
+
+        # Language list widget
+        self.language_list_widget = QWidget()
+        self.language_list_layout = QVBoxLayout(self.language_list_widget)
+        self.language_list_layout.setSpacing(
+            3
+        )  # Reduced spacing for more compact layout
+        self.language_list_layout.setContentsMargins(4, 4, 4, 4)  # Reduced margins
+
+        self.language_list_area.setWidget(self.language_list_widget)
+        layout.addWidget(self.language_list_area)
+
+        # Initialize language data
+        self.languages = get_all_languages()
+        self.categories = get_language_categories()
+        self.selected_language = None
+        self.filtered_languages = []
+
+        # Populate initial language list
+        self.populate_language_list("popular")
+
+        return language_group
+
+    def populate_language_list(self, category: str):
+        """Populate the language list based on category"""
+        # Clear existing items
+        for i in reversed(range(self.language_list_layout.count())):
+            self.language_list_layout.itemAt(i).widget().setParent(None)
+
+        # Get languages for category
+        if category == "popular":
+            languages = self.categories.get("popular", [])
+        elif category == "beginner":
+            languages = self.categories.get("beginner", [])
+        elif category == "intermediate":
+            languages = self.categories.get("intermediate", [])
+        elif category == "advanced":
+            languages = self.categories.get("advanced", [])
+        else:
+            languages = self.categories.get("all", [])
+
+        self.filtered_languages = languages
+
+        # Create language buttons
+        for language in languages:
+            btn = self.create_language_button(language)
+            self.language_list_layout.addWidget(btn)
+
+        # Add stretch to push buttons to top
+        self.language_list_layout.addStretch()
+
+    def create_language_button(self, language: dict):
+        """Create a button for a language with enhanced display"""
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QFont
+        from PySide6.QtWidgets import QPushButton
+
+        # Get language information
+        code = language.get("code", "")
+        flag = language.get("flag", "🌐")
+        name = language.get("name", "Unknown")
+        native_name = language.get("nativeName", "")
+        speakers = language.get("metadata", {}).get("speakers", 0)
+        difficulty = language.get("metadata", {}).get("difficulty", "Unknown")
+        regions = language.get("metadata", {}).get("regions", [])
+        writing_systems = language.get("writingSystems", {})
+
+        # Format button text with just flag and code
+        button_text = f"{flag} {code}"
+
+        btn = QPushButton(button_text)
+        btn.setCheckable(True)
+        btn.setProperty("language_code", code)
+        btn.setProperty("language_data", language)
+        btn.clicked.connect(lambda: self.on_language_selected(language))
+
+        # Style the button with compact, professional design using Roboto font
+        btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: #ffffff;
+                border: 1px solid #e9ecef;
+                border-radius: 4px;
+                padding: 6px 8px;
+                text-align: left;
+                font-family: "{self.current_font_family}";
+                font-size: 11px;
+                font-weight: 500;
+                color: #495057;
+                min-height: 28px;
+                line-height: 1.1;
+            }}
+            QPushButton:hover {{
+                background-color: #f8f9fa;
+                border-color: #007bff;
+            }}
+            QPushButton:checked {{
+                background-color: #007bff;
+                color: white;
+                border-color: #0056b3;
+                font-weight: 600;
+            }}
+            QPushButton:pressed {{
+                background-color: #0056b3;
+            }}
+        """
+        )
+
+        # Enhanced tooltip with statistics
+        tooltip = f"<b>{name}</b><br>"
+        if native_name and native_name != name:
+            tooltip += f"<b>Native:</b> {native_name}<br>"
+        tooltip += f"<b>Code:</b> {code}<br>"
+        tooltip += f"<b>Speakers:</b> {speakers:,}<br>"
+        tooltip += f"<b>Difficulty:</b> {difficulty}<br>"
+        if regions:
+            tooltip += f"<b>Regions:</b> {', '.join(regions)}<br>"
+        if writing_systems:
+            writing_system_keys = list(writing_systems.keys())
+            if writing_system_keys:
+                tooltip += (
+                    f"<b>Writing Systems:</b> {', '.join(writing_system_keys)}<br>"
+                )
+
+        btn.setToolTip(tooltip)
+
+        return btn
+
+    def on_language_selected(self, language: dict):
+        """Handle language selection"""
+        self.selected_language = language
+
+        # Update button states
+        for i in range(self.language_list_layout.count()):
+            item = self.language_list_layout.itemAt(i)
+            if item.widget():
+                btn = item.widget()
+                if btn.property("language_code") == language.get("code"):
+                    btn.setChecked(True)
+                else:
+                    btn.setChecked(False)
+
+        # Update sign display title to show selected language flag and code
+        flag = language.get("flag", "🌐")
+        code = language.get("code", "Unknown")
+        self.sign_title.setText(f"{flag} {code}")
+
+    def on_search_changed(self, text: str):
+        """Handle search text changes"""
+        from ...utils.language_loader import search_languages
+
+        if text.strip():
+            # Search in all languages
+            search_results = search_languages(text)
+            self.populate_search_results(search_results)
+        else:
+            # Show current category
+            current_category = self.category_combo.currentData()
+            self.populate_language_list(current_category)
+
+    def populate_search_results(self, languages: list):
+        """Populate language list with search results"""
+        # Clear existing items
+        for i in reversed(range(self.language_list_layout.count())):
+            self.language_list_layout.itemAt(i).widget().setParent(None)
+
+        self.filtered_languages = languages
+
+        # Create language buttons for search results
+        for language in languages:
+            btn = self.create_language_button(language)
+            self.language_list_layout.addWidget(btn)
+
+        # Add stretch to push buttons to top
+        self.language_list_layout.addStretch()
+
+    def on_category_changed(self, category_text: str):
+        """Handle category selection changes"""
+        # Find the category key
+        category_map = {
+            get_text("ui.language_selection.category_popular"): "popular",
+            get_text("ui.language_selection.category_beginner"): "beginner",
+            get_text("ui.language_selection.category_intermediate"): "intermediate",
+            get_text("ui.language_selection.category_advanced"): "advanced",
+            get_text("ui.language_selection.category_all"): "all",
+        }
+
+        category = category_map.get(category_text, "popular")
+        self.populate_language_list(category)
+
+    def create_sign_display_panel(self):
+        """Create the right panel for sign display with language selector"""
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QFont
+        from PySide6.QtWidgets import (
+            QButtonGroup,
+            QComboBox,
+            QFrame,
+            QGroupBox,
+            QHBoxLayout,
+            QLabel,
+            QLineEdit,
             QPushButton,
             QRadioButton,
+            QScrollArea,
             QVBoxLayout,
+            QWidget,
         )
 
         # Create panel frame
@@ -240,7 +573,7 @@ class LearnMode(BaseMode):
         layout.setSpacing(15)
 
         # Title
-        self.sign_title = QLabel("Select a letter or number")
+        self.sign_title = QLabel(get_text("ui.language_selection.sign_display_title"))
         self.sign_title.setFont(
             QFont(self.current_font_family, self.current_font_size, QFont.Weight.Bold)
         )
@@ -262,54 +595,16 @@ class LearnMode(BaseMode):
         """
         )
         self.sign_display_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sign_display_label.setText("Sign will appear here")
+        self.sign_display_label.setText(
+            get_text("ui.language_selection.sign_will_appear_here")
+        )
         layout.addWidget(self.sign_display_label)
 
-        # Hand preference section
-        hand_group = QGroupBox("Hand Preference")
-        hand_group.setFont(
-            QFont(
-                self.current_font_family, self.current_font_size - 2, QFont.Weight.Bold
-            )
-        )
-        hand_layout = QHBoxLayout(hand_group)
+        # Hand preference moved to settings window
 
-        self.hand_button_group = QButtonGroup()
-
-        self.right_hand_radio = QRadioButton("Right Hand")
-        self.right_hand_radio.setChecked(True)
-        self.right_hand_radio.toggled.connect(self.on_hand_preference_changed)
-        self.hand_button_group.addButton(self.right_hand_radio)
-        hand_layout.addWidget(self.right_hand_radio)
-
-        self.left_hand_radio = QRadioButton("Left Hand")
-        self.left_hand_radio.toggled.connect(self.on_hand_preference_changed)
-        self.hand_button_group.addButton(self.left_hand_radio)
-        hand_layout.addWidget(self.left_hand_radio)
-
-        layout.addWidget(hand_group)
-
-        # Description area
-        self.sign_description = QLabel(
-            "Choose a letter or number from the left panel to see its sign language representation."
-        )
-        self.sign_description.setWordWrap(True)
-        self.sign_description.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sign_description.setFixedSize(
-            300, 80
-        )  # Fixed size prevents panel resizing
-        self.sign_description.setStyleSheet(
-            """
-            QLabel {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 10px;
-                color: #495057;
-            }
-        """
-        )
-        layout.addWidget(self.sign_description)
+        # Language selector section
+        language_group = self.create_language_selector()
+        layout.addWidget(language_group)
 
         return panel
 
@@ -362,7 +657,8 @@ class LearnMode(BaseMode):
         self.current_character = character
         self.current_char_type = char_type
 
-        hand_preference = "right" if self.right_hand_radio.isChecked() else "left"
+        # Get hand preference from settings (default to right)
+        hand_preference = "right"  # Default fallback
 
         # Simple placeholder text
         sign_info = f"ASL sign for {char_type} '{character}' ({hand_preference} hand)"
@@ -371,25 +667,10 @@ class LearnMode(BaseMode):
         self.sign_display_label.setText(
             f"ASL Sign for '{character}'\n({hand_preference} hand)"
         )
-        self.sign_description.setText(sign_info)
-
-    def on_hand_preference_changed(self) -> None:
-        """Handle hand preference change"""
-        # Update the current sign display with new hand preference
-        if (
-            hasattr(self, "current_character")
-            and hasattr(self, "current_char_type")
-            and self.current_character is not None
-            and self.current_char_type is not None
-        ):
-            self.update_sign_display(self.current_character, self.current_char_type)
 
     def setup_behavior(self) -> None:
         """Set up mode-specific behavior and event handlers"""
-        # Connect hand preference radio buttons to their handler
-        if hasattr(self, "right_hand_radio") and hasattr(self, "left_hand_radio"):
-            self.right_hand_radio.toggled.connect(self.on_hand_preference_changed)
-            self.left_hand_radio.toggled.connect(self.on_hand_preference_changed)
+        # Hand preference handling moved to settings window
 
         # Connect to main window signals if they exist
         if hasattr(self.main_window, "clear_requested"):
@@ -491,35 +772,8 @@ class LearnMode(BaseMode):
 
     def _on_clear_requested(self) -> None:
         """Handle clear button click in learning mode"""
-        # Clear text input if main window has the method
-        if hasattr(self.main_window, "set_text_input"):
-            self.main_window.set_text_input("")
-
-        # Clear text output if main window has the method
-        if hasattr(self.main_window, "set_text_output"):
-            self.main_window.set_text_output("")
-
-        # Update status if main window has the method
-        if hasattr(self.main_window, "set_status"):
-            self.main_window.set_status("Content cleared")
-
-        # Reset the sign display to default state
-        if hasattr(self, "sign_display_label"):
-            self.sign_display_label.setText("Sign will appear here")
-
-        if hasattr(self, "sign_title"):
-            self.sign_title.setText("Select a letter or number")
-
-        if hasattr(self, "sign_description"):
-            self.sign_description.setText(
-                "Choose a letter or number from the left panel to see its sign language representation."
-            )
-
-        # Clear any button selections
-        if hasattr(self, "alphabet_buttons"):
-            self.update_button_selection("", self.alphabet_buttons)
-        if hasattr(self, "number_buttons"):
-            self.update_button_selection("", self.number_buttons)
+        # Call the main clear_content method to avoid duplication
+        self.clear_content()
 
     def update_ui(self) -> None:
         """Update the UI to reflect the current mode"""
@@ -530,7 +784,8 @@ class LearnMode(BaseMode):
         """Update fonts following the defined process:
         Only update fonts in currently visible window, never update button fonts
         """
-        from src.helpmesign.utils.theme_manager import get_font_family, get_font_size
+        from src.helpmesign.utils.font_manager import get_font_manager
+        from src.helpmesign.utils.theme_manager import get_font_size
 
         try:
             # Only update fonts if this mode is currently visible
@@ -540,9 +795,10 @@ class LearnMode(BaseMode):
             ):
                 return
 
-            # Update stored font size and family
+            # Update stored font size and family using proper font manager
             self.current_font_size = get_font_size()
-            self.current_font_family = get_font_family()
+            font_manager = get_font_manager()
+            self.current_font_family = font_manager._get_current_font_family()
 
             # Update title fonts - consistent with other modes
             if hasattr(self, "sign_title"):
@@ -567,26 +823,9 @@ class LearnMode(BaseMode):
             # The buttons are created with fixed size and font, and must remain unchanged
             # Any font updates will cause Qt to recalculate sizes and break the layout
 
-            # Update hand preference group font - smaller for UI elements
-            if hasattr(self, "hand_button_group"):
-                for btn in self.hand_button_group.buttons():
-                    btn.setFont(
-                        QFont(
-                            self.current_font_family,
-                            self.current_font_size - 2,
-                            QFont.Weight.Normal,
-                        )
-                    )
+            # Hand preference group moved to settings window
 
-            # Update description text font
-            if hasattr(self, "sign_description"):
-                self.sign_description.setFont(
-                    QFont(
-                        self.current_font_family,
-                        self.current_font_size - 3,
-                        QFont.Weight.Normal,
-                    )
-                )
+            # Sign description removed for better space utilization
 
         except Exception as e:
             # Fallback to default font sizes if theme manager is not available
@@ -602,17 +841,22 @@ class LearnMode(BaseMode):
         if hasattr(self.main_window, "set_text_output"):
             self.main_window.set_text_output("")
 
-        # Reset the sign display to default state
+        # Update status using language configuration
+        if hasattr(self.main_window, "set_status"):
+            self.main_window.set_status(get_text("ui.status.cleared"))
+
+        # Reset the sign display to default state using language configuration
         if hasattr(self, "sign_display_label"):
-            self.sign_display_label.setText("Sign will appear here")
+            self.sign_display_label.setText(
+                get_text("ui.language_selection.sign_will_appear_here")
+            )
 
         if hasattr(self, "sign_title"):
-            self.sign_title.setText("Select a letter or number")
-
-        if hasattr(self, "sign_description"):
-            self.sign_description.setText(
-                "Choose a letter or number from the left panel to see its sign language representation."
+            self.sign_title.setText(
+                get_text("ui.language_selection.sign_display_title")
             )
+
+        # Sign description removed for better space utilization
 
         # Clear any button selections
         if hasattr(self, "alphabet_buttons"):

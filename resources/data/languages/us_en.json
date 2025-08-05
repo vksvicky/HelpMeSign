@@ -99,6 +99,36 @@
         "system_restart": "Consider system restart",
         "no_actions": "🎯 No actions needed"
       }
+    },
+    "language_selection": {
+      "title": "Select Language to Learn",
+      "search_placeholder": "Search languages...",
+      "category_popular": "Popular Languages",
+      "category_beginner": "Beginner Friendly",
+      "category_intermediate": "Intermediate",
+      "category_advanced": "Advanced",
+      "category_all": "All Languages",
+      "no_languages_found": "No languages found",
+      "select_character_title": "Select Character",
+      "sign_display_title": "Select a letter or number",
+      "sign_will_appear_here": "Sign will appear here",
+      "hand_preference_title": "Hand Preference",
+      "right_hand": "Right Hand",
+      "left_hand": "Left Hand",
+      "sign_description": "Choose a letter or number from the left panel to see its sign language representation.",
+      "language_selected": "Language selected: {language_name}",
+      "switch_language": "Switch Language",
+      "current_language": "Current Language",
+      "difficulty_beginner": "Beginner",
+      "difficulty_intermediate": "Intermediate",
+      "difficulty_advanced": "Advanced",
+      "speakers_count": "{count:,} speakers",
+      "regions": "Regions: {regions}",
+      "difficulty_level": "Difficulty: {level}",
+      "select_language": "Select Language",
+      "language_info": "Language Information",
+      "grammar_rules": "Grammar Rules",
+      "resources": "Resources"
     }
   },
   

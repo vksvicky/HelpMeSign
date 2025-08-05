@@ -423,7 +423,7 @@ class TestHelpMeSignAppUnit(unittest.TestCase):
         # Assert
         app.resource_manager.get_image_path.assert_called_once_with("icon.png")
         app.resource_manager.resource_exists.assert_called_once_with(
-            "image", "icon.png"
+            "images", "icon.png"
         )
         app.main_window.set_icon.assert_called_once_with("/path/to/icon.png")
         app.logger.info.assert_called_with("App icon loaded successfully")

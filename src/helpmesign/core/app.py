@@ -218,7 +218,7 @@ class HelpMeSignApp:
         """Set the application icon if available"""
         try:
             icon_path = self.resource_manager.get_image_path("icon.png")
-            if self.resource_manager.resource_exists("image", "icon.png"):
+            if self.resource_manager.resource_exists("images", "icon.png"):
                 # Set icon on the main window
                 self.main_window.set_icon(icon_path)
 
@@ -502,9 +502,11 @@ class HelpMeSignApp:
 
             from PySide6.QtGui import QFont
 
-            # Create a new font with the specified size
-            new_font = QFont()
-            new_font.setPointSize(font_size)
+            from src.helpmesign.utils.font_manager import get_font_manager
+
+            # Create a new font with the specified size using app's font family
+            font_manager = get_font_manager()
+            new_font = font_manager.get_font(size=font_size)
 
             # Apply to text input components
             if hasattr(self.main_window, "text_input_frame"):

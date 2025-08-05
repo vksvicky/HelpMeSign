@@ -1,0 +1,229 @@
+[
+  {
+    "code": "ASL",
+    "name": "American Sign Language",
+    "nativeName": "American Sign Language",
+    "country": "US",
+    "flag": "🇺🇸",
+    "modelURL": "https://models.signlanguage.com/asl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/asl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/asl_vocabulary.json",
+    "grammarRules": [
+      "Subject-Verb-Object word order",
+      "Use of facial expressions for grammar",
+      "Spatial referencing",
+      "Classifier predicates"
+    ],
+    "metadata": {
+      "speakers": 500000,
+      "regions": ["United States", "Canada"],
+      "difficulty": "Intermediate",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://github.com/thatcherclough/ASL-for-All"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "code": "BSL",
+    "name": "British Sign Language",
+    "nativeName": "British Sign Language",
+    "country": "GB",
+    "flag": "🇬🇧",
+    "modelURL": "https://models.signlanguage.com/bsl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/bsl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/bsl_vocabulary.json",
+    "grammarRules": [
+      "Topic-Comment structure",
+      "Use of space for grammar",
+      "Non-manual features",
+      "Classifier system"
+    ],
+    "metadata": {
+      "speakers": 150000,
+      "regions": ["United Kingdom"],
+      "difficulty": "Intermediate",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://www.british-sign.co.uk"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "code": "ISL",
+    "name": "Indian Sign Language",
+    "nativeName": "भारतीय सांकेतिक भाषा",
+    "country": "IN",
+    "flag": "🇮🇳",
+    "modelURL": "https://models.signlanguage.com/isl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/isl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/isl_vocabulary.json",
+    "writingSystems": {
+      "devanagari": "isl_devanagari.json",
+      "tamil": "isl_tamil.json",
+      "telugu": "isl_telugu.json",
+      "bengali": "isl_hindi.json"
+    },
+    "grammarRules": [
+      "Subject-Object-Verb word order",
+      "Use of classifiers",
+      "Spatial grammar",
+      "Non-manual features"
+    ],
+    "metadata": {
+      "speakers": 2000000,
+      "regions": ["India"],
+      "difficulty": "Beginner",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://www.indiansignlanguage.org"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "code": "JSL",
+    "name": "Japanese Sign Language",
+    "nativeName": "日本手話",
+    "country": "JP",
+    "flag": "🇯🇵",
+    "modelURL": "https://models.signlanguage.com/jsl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/jsl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/jsl_vocabulary.json",
+    "writingSystems": {
+      "Hiragana": "jsl_hiragana.json",
+      "Katakana": "jsl_katakana.json",
+      "Kanji": "jsl_kanji.json"
+    },
+    "grammarRules": [
+      "Topic-Comment structure",
+      "Use of classifiers",
+      "Spatial referencing",
+      "Non-manual features"
+    ],
+    "metadata": {
+      "speakers": 300000,
+      "regions": ["Japan"],
+      "difficulty": "Advanced",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://www.jfd.or.jp"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "code": "KSL",
+    "name": "Korean Sign Language",
+    "nativeName": "한국 수화",
+    "country": "KR",
+    "flag": "🇰🇷",
+    "modelURL": "https://models.signlanguage.com/ksl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/ksl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/ksl_vocabulary.json",
+    "grammarRules": [
+      "Subject-Object-Verb word order",
+      "Use of classifiers",
+      "Spatial grammar",
+      "Non-manual features"
+    ],
+    "metadata": {
+      "speakers": 250000,
+      "regions": ["South Korea"],
+      "difficulty": "Intermediate",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://www.kad.or.kr"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "code": "CSL",
+    "name": "Chinese Sign Language",
+    "nativeName": "中国手语",
+    "country": "CN",
+    "flag": "🇨🇳",
+    "modelURL": "https://models.signlanguage.com/csl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/csl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/csl_vocabulary.json",
+    "grammarRules": [
+      "Topic-Comment structure",
+      "Use of classifiers",
+      "Spatial grammar",
+      "Non-manual features"
+    ],
+    "metadata": {
+      "speakers": 3000000,
+      "regions": ["China"],
+      "difficulty": "Advanced",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://www.cad.org.cn"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "code": "FSL",
+    "name": "French Sign Language",
+    "nativeName": "Langue des Signes Française",
+    "country": "FR",
+    "flag": "🇫🇷",
+    "modelURL": "https://models.signlanguage.com/fsl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/fsl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/fsl_vocabulary.json",
+    "grammarRules": [
+      "Subject-Verb-Object word order",
+      "Use of classifiers",
+      "Spatial referencing",
+      "Non-manual features"
+    ],
+    "metadata": {
+      "speakers": 100000,
+      "regions": ["France"],
+      "difficulty": "Intermediate",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://www.ffs.fr"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  },
+  {
+    "code": "DSL",
+    "name": "German Sign Language",
+    "nativeName": "Deutsche Gebärdensprache",
+    "country": "DE",
+    "flag": "🇩🇪",
+    "modelURL": "https://models.signlanguage.com/dsl_model.mlmodel",
+    "alphabetURL": "https://github.com/SteezieJ/SIGNSlate/dsl_alphabet.svg",
+    "vocabularyURL": "https://github.com/SteezieJ/SIGNSlate/dsl_vocabulary.json",
+    "grammarRules": [
+      "Subject-Object-Verb word order",
+      "Use of classifiers",
+      "Spatial grammar",
+      "Non-manual features"
+    ],
+    "metadata": {
+      "speakers": 80000,
+      "regions": ["Germany"],
+      "difficulty": "Intermediate",
+      "resources": [
+        "https://github.com/SteezieJ/SIGNSlate",
+        "https://www.gebaerdensprache.de"
+      ],
+      "lastUpdated": "2024-01-15",
+      "version": "1.0.0"
+    }
+  }
+] 
