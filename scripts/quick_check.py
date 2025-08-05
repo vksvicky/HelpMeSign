@@ -82,6 +82,10 @@ def main():
     if not run_check([python_exe, "-m", "mypy", "src/"], "mypy"):
         all_passed = False
     
+    # flake8 check
+    if not run_check([python_exe, "-m", "flake8", "src/", "tests/", "--count", "--select=E9,F63,F7,F82", "--show-source", "--statistics"], "flake8"):
+        all_passed = False
+    
     if all_passed:
         print("\n🎉 All checks passed!")
         sys.exit(0)

@@ -26,7 +26,7 @@ help:
 	@echo "HelpMeSign Development Commands:"
 	@echo ""
 	@echo "Code Quality:"
-	@echo "  check      - Run quick code quality checks (black, isort, mypy)"
+	@echo "  check      - Run quick code quality checks (black, isort, mypy, flake8)"
 	@echo "  format     - Run full checks with auto-fixing"
 	@echo "  install-hooks - Install git hooks for automatic checks"
 	@echo ""
@@ -114,7 +114,7 @@ install:
 	fi
 	@echo "📦 Installing packages..."
 	@$(VENV_PIP) install -r requirements.txt
-	@$(VENV_PIP) install black isort mypy pytest pytest-cov
+	@$(VENV_PIP) install black isort mypy flake8 pytest pytest-cov
 	@echo "✅ Dependencies installed"
 
 # Setup development environment

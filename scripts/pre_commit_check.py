@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pre-commit script for HelpMeSign
-Runs black, isort, and mypy checks to ensure code quality
+Runs black, isort, mypy, and flake8 checks to ensure code quality
 """
 
 import subprocess
@@ -120,9 +120,19 @@ def run_mypy_check() -> bool:
     return success
 
 
+def run_flake8_check() -> bool:
+    """Run flake8 linting check"""
+    python_exe = get_python_executable()
+    success, _ = run_command(
+        [python_exe, "-m", "flake8", "src/", "tests/", "--count", "--select=E9,F63,F7,F82", "--show-source", "--statistics"],
+        "flake8 linting check"
+    )
+    return success
+
+
 def install_dependencies() -> bool:
     """Install required dependencies if not present"""
-    dependencies = ["black", "isort", "mypy"]
+    dependencies = ["black", "isort", "mypy", "flake8"]
     python_exe = get_python_executable()
     
     for dep in dependencies:
@@ -192,6 +202,11 @@ def main():
     if not mypy_passed:
         all_passed = False
     
+    # Run flake8 check
+    flake8_passed = run_flake8_check()
+    if not flake8_passed:
+        all_passed = False
+    
     # Summary
     print("\n" + "="*60)
     print("📊 PRE-COMMIT CHECK SUMMARY")
@@ -199,6 +214,7 @@ def main():
     print(f"Black formatting:     {'✅ PASS' if black_passed else '❌ FAIL'}")
     print(f"isort import sorting: {'✅ PASS' if isort_passed else '❌ FAIL'}")
     print(f"mypy type checking:   {'✅ PASS' if mypy_passed else '❌ FAIL'}")
+    print(f"flake8 linting:       {'✅ PASS' if flake8_passed else '❌ FAIL'}")
     
     if fixes_applied:
         print("\n🔄 Auto-fixes were applied. Please review the changes and commit them.")
@@ -212,6 +228,7 @@ def main():
         print("   - Run 'python scripts/pre_commit_check.py' to see detailed errors")
         print("   - Fix formatting issues manually if auto-fix didn't work")
         print("   - Address mypy type errors in your code")
+        print("   - Fix flake8 linting issues in your code")
         sys.exit(1)
 
 

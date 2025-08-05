@@ -154,7 +154,7 @@ def main():
     if success:
         print("🎉 All git hooks installed successfully!")
         print("\n📋 What happens now:")
-        print("   • Pre-commit hook will run black, isort, and mypy checks")
+        print("   • Pre-commit hook will run black, isort, mypy, and flake8 checks")
         print("   • Commit-msg hook will validate commit message format")
         print("   • Commits will be blocked if checks fail")
         print("\n💡 To run checks manually:")

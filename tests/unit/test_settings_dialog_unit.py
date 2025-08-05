@@ -1025,285 +1025,309 @@ class TestSettingsDialogRealImplementation:
 
     def test_show_settings_dialog_function_edge_cases(self):
         """Test show_settings_dialog_function edge cases"""
-        # Mock the entire show_settings_dialog function to test edge cases
+        # Mock the SettingsDialog class to avoid GUI initialization
         with patch(
-            "src.helpmesign.ui.settings_dialog.show_settings_dialog"
-        ) as mock_show_dialog:
-            mock_show_dialog.return_value = None
+            "src.helpmesign.ui.settings_dialog.SettingsDialog"
+        ) as mock_dialog_class:
+            mock_dialog_instance = MagicMock()
+            mock_dialog_class.return_value = mock_dialog_instance
 
-        # Import the function
-        from src.helpmesign.ui.settings_dialog import show_settings_dialog
+            # Import the function after mocking
+            from src.helpmesign.ui.settings_dialog import show_settings_dialog
 
-        # Test edge cases
-        edge_cases = [
-            {"current_mode": ""},  # Empty mode
-            {"current_mode": None},  # None mode
-            {"environment": ""},  # Empty environment
-            {"environment": None},  # None environment
-            {"parent": None},  # None parent
-            {"main_window": None},  # None main_window
-            {"callback": None},  # None callback
-        ]
+            # Test edge cases
+            edge_cases = [
+                {"current_mode": ""},  # Empty mode
+                {"current_mode": None},  # None mode
+                {"environment": ""},  # Empty environment
+                {"environment": None},  # None environment
+                {"parent": None},  # None parent
+                {"main_window": None},  # None main_window
+                {"callback": None},  # None callback
+            ]
 
-        for params in edge_cases:
-            result = show_settings_dialog(**params)
+            for params in edge_cases:
+                result = show_settings_dialog(**params)
 
-            # Assert
-            assert result is None
-            mock_show_dialog.assert_called_with(**params)
-
-            # Reset for next iteration
-            mock_show_dialog.reset_mock()
+                # Assert
+                assert result is None
+                # Verify that SettingsDialog was called
+                mock_dialog_class.assert_called()
 
     def test_load_current_settings(self):
         """Test load_current_settings method with mocked dependencies"""
-        # Mock the entire SettingsDialog class to avoid GUI initialization
-        with patch(
-            "src.helpmesign.ui.settings_dialog.SettingsDialog"
-        ) as mock_dialog_class:
-            # Create a mock instance that behaves like a real SettingsDialog
-            mock_dialog_instance = MagicMock()
+        # Mock the language manager to avoid get_text issues
+        with patch("src.helpmesign.ui.settings_dialog.get_text") as mock_get_text:
+            mock_get_text.return_value = "Mocked Text"
 
-            # Mock the load_current_settings method to actually work
-            def mock_load_current_settings():
-                mock_dialog_instance.current_settings = {
-                    "user_mode": "Sign & Translate",
-                    "theme": "Light",
-                    "font_size": 12,
-                }
+            # Mock the entire SettingsDialog class to avoid GUI initialization
+            with patch(
+                "src.helpmesign.ui.settings_dialog.SettingsDialog"
+            ) as mock_dialog_class:
+                # Create a mock instance that behaves like a real SettingsDialog
+                mock_dialog_instance = MagicMock()
 
-        mock_dialog_instance.load_current_settings = mock_load_current_settings
-        mock_dialog_instance.current_settings = {}
-        mock_dialog_instance.logger = MagicMock()
+                # Mock the load_current_settings method to actually work
+                def mock_load_current_settings():
+                    mock_dialog_instance.current_settings = {
+                        "user_mode": "Sign & Translate",
+                        "theme": "Light",
+                        "font_size": 12,
+                    }
 
-        mock_dialog_class.return_value = mock_dialog_instance
+                mock_dialog_instance.load_current_settings = mock_load_current_settings
+                mock_dialog_instance.current_settings = {}
+                mock_dialog_instance.logger = MagicMock()
 
-        # Import after mocking
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
+                mock_dialog_class.return_value = mock_dialog_instance
 
-        # Create instance
-        dialog = SettingsDialog()
+                # Import after mocking
+                from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-        # Test load_current_settings
-        dialog.load_current_settings()
+                # Create instance
+                dialog = SettingsDialog()
 
-        # Assert
-        assert dialog.current_settings["user_mode"] == "Sign & Translate"
-        assert dialog.current_settings["theme"] == "Light"
-        assert dialog.current_settings["font_size"] == 12
+                # Test load_current_settings
+                dialog.load_current_settings()
+
+                # Assert
+                assert dialog.current_settings["user_mode"] == "Sign & Translate"
+                assert dialog.current_settings["theme"] == "Light"
+                assert dialog.current_settings["font_size"] == 12
 
     def test_load_current_settings_error_handling(self):
         """Test load_current_settings error handling with mocked SettingsDialog"""
-        # Mock the entire SettingsDialog class to avoid GUI initialization
-        with patch(
-            "src.helpmesign.ui.settings_dialog.SettingsDialog"
-        ) as mock_dialog_class:
-            # Create a mock instance that behaves like a real SettingsDialog
-            mock_dialog_instance = MagicMock()
+        # Mock the language manager to avoid get_text issues
+        with patch("src.helpmesign.ui.settings_dialog.get_text") as mock_get_text:
+            mock_get_text.return_value = "Mocked Text"
 
-            # Mock the load_current_settings method to simulate error
-            def mock_load_current_settings():
-                mock_dialog_instance.logger.error("Settings error")
+            # Mock the entire SettingsDialog class to avoid GUI initialization
+            with patch(
+                "src.helpmesign.ui.settings_dialog.SettingsDialog"
+            ) as mock_dialog_class:
+                # Create a mock instance that behaves like a real SettingsDialog
+                mock_dialog_instance = MagicMock()
 
-        mock_dialog_instance.load_current_settings = mock_load_current_settings
-        mock_dialog_instance.logger = MagicMock()
+                # Mock the load_current_settings method to simulate error
+                def mock_load_current_settings():
+                    mock_dialog_instance.logger.error("Settings error")
 
-        mock_dialog_class.return_value = mock_dialog_instance
+                mock_dialog_instance.load_current_settings = mock_load_current_settings
+                mock_dialog_instance.logger = MagicMock()
 
-        # Import after mocking
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
+                mock_dialog_class.return_value = mock_dialog_instance
 
-        # Create instance
-        dialog = SettingsDialog()
+                # Import after mocking
+                from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-        # Test load_current_settings with error
-        dialog.load_current_settings()
+                # Create instance
+                dialog = SettingsDialog()
 
-        # Assert that error was logged
-        dialog.logger.error.assert_called_with("Settings error")
+                # Test load_current_settings with error
+                dialog.load_current_settings()
+
+                # Assert that error was logged
+                dialog.logger.error.assert_called_with("Settings error")
 
     def test_apply_settings_success(self):
         """Test apply_settings method with success using mocked SettingsDialog"""
-        # Mock the entire SettingsDialog class to avoid GUI initialization
-        with patch(
-            "src.helpmesign.ui.settings_dialog.SettingsDialog"
-        ) as mock_dialog_class:
-            # Create a mock instance that behaves like a real SettingsDialog
-            mock_dialog_instance = MagicMock()
+        # Mock the language manager to avoid get_text issues
+        with patch("src.helpmesign.ui.settings_dialog.get_text") as mock_get_text:
+            mock_get_text.return_value = "Mocked Text"
 
-            # Mock the apply_settings method to simulate success
-            def mock_apply_settings():
-                mock_dialog_instance.logger.info("Settings applied successfully")
-                return True
+            # Mock the entire SettingsDialog class to avoid GUI initialization
+            with patch(
+                "src.helpmesign.ui.settings_dialog.SettingsDialog"
+            ) as mock_dialog_class:
+                # Create a mock instance that behaves like a real SettingsDialog
+                mock_dialog_instance = MagicMock()
 
-        mock_dialog_instance.apply_settings = mock_apply_settings
-        mock_dialog_instance.logger = MagicMock()
+                # Mock the apply_settings method to simulate success
+                def mock_apply_settings():
+                    mock_dialog_instance.logger.info("Settings applied successfully")
+                    return True
 
-        mock_dialog_class.return_value = mock_dialog_instance
+                mock_dialog_instance.apply_settings = mock_apply_settings
+                mock_dialog_instance.logger = MagicMock()
 
-        # Import after mocking
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
+                mock_dialog_class.return_value = mock_dialog_instance
 
-        # Create instance
-        dialog = SettingsDialog()
+                # Import after mocking
+                from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-        # Test apply_settings
-        result = dialog.apply_settings()
+                # Create instance
+                dialog = SettingsDialog()
 
-        # Assert
-        assert result is True
-        dialog.logger.info.assert_called_with("Settings applied successfully")
+                # Test apply_settings
+                result = dialog.apply_settings()
+
+                # Assert
+                assert result is True
+                dialog.logger.info.assert_called_with("Settings applied successfully")
 
     def test_apply_settings_failure(self):
         """Test apply_settings method with failure using mocked SettingsDialog"""
-        # Mock the entire SettingsDialog class to avoid GUI initialization
-        with patch(
-            "src.helpmesign.ui.settings_dialog.SettingsDialog"
-        ) as mock_dialog_class:
-            # Create a mock instance that behaves like a real SettingsDialog
-            mock_dialog_instance = MagicMock()
+        # Mock the language manager to avoid get_text issues
+        with patch("src.helpmesign.ui.settings_dialog.get_text") as mock_get_text:
+            mock_get_text.return_value = "Mocked Text"
 
-            # Mock the apply_settings method to simulate failure
+            # Mock the entire SettingsDialog class to avoid GUI initialization
+            with patch(
+                "src.helpmesign.ui.settings_dialog.SettingsDialog"
+            ) as mock_dialog_class:
+                # Create a mock instance that behaves like a real SettingsDialog
+                mock_dialog_instance = MagicMock()
 
-    def mock_apply_settings():
-        mock_dialog_instance.logger.error("Settings save failed")
-        return False
+                # Mock the apply_settings method to simulate failure
+                def mock_apply_settings():
+                    mock_dialog_instance.logger.error("Settings save failed")
+                    return False
 
-        mock_dialog_instance.apply_settings = mock_apply_settings
-        mock_dialog_instance.logger = MagicMock()
+                mock_dialog_instance.apply_settings = mock_apply_settings
+                mock_dialog_instance.logger = MagicMock()
 
-        mock_dialog_class.return_value = mock_dialog_instance
+                mock_dialog_class.return_value = mock_dialog_instance
 
-        # Import after mocking
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
+                # Import after mocking
+                from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-        # Create instance
-        dialog = SettingsDialog()
+                # Create instance
+                dialog = SettingsDialog()
 
-        # Test apply_settings
-        result = dialog.apply_settings()
+                # Test apply_settings
+                result = dialog.apply_settings()
 
-        # Assert
-        assert result is False
-        dialog.logger.error.assert_called_with("Settings save failed")
+                # Assert
+                assert result is False
+                dialog.logger.error.assert_called_with("Settings save failed")
 
     def test_reset_to_defaults(self):
         """Test reset_to_defaults method with mocked SettingsDialog"""
-        # Mock the entire SettingsDialog class to avoid GUI initialization
-        with patch(
-            "src.helpmesign.ui.settings_dialog.SettingsDialog"
-        ) as mock_dialog_class:
-            # Create a mock instance that behaves like a real SettingsDialog
-            mock_dialog_instance = MagicMock()
+        # Mock the language manager to avoid get_text issues
+        with patch("src.helpmesign.ui.settings_dialog.get_text") as mock_get_text:
+            mock_get_text.return_value = "Mocked Text"
 
-            # Mock the reset_to_defaults method to simulate reset
+            # Mock the entire SettingsDialog class to avoid GUI initialization
+            with patch(
+                "src.helpmesign.ui.settings_dialog.SettingsDialog"
+            ) as mock_dialog_class:
+                # Create a mock instance that behaves like a real SettingsDialog
+                mock_dialog_instance = MagicMock()
 
-    def mock_reset_to_defaults():
-        # Mode should NOT be changed - keep current mode
-        mock_dialog_instance.segmented_control.get_selection.return_value = (
-            "Learn Sign Language"
-        )
-        mock_dialog_instance.theme_control.set_selection("Light")
-        mock_dialog_instance.font_size_selector.set_size(12)
-        mock_dialog_instance.logger.info(
-            "Settings reset to defaults (mode kept as: Learn Sign Language)"
-        )
+                # Mock the reset_to_defaults method to simulate reset
+                def mock_reset_to_defaults():
+                    # Mode should NOT be changed - keep current mode
+                    mock_dialog_instance.segmented_control.get_selection.return_value = (
+                        "Learn Sign Language"
+                    )
+                    mock_dialog_instance.theme_control.set_selection("Light")
+                    mock_dialog_instance.font_size_selector.set_size(12)
+                    mock_dialog_instance.logger.info(
+                        "Settings reset to defaults (mode kept as: Learn Sign Language)"
+                    )
 
-        mock_dialog_instance.reset_to_defaults = mock_reset_to_defaults
-        mock_dialog_instance.logger = MagicMock()
-        mock_dialog_instance.segmented_control = MagicMock()
-        mock_dialog_instance.segmented_control.get_selection.return_value = (
-            "Learn Sign Language"
-        )
-        mock_dialog_instance.theme_control = MagicMock()
-        mock_dialog_instance.font_size_selector = MagicMock()
+                mock_dialog_instance.reset_to_defaults = mock_reset_to_defaults
+                mock_dialog_instance.logger = MagicMock()
+                mock_dialog_instance.segmented_control = MagicMock()
+                mock_dialog_instance.segmented_control.get_selection.return_value = (
+                    "Learn Sign Language"
+                )
+                mock_dialog_instance.theme_control = MagicMock()
+                mock_dialog_instance.font_size_selector = MagicMock()
 
-        mock_dialog_class.return_value = mock_dialog_instance
+                mock_dialog_class.return_value = mock_dialog_instance
 
-        # Import after mocking
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
+                # Import after mocking
+                from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-        # Create instance
-        dialog = SettingsDialog()
+                # Create instance
+                dialog = SettingsDialog()
 
-        # Test reset_to_defaults
-        dialog.reset_to_defaults()
+                # Test reset_to_defaults
+                dialog.reset_to_defaults()
 
-        # Assert
-        # Mode should NOT be changed - verify set_selection is NOT called on
-        # segmented_control
-        dialog.segmented_control.set_selection.assert_not_called()
-        dialog.theme_control.set_selection.assert_called_once_with("Light")
-        dialog.font_size_selector.set_size.assert_called_once_with(12)
-        dialog.logger.info.assert_called_with(
-            "Settings reset to defaults (mode kept as: Learn Sign Language)"
-        )
+                # Assert
+                # Mode should NOT be changed - verify set_selection is NOT called on
+                # segmented_control
+                dialog.segmented_control.set_selection.assert_not_called()
+                dialog.theme_control.set_selection.assert_called_once_with("Light")
+                dialog.font_size_selector.set_size.assert_called_once_with(12)
+                dialog.logger.info.assert_called_with(
+                    "Settings reset to defaults (mode kept as: Learn Sign Language)"
+                )
 
     def test_get_selected_mode(self):
         """Test get_selected_mode method with mocked SettingsDialog"""
-        # Mock the entire SettingsDialog class to avoid GUI initialization
-        with patch(
-            "src.helpmesign.ui.settings_dialog.SettingsDialog"
-        ) as mock_dialog_class:
-            # Create a mock instance that behaves like a real SettingsDialog
-            mock_dialog_instance = MagicMock()
+        # Mock the language manager to avoid get_text issues
+        with patch("src.helpmesign.ui.settings_dialog.get_text") as mock_get_text:
+            mock_get_text.return_value = "Mocked Text"
 
-        # Mock the get_selected_mode method to return a value
+            # Mock the entire SettingsDialog class to avoid GUI initialization
+            with patch(
+                "src.helpmesign.ui.settings_dialog.SettingsDialog"
+            ) as mock_dialog_class:
+                # Create a mock instance that behaves like a real SettingsDialog
+                mock_dialog_instance = MagicMock()
 
-    def mock_get_selected_mode():
+                # Mock the get_selected_mode method to return a value
+                def mock_get_selected_mode():
+                    return "Learn Sign Language"
 
-        return "Learn Sign Language"
+                mock_dialog_instance.get_selected_mode = mock_get_selected_mode
+                mock_dialog_instance.segmented_control = MagicMock()
+                mock_dialog_instance.segmented_control.get_selection.return_value = (
+                    "Learn Sign Language"
+                )
 
-        mock_dialog_instance.get_selected_mode = mock_get_selected_mode
-        mock_dialog_instance.segmented_control = MagicMock()
-        mock_dialog_instance.segmented_control.get_selection.return_value = (
-            "Learn Sign Language"
-        )
+                mock_dialog_class.return_value = mock_dialog_instance
 
-        mock_dialog_class.return_value = mock_dialog_instance
+                # Import after mocking
+                from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-        # Import after mocking
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
+                # Create instance
+                dialog = SettingsDialog()
 
-        # Create instance
-        dialog = SettingsDialog()
+                # Test get_selected_mode
+                selected_mode = dialog.get_selected_mode()
 
-        # Test get_selected_mode
-        selected_mode = dialog.get_selected_mode()
-
-        # Assert
-        assert selected_mode == "Learn Sign Language"
+                # Assert
+                assert selected_mode == "Learn Sign Language"
 
     def test_update_description(self):
         """Test update_description method with mocked SettingsDialog"""
-        # Mock the entire SettingsDialog class to avoid GUI initialization
-        with patch(
-            "src.helpmesign.ui.settings_dialog.SettingsDialog"
-        ) as mock_dialog_class:
-            # Create a mock instance that behaves like a real SettingsDialog
-            mock_dialog_instance = MagicMock()
+        # Mock the language manager to avoid get_text issues
+        with patch("src.helpmesign.ui.settings_dialog.get_text") as mock_get_text:
+            mock_get_text.return_value = "Mocked Text"
 
-        # Mock the update_description method to simulate description update
+            # Mock the entire SettingsDialog class to avoid GUI initialization
+            with patch(
+                "src.helpmesign.ui.settings_dialog.SettingsDialog"
+            ) as mock_dialog_class:
+                # Create a mock instance that behaves like a real SettingsDialog
+                mock_dialog_instance = MagicMock()
 
-    def mock_update_description(mode):
-        mock_dialog_instance.description_label.setText("Test description")
+                # Mock the update_description method to simulate description update
+                def mock_update_description(mode):
+                    mock_dialog_instance.description_label.setText("Test description")
 
-        mock_dialog_instance.update_description = mock_update_description
-        mock_dialog_instance.description_label = MagicMock()
+                mock_dialog_instance.update_description = mock_update_description
+                mock_dialog_instance.description_label = MagicMock()
 
-        mock_dialog_class.return_value = mock_dialog_instance
+                mock_dialog_class.return_value = mock_dialog_instance
 
-        # Import after mocking
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
+                # Import after mocking
+                from src.helpmesign.ui.settings_dialog import SettingsDialog
 
-        # Create instance
-        dialog = SettingsDialog()
+                # Create instance
+                dialog = SettingsDialog()
 
-        # Test update_description
-        dialog.update_description("Sign & Translate")
+                # Test update_description
+                dialog.update_description("Sign & Translate")
 
-        # Assert
-        dialog.description_label.setText.assert_called_once_with("Test description")
+                # Assert
+                dialog.description_label.setText.assert_called_once_with(
+                    "Test description"
+                )
 
 
 if __name__ == "__main__":
