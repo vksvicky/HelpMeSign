@@ -1193,14 +1193,22 @@ class TestSettingsDialogRealImplementation:
 
             # Mock the reset_to_defaults method to simulate reset
             def mock_reset_to_defaults():
-                mock_dialog_instance.segmented_control.set_selection("Sign & Translate")
+                # Mode should NOT be changed - keep current mode
+                mock_dialog_instance.segmented_control.get_selection.return_value = (
+                    "Learn Sign Language"
+                )
                 mock_dialog_instance.theme_control.set_selection("Light")
                 mock_dialog_instance.font_size_selector.set_size(12)
-                mock_dialog_instance.logger.info("Settings reset to defaults")
+                mock_dialog_instance.logger.info(
+                    "Settings reset to defaults (mode kept as: Learn Sign Language)"
+                )
 
             mock_dialog_instance.reset_to_defaults = mock_reset_to_defaults
             mock_dialog_instance.logger = MagicMock()
             mock_dialog_instance.segmented_control = MagicMock()
+            mock_dialog_instance.segmented_control.get_selection.return_value = (
+                "Learn Sign Language"
+            )
             mock_dialog_instance.theme_control = MagicMock()
             mock_dialog_instance.font_size_selector = MagicMock()
 
@@ -1216,12 +1224,13 @@ class TestSettingsDialogRealImplementation:
         dialog.reset_to_defaults()
 
         # Assert
-        dialog.segmented_control.set_selection.assert_called_once_with(
-            "Sign & Translate"
-        )
+        # Mode should NOT be changed - verify set_selection is NOT called on segmented_control
+        dialog.segmented_control.set_selection.assert_not_called()
         dialog.theme_control.set_selection.assert_called_once_with("Light")
         dialog.font_size_selector.set_size.assert_called_once_with(12)
-        dialog.logger.info.assert_called_with("Settings reset to defaults")
+        dialog.logger.info.assert_called_with(
+            "Settings reset to defaults (mode kept as: Learn Sign Language)"
+        )
 
     def test_get_selected_mode(self):
         """Test get_selected_mode method with mocked SettingsDialog"""

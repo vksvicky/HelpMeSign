@@ -1197,32 +1197,35 @@ class SettingsDialog(QDialog):
         self.description_label.setText(description)
 
     def reset_to_defaults(self):
-        """Reset all settings to default values"""
+        """Reset theme and font size to default values, keeping current mode unchanged"""
         try:
-            # Reset to default values
-            default_mode = get_text("modes.sign_translate.name")
+            # Keep current mode unchanged
+            current_mode = self.segmented_control.get_selection()
+
+            # Reset only theme and font size to default values
             default_theme = "Light"
             default_font_size = 12
 
-            # Update UI controls
-            self.segmented_control.set_selection(default_mode)
+            # Update UI controls (only theme and font size)
             self.theme_control.set_selection(default_theme)
             self.font_size_selector.set_size(default_font_size)
 
-            # Update current settings
+            # Update current settings (keep current mode)
             self.current_settings = {
-                "user_mode": default_mode,
+                "user_mode": current_mode,
                 "theme": default_theme,
                 "font_size": default_font_size,
             }
 
             # Apply changes immediately for preview
-            self.update_description(default_mode)
+            self.update_description(current_mode)
             self._on_theme_changed(default_theme)
             self._on_font_size_changed(default_font_size)
             self._apply_tab_bar_styling(default_font_size)
 
-            self.logger.info("Settings reset to defaults")
+            self.logger.info(
+                f"Settings reset to defaults (mode kept as: {current_mode})"
+            )
         except Exception as e:
             self.logger.error(f"Error resetting to defaults: {e}")
 

@@ -70,6 +70,15 @@ def main():
     logger = get_logger("helpmesign.runner")
     logger.info("Starting HelpMeSign application runner")
     
+    # Set up signal handlers for graceful shutdown
+    import signal
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, shutting down gracefully...")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+    
     # Set up logging based on arguments
     if args.debug:
         # Configure debug logging

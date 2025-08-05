@@ -61,7 +61,44 @@
       "converted_suffix": "' to sign language",
       "learning_prefix": "Learning information for '",
       "learning_suffix": "'",
-      "error_prefix": "Error processing text: "
+      "error_prefix": "Error processing text: ",
+      "learning_mode": "Mode: Learning"
+    },
+    "system_monitor": {
+      "cpu_prefix": "CPU: ",
+      "ram_prefix": "RAM: ",
+      "app_prefix": "App: ",
+      "mb_suffix": "MB",
+      "percent_suffix": "%",
+      "status_indicator": "●",
+      "panel_title": "System Analytics",
+      "close_tooltip": "Close",
+      "metrics": {
+        "cpu": "CPU",
+        "memory": "Memory",
+        "application": "Application",
+        "disk": "Disk",
+        "uptime": "Uptime"
+      },
+      "insights": {
+        "high_cpu": "🔥 High CPU usage detected",
+        "optimal_cpu": "✅ CPU usage is optimal",
+        "high_memory": "⚠️ High memory usage",
+        "healthy_memory": "✅ Memory usage is healthy",
+        "high_app_memory": "📱 App memory usage is high",
+        "normal_app_memory": "✅ App memory usage is normal",
+        "low_disk_space": "💾 Disk space is running low",
+        "plenty_disk_space": "✅ Plenty of disk space available",
+        "system_running_well": "💡 System is running well"
+      },
+      "recommendations": {
+        "close_apps": "Close unnecessary applications",
+        "add_ram": "Consider adding more RAM",
+        "restart_app": "Restart HelpMeSign if needed",
+        "clean_disk": "Clean up disk space",
+        "system_restart": "Consider system restart",
+        "no_actions": "🎯 No actions needed"
+      }
     }
   },
   

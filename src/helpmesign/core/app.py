@@ -121,6 +121,17 @@ class HelpMeSignApp:
 
             self.logger.info("Application shutting down, cleaning up resources...")
 
+            # Clean up status bar timer first
+            try:
+                if hasattr(self, "main_window") and self.main_window:
+                    if (
+                        hasattr(self.main_window, "status_bar")
+                        and self.main_window.status_bar
+                    ):
+                        self.main_window.status_bar.cleanup()
+            except Exception as e:
+                self.logger.debug(f"Error cleaning up status bar: {e}")
+
             # Disconnect all signals to prevent callbacks during shutdown
             try:
                 if hasattr(self, "main_window") and self.main_window:

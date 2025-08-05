@@ -182,6 +182,7 @@ class StatusBar(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._is_cleaned_up = False
+        self._shutting_down = False
         self.current_mode = get_text("modes.sign_translate.name")
         self.setup_ui()
         self.setup_system_monitor()
@@ -217,7 +218,9 @@ class StatusBar(QFrame):
         status_layout.setSpacing(8)
 
         # CPU status with percentage
-        self.cpu_status = QLabel("CPU: 0%")
+        self.cpu_status = QLabel(
+            f"{get_text('ui.system_monitor.cpu_prefix')}0{get_text('ui.system_monitor.percent_suffix')}"
+        )
         self.cpu_status.setStyleSheet(
             """
             QLabel {
@@ -233,7 +236,9 @@ class StatusBar(QFrame):
         status_layout.addWidget(self.cpu_status)
 
         # Memory status with percentage
-        self.memory_status = QLabel("RAM: 0%")
+        self.memory_status = QLabel(
+            f"{get_text('ui.system_monitor.ram_prefix')}0{get_text('ui.system_monitor.percent_suffix')}"
+        )
         self.memory_status.setStyleSheet(
             """
             QLabel {
@@ -249,7 +254,9 @@ class StatusBar(QFrame):
         status_layout.addWidget(self.memory_status)
 
         # App memory status
-        self.app_status = QLabel("App: 0MB")
+        self.app_status = QLabel(
+            f"{get_text('ui.system_monitor.app_prefix')}0{get_text('ui.system_monitor.mb_suffix')}"
+        )
         self.app_status.setStyleSheet(
             """
             QLabel {
@@ -265,7 +272,7 @@ class StatusBar(QFrame):
         status_layout.addWidget(self.app_status)
 
         # Overall status indicator
-        self.overall_status = QLabel("●")
+        self.overall_status = QLabel(get_text("ui.system_monitor.status_indicator"))
         self.overall_status.setStyleSheet(
             """
             QLabel {
@@ -302,6 +309,7 @@ class StatusBar(QFrame):
             # Check if we're being cleaned up or if the widget is being destroyed
             if (
                 self._is_cleaned_up
+                or self._shutting_down
                 or not hasattr(self, "system_monitor")
                 or not self.system_monitor
             ):
@@ -311,12 +319,19 @@ class StatusBar(QFrame):
             if not self.isVisible() or self.isHidden():
                 return
 
+            # Check if the application is shutting down
+            if (
+                hasattr(self, "status_update_timer")
+                and not self.status_update_timer.isActive()
+            ):
+                return
+
             resources = self.system_monitor.get_resources()
             if not resources:
                 return
 
             # Update CPU status with percentage and color
-            cpu_text = f"CPU: {resources.cpu_percent:.0f}%"
+            cpu_text = f"{get_text('ui.system_monitor.cpu_prefix')}{resources.cpu_percent:.0f}{get_text('ui.system_monitor.percent_suffix')}"
             if resources.cpu_percent < 50:
                 cpu_color = "#e8f5e8"  # Light green
                 text_color = "#27ae60"
@@ -342,7 +357,7 @@ class StatusBar(QFrame):
             )
 
             # Update Memory status with percentage and color
-            mem_text = f"RAM: {resources.memory_percent:.0f}%"
+            mem_text = f"{get_text('ui.system_monitor.ram_prefix')}{resources.memory_percent:.0f}{get_text('ui.system_monitor.percent_suffix')}"
             if resources.memory_percent < 60:
                 mem_color = "#e8f5e8"  # Light green
                 text_color = "#27ae60"
@@ -368,7 +383,7 @@ class StatusBar(QFrame):
             )
 
             # Update App memory status with color
-            app_text = f"App: {resources.app_memory_mb:.0f}MB"
+            app_text = f"{get_text('ui.system_monitor.app_prefix')}{resources.app_memory_mb:.0f}{get_text('ui.system_monitor.mb_suffix')}"
             if resources.app_memory_mb < 200:
                 app_color = "#e8f5e8"  # Light green
                 text_color = "#27ae60"
@@ -395,7 +410,9 @@ class StatusBar(QFrame):
 
             # Update overall status indicator
             if resources.cpu_percent < 30 and resources.memory_percent < 50:
-                self.overall_status.setText("●")
+                self.overall_status.setText(
+                    get_text("ui.system_monitor.status_indicator")
+                )
                 self.overall_status.setStyleSheet(
                     """
                     QLabel {
@@ -406,7 +423,9 @@ class StatusBar(QFrame):
                 """
                 )
             elif resources.cpu_percent < 70 and resources.memory_percent < 80:
-                self.overall_status.setText("●")
+                self.overall_status.setText(
+                    get_text("ui.system_monitor.status_indicator")
+                )
                 self.overall_status.setStyleSheet(
                     """
                     QLabel {
@@ -417,7 +436,9 @@ class StatusBar(QFrame):
                 """
                 )
             else:
-                self.overall_status.setText("●")
+                self.overall_status.setText(
+                    get_text("ui.system_monitor.status_indicator")
+                )
                 self.overall_status.setStyleSheet(
                     """
                     QLabel {
@@ -497,17 +518,25 @@ class StatusBar(QFrame):
             return
 
         self._is_cleaned_up = True
+        self._shutting_down = True
 
         try:
-            # Stop status update timer immediately
+            # Stop status update timer immediately and disconnect signals
             if hasattr(self, "status_update_timer") and self.status_update_timer:
+                try:
+                    self.status_update_timer.timeout.disconnect()
+                except:
+                    pass  # Signal might already be disconnected
                 self.status_update_timer.stop()
                 self.status_update_timer.deleteLater()
                 self.status_update_timer = None
 
             # Stop system monitor
             if hasattr(self, "system_monitor") and self.system_monitor:
-                self.system_monitor.stop_monitoring()
+                try:
+                    self.system_monitor.stop_monitoring()
+                except:
+                    pass  # System monitor might already be stopped
                 self.system_monitor = None
 
             # Clean up panel if exists
@@ -517,13 +546,18 @@ class StatusBar(QFrame):
                 and hasattr(main_window, "system_monitor_panel")
                 and main_window.system_monitor_panel
             ):
-                main_window.system_monitor_panel.cleanup()
-                main_window.system_monitor_panel.deleteLater()
-                main_window.system_monitor_panel = None
+                try:
+                    main_window.system_monitor_panel.cleanup()
+                    main_window.system_monitor_panel.deleteLater()
+                    main_window.system_monitor_panel = None
+                except:
+                    pass  # Panel might already be cleaned up
 
         except Exception as e:
             if hasattr(self, "logger"):
                 self.logger.error(f"Error during cleanup: {e}")
+            else:
+                print(f"Error during cleanup: {e}")
 
     def set_status(self, message: str) -> None:
         """Set status message"""
@@ -541,8 +575,8 @@ class StatusBar(QFrame):
         self.current_mode = mode
 
         # Set specific text for learning mode
-        if mode == "Learn Sign Language":
-            self.status_label.setText("Mode: Learning")
+        if mode == get_text("modes.learn.name"):
+            self.status_label.setText(get_text("ui.status.learning_mode"))
             return
 
         # Show status bar for other modes
@@ -891,7 +925,7 @@ class SystemMonitorPanel(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
 
         # Title
-        title_label = QLabel("System Analytics")
+        title_label = QLabel(get_text("ui.system_monitor.panel_title"))
         title_label.setFont(get_small_font())
         title_label.setStyleSheet(
             """
@@ -909,7 +943,7 @@ class SystemMonitorPanel(QWidget):
         # Close button
         self.close_button = QPushButton("×")
         self.close_button.setFixedSize(20, 20)
-        self.close_button.setToolTip("Close")
+        self.close_button.setToolTip(get_text("ui.system_monitor.close_tooltip"))
         self.close_button.clicked.connect(self._close_panel)
         self.close_button.setStyleSheet(
             """
@@ -937,11 +971,23 @@ class SystemMonitorPanel(QWidget):
     def _create_metrics_display(self, parent_layout):
         """Create simple metrics display without nested containers"""
         # Create metric rows directly in parent layout
-        self._create_metric_card("CPU", "cpu_label", "#4a5568")
-        self._create_metric_card("Memory", "memory_label", "#4a5568")
-        self._create_metric_card("Application", "app_memory_label", "#4a5568")
-        self._create_metric_card("Disk", "disk_label", "#4a5568")
-        self._create_metric_card("Uptime", "uptime_label", "#4a5568")
+        self._create_metric_card(
+            get_text("ui.system_monitor.metrics.cpu"), "cpu_label", "#4a5568"
+        )
+        self._create_metric_card(
+            get_text("ui.system_monitor.metrics.memory"), "memory_label", "#4a5568"
+        )
+        self._create_metric_card(
+            get_text("ui.system_monitor.metrics.application"),
+            "app_memory_label",
+            "#4a5568",
+        )
+        self._create_metric_card(
+            get_text("ui.system_monitor.metrics.disk"), "disk_label", "#4a5568"
+        )
+        self._create_metric_card(
+            get_text("ui.system_monitor.metrics.uptime"), "uptime_label", "#4a5568"
+        )
 
         # Add insights and recommendations
         self._create_insights_card()
@@ -1012,7 +1058,9 @@ class SystemMonitorPanel(QWidget):
         self.main_layout.addWidget(spacer)
 
         # Insights label
-        self.insights_label = QLabel("System is running well")
+        self.insights_label = QLabel(
+            get_text("ui.system_monitor.insights.system_running_well")
+        )
         self.insights_label.setStyleSheet(
             """
             QLabel {
@@ -1029,7 +1077,9 @@ class SystemMonitorPanel(QWidget):
     def _create_recommendations_card(self):
         """Create recommendations section"""
         # Recommendations label
-        self.recommendations_label = QLabel("No actions needed")
+        self.recommendations_label = QLabel(
+            get_text("ui.system_monitor.recommendations.no_actions")
+        )
         self.recommendations_label.setStyleSheet(
             """
             QLabel {
@@ -1108,27 +1158,27 @@ class SystemMonitorPanel(QWidget):
         insights = []
 
         if resources.cpu_percent > 80:
-            insights.append("🔥 High CPU usage detected")
+            insights.append(get_text("ui.system_monitor.insights.high_cpu"))
         elif resources.cpu_percent < 20:
-            insights.append("✅ CPU usage is optimal")
+            insights.append(get_text("ui.system_monitor.insights.optimal_cpu"))
 
         if resources.memory_percent > 85:
-            insights.append("⚠️ High memory usage")
+            insights.append(get_text("ui.system_monitor.insights.high_memory"))
         elif resources.memory_percent < 40:
-            insights.append("✅ Memory usage is healthy")
+            insights.append(get_text("ui.system_monitor.insights.healthy_memory"))
 
         if resources.app_memory_mb > 500:
-            insights.append("📱 App memory usage is high")
+            insights.append(get_text("ui.system_monitor.insights.high_app_memory"))
         else:
-            insights.append("✅ App memory usage is normal")
+            insights.append(get_text("ui.system_monitor.insights.normal_app_memory"))
 
         if resources.disk_usage_percent > 90:
-            insights.append("💾 Disk space is running low")
+            insights.append(get_text("ui.system_monitor.insights.low_disk_space"))
         elif resources.disk_usage_percent < 50:
-            insights.append("✅ Plenty of disk space available")
+            insights.append(get_text("ui.system_monitor.insights.plenty_disk_space"))
 
         if not insights:
-            insights.append("💡 System is running well")
+            insights.append(get_text("ui.system_monitor.insights.system_running_well"))
 
         self.insights_label.setText(" | ".join(insights[:2]))  # Show top 2 insights
 
@@ -1137,18 +1187,30 @@ class SystemMonitorPanel(QWidget):
         recommendations = []
 
         if resources.cpu_percent > 80:
-            recommendations.append("Close unnecessary applications")
+            recommendations.append(
+                get_text("ui.system_monitor.recommendations.close_apps")
+            )
         if resources.memory_percent > 85:
-            recommendations.append("Consider adding more RAM")
+            recommendations.append(
+                get_text("ui.system_monitor.recommendations.add_ram")
+            )
         if resources.app_memory_mb > 500:
-            recommendations.append("Restart HelpMeSign if needed")
+            recommendations.append(
+                get_text("ui.system_monitor.recommendations.restart_app")
+            )
         if resources.disk_usage_percent > 90:
-            recommendations.append("Clean up disk space")
+            recommendations.append(
+                get_text("ui.system_monitor.recommendations.clean_disk")
+            )
         if resources.uptime_hours > 168:  # 7 days
-            recommendations.append("Consider system restart")
+            recommendations.append(
+                get_text("ui.system_monitor.recommendations.system_restart")
+            )
 
         if not recommendations:
-            recommendations.append("🎯 No actions needed")
+            recommendations.append(
+                get_text("ui.system_monitor.recommendations.no_actions")
+            )
 
         self.recommendations_label.setText(
             " | ".join(recommendations[:1])
