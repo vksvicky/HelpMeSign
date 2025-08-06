@@ -4,6 +4,7 @@ Simple unit tests for startup functionality
 Tests pure logic without importing real modules
 """
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -1785,3 +1786,640 @@ class TestSecureConfigManager:
             assert len(mac.split(":")) == 6
             # Should be "00:00:00:00:00:00"
             assert mac == "00:00:00:00:00:00"
+
+    def test_startup_screen_with_pyside6_unavailable(self):
+        """Test StartupScreen when PySide6 is not available"""
+        with patch("src.helpmesign.core.startup.PYSIDE6_AVAILABLE", False):
+            with pytest.raises(
+                ImportError, match="PySide6 is required for StartupScreen"
+            ):
+                from src.helpmesign.core.startup import StartupScreen
+
+                StartupScreen()
+
+    def test_secure_config_manager_with_invalid_environment(self):
+        """Test SecureConfigManager with invalid environment"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager("invalid_env")
+        assert manager.environment == "invalid_env"
+
+    def test_secure_config_manager_derive_secret_key_with_error(self):
+        """Test _derive_secret_key with error handling"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Test that the method works normally
+        key = manager._derive_secret_key()
+        assert isinstance(key, bytes)
+        assert len(key) > 0
+
+    def test_secure_config_manager_get_mac_address_with_error(self):
+        """Test _get_mac_address with error handling"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch(
+            "src.helpmesign.core.startup.uuid.getnode",
+            side_effect=Exception("UUID error"),
+        ):
+            mac = manager._get_mac_address()
+            assert isinstance(mac, str)
+            assert len(mac) > 0
+
+    def test_secure_config_manager_create_hmac(self):
+        """Test _create_hmac method"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+        data = "test_data"
+        hmac_result = manager._create_hmac(data)
+        assert isinstance(hmac_result, bytes)
+        assert len(hmac_result) > 0
+
+    def test_secure_config_manager_verify_hmac_valid(self):
+        """Test _verify_hmac with valid signature"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+        data = "test_data"
+        signature = manager._create_hmac(data)
+        result = manager._verify_hmac(data, signature)
+        assert result is True
+
+    def test_secure_config_manager_verify_hmac_invalid(self):
+        """Test _verify_hmac with invalid signature"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+        data = "test_data"
+        invalid_signature = b"invalid_signature"
+        result = manager._verify_hmac(data, invalid_signature)
+        assert result is False
+
+    def test_secure_config_manager_save_config_with_error(self):
+        """Test save_config with file error"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch("builtins.open", side_effect=Exception("File error")):
+            result = manager.save_config({"test": "data"})
+            assert result is False
+
+    def test_secure_config_manager_load_config_with_file_not_found(self):
+        """Test load_config when file doesn't exist"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch("pathlib.Path.exists", return_value=False):
+            result = manager.load_config()
+            assert result == {}
+
+    def test_secure_config_manager_load_config_with_invalid_json(self):
+        """Test load_config with invalid JSON"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch("pathlib.Path.exists", return_value=True):
+            with patch("builtins.open", mock_open(read_data="invalid json")):
+                result = manager.load_config()
+                assert result == {}
+
+    def test_secure_config_manager_load_config_with_hmac_verification_failure(self):
+        """Test load_config with HMAC verification failure"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Create invalid config data with string signature instead of bytes
+        invalid_config = {"data": "test_data", "signature": "invalid_signature"}
+
+        with patch("pathlib.Path.exists", return_value=True):
+            with patch(
+                "builtins.open", mock_open(read_data=json.dumps(invalid_config))
+            ):
+                result = manager.load_config()
+                assert result == {}
+
+    def test_secure_config_manager_get_user_mode_with_no_config(self):
+        """Test get_user_mode when no config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "load_config", return_value={}):
+            result = manager.get_user_mode()
+            assert result is None
+
+    def test_secure_config_manager_set_user_mode_with_save_failure(self):
+        """Test set_user_mode when save fails"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=False):
+            result = manager.set_user_mode("test_mode")
+            assert result is False
+
+    def test_secure_config_manager_get_theme_with_no_config(self):
+        """Test get_theme when no config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "load_config", return_value={}):
+            result = manager.get_theme()
+            # The actual default is "Light" not "default"
+            assert result == "Light"
+
+    def test_secure_config_manager_set_theme_with_save_failure(self):
+        """Test set_theme when save fails"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=False):
+            result = manager.set_theme("dark")
+            assert result is False
+
+    def test_secure_config_manager_get_font_size_with_no_config(self):
+        """Test get_font_size when no config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "load_config", return_value={}):
+            result = manager.get_font_size()
+            assert result == 12
+
+    def test_secure_config_manager_set_font_size_with_save_failure(self):
+        """Test set_font_size when save fails"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=False):
+            result = manager.set_font_size(14)
+            assert result is False
+
+    def test_secure_config_manager_get_hand_preference_with_no_config(self):
+        """Test get_hand_preference when no config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "load_config", return_value={}):
+            result = manager.get_hand_preference()
+            assert result == "right"
+
+    def test_secure_config_manager_set_hand_preference_with_save_failure(self):
+        """Test set_hand_preference when save fails"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=False):
+            result = manager.set_hand_preference("left")
+            assert result is False
+
+    def test_secure_config_manager_get_all_settings(self):
+        """Test get_all_settings method"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Test the actual method behavior
+        result = manager.get_all_settings()
+        assert isinstance(result, dict)
+        assert "user_mode" in result
+        assert "theme" in result
+        assert "font_size" in result
+        assert "hand_preference" in result
+
+    def test_secure_config_manager_save_all_settings_with_save_failure(self):
+        """Test save_all_settings when save fails"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        settings = {
+            "user_mode": "test_mode",
+            "theme": "dark",
+            "font_size": 14,
+            "hand_preference": "left",
+        }
+
+        with patch.object(manager, "save_config", return_value=False):
+            result = manager.save_all_settings(settings)
+            assert result is False
+
+    def test_secure_config_manager_get_timestamp(self):
+        """Test get_timestamp method"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+        timestamp = manager.get_timestamp()
+        assert isinstance(timestamp, str)
+        assert len(timestamp) > 0
+
+    def test_show_startup_screen_with_pyside6_unavailable(self):
+        """Test show_startup_screen when PySide6 is not available"""
+        with patch("src.helpmesign.core.startup.PYSIDE6_AVAILABLE", False):
+            from src.helpmesign.core.startup import show_startup_screen
+
+            result = show_startup_screen()
+            assert result is None
+
+    def test_show_startup_screen_with_user_cancellation(self):
+        """Test show_startup_screen when user cancels"""
+        with patch("src.helpmesign.core.startup.PYSIDE6_AVAILABLE", True):
+            with patch(
+                "src.helpmesign.core.startup.StartupScreen"
+            ) as mock_screen_class:
+                mock_screen = Mock()
+                mock_screen.exec.return_value = 0  # User cancelled
+                mock_screen_class.return_value = mock_screen
+
+                from src.helpmesign.core.startup import show_startup_screen
+
+                result = show_startup_screen()
+                assert result is None
+
+    def test_global_functions_with_secure_config_manager(self):
+        """Test global functions with SecureConfigManager"""
+        # Test get_user_mode
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.get_user_mode.return_value = "test_mode"
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import get_user_mode
+
+            result = get_user_mode("dev")
+            assert result == "test_mode"
+
+        # Test set_user_mode
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.set_user_mode.return_value = True
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import set_user_mode
+
+            result = set_user_mode("test_mode", "dev")
+            assert result is True
+
+        # Test get_theme
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.get_theme.return_value = "dark"
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import get_theme
+
+            result = get_theme("dev")
+            assert result == "dark"
+
+        # Test set_theme
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.set_theme.return_value = True
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import set_theme
+
+            result = set_theme("dark", "dev")
+            assert result is True
+
+        # Test get_font_size
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.get_font_size.return_value = 14
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import get_font_size
+
+            result = get_font_size("dev")
+            assert result == 14
+
+        # Test set_font_size
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.set_font_size.return_value = True
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import set_font_size
+
+            result = set_font_size(14, "dev")
+            assert result is True
+
+        # Test get_hand_preference
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.get_hand_preference.return_value = "left"
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import get_hand_preference
+
+            result = get_hand_preference("dev")
+            assert result == "left"
+
+        # Test set_hand_preference
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.set_hand_preference.return_value = True
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import set_hand_preference
+
+            result = set_hand_preference("left", "dev")
+            assert result is True
+
+        # Test get_all_settings
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.get_all_settings.return_value = {"test": "data"}
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import get_all_settings
+
+            result = get_all_settings("dev")
+            assert result == {"test": "data"}
+
+        # Test save_all_settings
+        with patch(
+            "src.helpmesign.core.startup.SecureConfigManager"
+        ) as mock_manager_class:
+            mock_manager = Mock()
+            mock_manager.save_all_settings.return_value = True
+            mock_manager_class.return_value = mock_manager
+
+            from src.helpmesign.core.startup import save_all_settings
+
+            result = save_all_settings({"test": "data"}, "dev")
+            assert result is True
+
+    def test_secure_config_manager_with_different_environments(self):
+        """Test SecureConfigManager with different environment values"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        # Test with production environment
+        manager_prod = SecureConfigManager("prod")
+        assert manager_prod.environment == "prod"
+
+        # Test with test environment
+        manager_test = SecureConfigManager("test")
+        assert manager_test.environment == "test"
+
+        # Test with custom environment
+        manager_custom = SecureConfigManager("custom")
+        assert manager_custom.environment == "custom"
+
+    def test_secure_config_manager_derive_secret_key_with_all_components(self):
+        """Test _derive_secret_key with all components available"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Mock all components to return valid values
+        with patch(
+            "src.helpmesign.core.startup.getpass.getuser", return_value="testuser"
+        ):
+            with patch(
+                "src.helpmesign.core.startup.platform.node", return_value="testhost"
+            ):
+                with patch(
+                    "src.helpmesign.core.startup.uuid.getnode", return_value=123456789
+                ):
+                    key = manager._derive_secret_key()
+                    assert isinstance(key, bytes)
+                    assert len(key) > 0
+
+    def test_secure_config_manager_get_mac_address_with_real_uuid(self):
+        """Test _get_mac_address with real UUID value"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Mock UUID to return a realistic value
+        with patch(
+            "src.helpmesign.core.startup.uuid.getnode", return_value=0x123456789ABC
+        ):
+            mac = manager._get_mac_address()
+            assert isinstance(mac, str)
+            assert len(mac) > 0
+            # Should be in MAC address format
+            assert ":" in mac or "-" in mac
+
+    def test_secure_config_manager_create_hmac_with_real_data(self):
+        """Test _create_hmac with real data"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Test with various data types
+        test_data = "test_config_data"
+        hmac_result = manager._create_hmac(test_data)
+        assert isinstance(hmac_result, bytes)
+        assert len(hmac_result) > 0
+
+    def test_secure_config_manager_verify_hmac_with_real_data(self):
+        """Test _verify_hmac with real data"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Test with valid data and signature
+        test_data = "test_config_data"
+        signature = manager._create_hmac(test_data)
+        result = manager._verify_hmac(test_data, signature)
+        assert result is True
+
+        # Test with invalid signature
+        invalid_signature = b"invalid_signature_bytes"
+        result = manager._verify_hmac(test_data, invalid_signature)
+        assert result is False
+
+    def test_secure_config_manager_save_config_with_metadata(self):
+        """Test save_config with metadata"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        # Test config with metadata
+        config_with_metadata = {
+            "user_mode": "test_mode",
+            "theme": "dark",
+            "font_size": 14,
+            "hand_preference": "left",
+            "metadata": {"created": "2023-01-01", "version": "1.0"},
+        }
+
+        with patch("builtins.open", mock_open()):
+            result = manager.save_config(config_with_metadata)
+            assert result is True
+
+    def test_secure_config_manager_load_config_environment_mismatch(self):
+        """Test load_config with environment mismatch"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager("prod")
+
+        # Create config for different environment
+        config_data = {
+            "data": json.dumps(
+                {
+                    "user_mode": "test_mode",
+                    "environment": "dev",  # Different from manager's environment
+                }
+            ),
+            "signature": "valid_signature",
+        }
+
+        with patch("pathlib.Path.exists", return_value=True):
+            with patch("builtins.open", mock_open(read_data=json.dumps(config_data))):
+                with patch.object(manager, "_verify_hmac", return_value=True):
+                    result = manager.load_config()
+                    # Should return empty dict due to environment mismatch
+                    assert result == {}
+
+    def test_secure_config_manager_get_user_mode_with_config(self):
+        """Test get_user_mode when config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(
+            manager, "load_config", return_value={"user_mode": "test_mode"}
+        ):
+            result = manager.get_user_mode()
+            assert result == "test_mode"
+
+    def test_secure_config_manager_set_user_mode_success(self):
+        """Test set_user_mode with successful save"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=True):
+            result = manager.set_user_mode("test_mode")
+            assert result is True
+
+    def test_secure_config_manager_get_theme_with_config(self):
+        """Test get_theme when config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "load_config", return_value={"theme": "dark"}):
+            result = manager.get_theme()
+            assert result == "dark"
+
+    def test_secure_config_manager_set_theme_success(self):
+        """Test set_theme with successful save"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=True):
+            result = manager.set_theme("dark")
+            assert result is True
+
+    def test_secure_config_manager_get_font_size_with_config(self):
+        """Test get_font_size when config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "load_config", return_value={"font_size": 16}):
+            result = manager.get_font_size()
+            assert result == 16
+
+    def test_secure_config_manager_set_font_size_success(self):
+        """Test set_font_size with successful save"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=True):
+            result = manager.set_font_size(16)
+            assert result is True
+
+    def test_secure_config_manager_get_hand_preference_with_config(self):
+        """Test get_hand_preference when config exists"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(
+            manager, "load_config", return_value={"hand_preference": "left"}
+        ):
+            result = manager.get_hand_preference()
+            assert result == "left"
+
+    def test_secure_config_manager_set_hand_preference_success(self):
+        """Test set_hand_preference with successful save"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        with patch.object(manager, "save_config", return_value=True):
+            result = manager.set_hand_preference("left")
+            assert result is True
+
+    def test_secure_config_manager_save_all_settings_success(self):
+        """Test save_all_settings with successful save"""
+        from src.helpmesign.core.startup import SecureConfigManager
+
+        manager = SecureConfigManager()
+
+        settings = {
+            "user_mode": "test_mode",
+            "theme": "dark",
+            "font_size": 16,
+            "hand_preference": "left",
+        }
+
+        with patch.object(manager, "save_config", return_value=True):
+            result = manager.save_all_settings(settings)
+            assert result is True
+
+    def test_show_startup_screen_with_user_choice(self):
+        """Test show_startup_screen when user makes a choice"""
+        with patch("src.helpmesign.core.startup.PYSIDE6_AVAILABLE", True):
+            with patch(
+                "src.helpmesign.core.startup.StartupScreen"
+            ) as mock_screen_class:
+                mock_screen = Mock()
+                mock_screen.exec.return_value = 1  # User made a choice
+                mock_screen.choice_made = Mock()
+                mock_screen_class.return_value = mock_screen
+
+                from src.helpmesign.core.startup import show_startup_screen
+
+                result = show_startup_screen()
+                # Should return the choice made by user
+                assert result is not None
