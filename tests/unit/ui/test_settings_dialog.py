@@ -1018,13 +1018,13 @@ class TestSettingsDialogRealImplementation:
         assert hasattr(sd, "SettingsDialog")
         assert hasattr(sd, "show_settings_dialog")
 
-                # Test show_settings_dialog function with mocking
-        with patch.object(sd, 'show_settings_dialog') as mock_show_dialog:
+        # Test show_settings_dialog function with mocking
+        with patch.object(sd, "show_settings_dialog") as mock_show_dialog:
             mock_show_dialog.return_value = None
-            
+
             result = sd.show_settings_dialog()
             assert result is None
-            
+
             # Test with parameters
             result = sd.show_settings_dialog(
                 parent=None,

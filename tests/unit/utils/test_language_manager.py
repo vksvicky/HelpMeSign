@@ -145,7 +145,7 @@ class TestLanguageSystemSimple:
 class TestSystemLanguageDetectionSimple:
     """Simple unit tests for system language detection"""
 
-    @patch("src.helpmesign.utils.language_manager.locale.getdefaultlocale")
+    @patch("src.helpmesign.utils.language_manager.locale.getlocale")
     def test_detect_system_language_macos(self, mock_locale):
         """Test system language detection on macOS"""
         mock_locale.return_value = ("en_US", "UTF-8")
@@ -154,7 +154,7 @@ class TestSystemLanguageDetectionSimple:
 
         assert result == ("en", "us")
 
-    @patch("src.helpmesign.utils.language_manager.locale.getdefaultlocale")
+    @patch("src.helpmesign.utils.language_manager.locale.getlocale")
     @patch("src.helpmesign.utils.language_manager.platform.system")
     def test_detect_system_language_fallback(self, mock_platform, mock_locale):
         """Test system language detection fallback"""
@@ -165,7 +165,7 @@ class TestSystemLanguageDetectionSimple:
 
         assert result == ("en", "us")
 
-    @patch("src.helpmesign.utils.language_manager.locale.getdefaultlocale")
+    @patch("src.helpmesign.utils.language_manager.locale.getlocale")
     def test_detect_system_language_single_locale(self, mock_locale):
         """Test system language detection with single locale"""
         mock_locale.return_value = ("en", "UTF-8")
@@ -906,18 +906,18 @@ class TestLanguageManagerRealImplementation:
 
         # Test on Windows
         with patch("platform.system", return_value="Windows"):
-            with patch("locale.getdefaultlocale", return_value=("en_US", "UTF-8")):
+            with patch("locale.getlocale", return_value=("en_US", "UTF-8")):
                 lang, region = manager.detect_system_language()
                 assert lang == "en"
                 assert region == "us"
 
     def test_detect_system_language_with_locale_error(self):
-        """Test detect_system_language when locale.getdefaultlocale fails"""
+        """Test detect_system_language when locale.getlocale fails"""
         from src.helpmesign.utils.language_manager import LanguageManager
 
         manager = LanguageManager()
 
-        with patch("locale.getdefaultlocale", side_effect=Exception("Locale error")):
+        with patch("locale.getlocale", side_effect=Exception("Locale error")):
             lang, region = manager.detect_system_language()
             assert lang == "en"
             assert region == "us"
