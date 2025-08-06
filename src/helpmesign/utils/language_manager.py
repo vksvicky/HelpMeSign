@@ -331,7 +331,7 @@ class LanguageManager:
         """
         try:
             # Get system locale
-            system_locale = locale.getdefaultlocale()
+            system_locale = locale.getlocale()
             if system_locale[0]:
                 # Parse locale (e.g., "en_US" -> ("en", "us"))
                 locale_parts = system_locale[0].split("_")
