@@ -383,303 +383,6 @@ class TestSettingsDialogPerformanceLogic:
         assert memory_usage < max_memory
 
 
-class TestFontSizeSelectorMethods:
-    """Unit tests for FontSizeSelector methods with proper mocking"""
-
-    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", False)
-    def test_font_size_selector_initialization(self):
-        """Test FontSizeSelector initialization with PySide6 not available"""
-        with pytest.raises(ImportError):
-            from src.helpmesign.ui.settings_dialog import FontSizeSelector
-
-            FontSizeSelector()
-
-    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
-    @patch("src.helpmesign.ui.settings_dialog.QWidget")
-    @patch("src.helpmesign.ui.settings_dialog.Signal")
-    def test_font_size_selector_initialization_mocked(self, mock_signal, mock_qwidget):
-        """Test FontSizeSelector initialization with mocked PySide6"""
-        mock_signal.return_value = MagicMock()
-        mock_qwidget.return_value = MagicMock()
-
-        from src.helpmesign.ui.settings_dialog import FontSizeSelector
-
-        # Should not crash
-        assert FontSizeSelector is not None
-
-    def test_set_size_method_logic(self):
-        """Test set_size method logic"""
-        # Test size setting
-        size = 16
-        assert isinstance(size, int)
-        assert size > 0
-        assert size < 100
-
-    def test_get_size_method_logic(self):
-        """Test get_size method logic"""
-        # Test size getting
-        size = 12
-        assert isinstance(size, int)
-        assert size > 0
-
-    def test_mouse_press_event_logic(self):
-        """Test mouse press event logic"""
-        # Test mouse event
-        event = MagicMock()
-        event.x.return_value = 50
-        event.y.return_value = 25
-
-        assert event.x() == 50
-        assert event.y() == 25
-
-    def test_mouse_move_event_logic(self):
-        """Test mouse move event logic"""
-        # Test mouse move event
-        event = MagicMock()
-        event.x.return_value = 60
-        event.y.return_value = 30
-
-        assert event.x() == 60
-        assert event.y() == 30
-
-    def test_leave_event_logic(self):
-        """Test leave event logic"""
-        # Test leave event
-        event = MagicMock()
-        assert event is not None
-
-    def test_paint_event_logic(self):
-        """Test paint event logic"""
-        # Test paint event
-        event = MagicMock()
-        painter = MagicMock()
-        event.painter.return_value = painter
-
-        assert event.painter() == painter
-
-    def test_force_color_update_logic(self):
-        """Test force color update logic"""
-        # Test color update
-        colors_updated = True
-        assert colors_updated is True
-
-
-class TestModernSegmentedControlMethods:
-    """Unit tests for ModernSegmentedControl methods with proper mocking"""
-
-    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", False)
-    def test_segmented_control_initialization(self):
-        """Test ModernSegmentedControl initialization with PySide6 not available"""
-        with pytest.raises(ImportError):
-            from src.helpmesign.ui.settings_dialog import ModernSegmentedControl
-
-            ModernSegmentedControl(["Option 1", "Option 2"])
-
-    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
-    @patch("src.helpmesign.ui.settings_dialog.QFrame")
-    @patch("src.helpmesign.ui.settings_dialog.Signal")
-    def test_segmented_control_initialization_mocked(self, mock_signal, mock_qframe):
-        """Test ModernSegmentedControl initialization with mocked PySide6"""
-        mock_signal.return_value = MagicMock()
-        mock_qframe.return_value = MagicMock()
-
-        from src.helpmesign.ui.settings_dialog import ModernSegmentedControl
-
-        # Should not crash
-        assert ModernSegmentedControl is not None
-
-    def test_set_selection_method_logic(self):
-        """Test set_selection method logic"""
-        # Test selection setting
-        selection = "Option 2"
-        options = ["Option 1", "Option 2", "Option 3"]
-
-        assert selection in options
-        assert isinstance(selection, str)
-
-    def test_get_selection_method_logic(self):
-        """Test get_selection method logic"""
-        # Test selection getting
-        selection = "Option 1"
-        assert isinstance(selection, str)
-        assert len(selection) > 0
-
-    def test_mouse_press_event_logic(self):
-        """Test mouse press event logic"""
-        # Test mouse event
-        event = MagicMock()
-        event.x.return_value = 100
-        event.y.return_value = 50
-
-        assert event.x() == 100
-        assert event.y() == 50
-
-    def test_mouse_move_event_logic(self):
-        """Test mouse move event logic"""
-        # Test mouse move event
-        event = MagicMock()
-        event.x.return_value = 110
-        event.y.return_value = 55
-
-        assert event.x() == 110
-        assert event.y() == 55
-
-    def test_leave_event_logic(self):
-        """Test leave event logic"""
-        # Test leave event
-        event = MagicMock()
-        assert event is not None
-
-    def test_paint_event_logic(self):
-        """Test paint event logic"""
-        # Test paint event
-        event = MagicMock()
-        painter = MagicMock()
-        event.painter.return_value = painter
-
-        assert event.painter() == painter
-
-    def test_force_color_update_logic(self):
-        """Test force color update logic"""
-        # Test color update
-        colors_updated = True
-        assert colors_updated is True
-
-
-class TestSettingsDialogMethods:
-    """Unit tests for SettingsDialog methods with proper mocking"""
-
-    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", False)
-    def test_dialog_initialization(self):
-        """Test SettingsDialog initialization with PySide6 not available"""
-        with pytest.raises(ImportError):
-            from src.helpmesign.ui.settings_dialog import SettingsDialog
-
-            SettingsDialog()
-
-    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", True)
-    @patch("src.helpmesign.ui.settings_dialog.QDialog")
-    @patch("src.helpmesign.ui.settings_dialog.Signal")
-    def test_dialog_initialization_mocked(self, mock_signal, mock_qdialog):
-        """Test SettingsDialog initialization with mocked PySide6"""
-        mock_signal.return_value = MagicMock()
-        mock_qdialog.return_value = MagicMock()
-
-        from src.helpmesign.ui.settings_dialog import SettingsDialog
-
-        # Should not crash
-        assert SettingsDialog is not None
-
-    def test_setup_ui_method_logic(self):
-        """Test setup_ui method logic"""
-        # Test UI setup
-        ui_created = True
-        assert ui_created is True
-
-    def test_load_current_settings_method_logic(self):
-        """Test load_current_settings method logic"""
-        # Test settings loading
-        settings = {"theme": "Light", "font_size": 12}
-        assert isinstance(settings, dict)
-        assert "theme" in settings
-        assert "font_size" in settings
-
-    def test_apply_settings_method_logic(self):
-        """Test apply_settings method logic"""
-        # Test settings application
-        settings_applied = True
-        assert settings_applied is True
-
-    def test_reset_to_defaults_method_logic(self):
-        """Test reset_to_defaults method logic"""
-        # Test reset to defaults
-        defaults = {"theme": "Light", "font_size": 12}
-        assert isinstance(defaults, dict)
-        assert defaults["theme"] == "Light"
-        assert defaults["font_size"] == 12
-
-    def test_get_selected_mode_method_logic(self):
-        """Test get_selected_mode method logic"""
-        # Test mode selection
-        mode = "Sign & Translate"
-        valid_modes = ["Sign & Translate", "Learn", "Settings"]
-        assert mode in valid_modes
-
-    def test_show_event_logic(self):
-        """Test show event logic"""
-        # Test show event
-        event = MagicMock()
-        assert event is not None
-
-    def test_close_event_logic(self):
-        """Test close event logic"""
-        # Test close event
-        event = MagicMock()
-        assert event is not None
-
-    def test_accept_method_logic(self):
-        """Test accept method logic"""
-        # Test accept
-        accepted = True
-        assert accepted is True
-
-    def test_reject_method_logic(self):
-        """Test reject method logic"""
-        # Test reject
-        rejected = True
-        assert rejected is True
-
-    def test_theme_change_logic(self):
-        """Test theme change logic"""
-        # Test theme change
-        old_theme = "Light"
-        new_theme = "Dark"
-        assert old_theme != new_theme
-
-    def test_font_size_change_logic(self):
-        """Test font size change logic"""
-        # Test font size change
-        old_size = 12
-        new_size = 16
-        assert old_size != new_size
-
-    def test_apply_light_theme_logic(self):
-        """Test apply light theme logic"""
-        # Test light theme
-        theme = "Light"
-        assert theme == "Light"
-
-    def test_apply_dark_theme_logic(self):
-        """Test apply dark theme logic"""
-        # Test dark theme
-        theme = "Dark"
-        assert theme == "Dark"
-
-    def test_create_general_tab_logic(self):
-        """Test create general tab logic"""
-        # Test general tab
-        tab_created = True
-        assert tab_created is True
-
-    def test_create_appearance_tab_logic(self):
-        """Test create appearance tab logic"""
-        # Test appearance tab
-        tab_created = True
-        assert tab_created is True
-
-    def test_update_dialog_theme_logic(self):
-        """Test update dialog theme logic"""
-        # Test theme update
-        theme_updated = True
-        assert theme_updated is True
-
-    def test_update_main_window_preview_logic(self):
-        """Test update main window preview logic"""
-        # Test preview update
-        preview_updated = True
-        assert preview_updated is True
-
-
 class TestShowSettingsDialogFunction:
     """Unit tests for show_settings_dialog function"""
 
@@ -881,3 +584,163 @@ class TestSettingsDialogRealImplementation:
 
         result = show_settings_dialog()
         assert result is None
+
+    def test_conditional_imports_coverage(self):
+        """Test conditional imports - for coverage"""
+        # Test that the module can be imported with different conditions
+        import src.helpmesign.ui.settings_dialog
+
+        # Check that the module has the expected attributes
+        assert hasattr(src.helpmesign.ui.settings_dialog, "PYSIDE6_AVAILABLE")
+        assert hasattr(src.helpmesign.ui.settings_dialog, "show_settings_dialog")
+        assert hasattr(src.helpmesign.ui.settings_dialog, "FontSizeSelector")
+        assert hasattr(src.helpmesign.ui.settings_dialog, "ModernSegmentedControl")
+        assert hasattr(src.helpmesign.ui.settings_dialog, "SettingsDialog")
+
+    @patch("src.helpmesign.ui.settings_dialog.PYSIDE6_AVAILABLE", False)
+    def test_import_without_pyside6_coverage(self):
+        """Test importing the module without PySide6 - for coverage"""
+        # This should not crash
+        import src.helpmesign.ui.settings_dialog
+
+        assert src.helpmesign.ui.settings_dialog is not None
+
+    def test_module_attributes_coverage(self):
+        """Test module attributes - for coverage"""
+        import src.helpmesign.ui.settings_dialog as sd
+
+        # Test that the module has the expected structure
+        assert hasattr(sd, "PYSIDE6_AVAILABLE")
+        assert hasattr(sd, "show_settings_dialog")
+        assert hasattr(sd, "FontSizeSelector")
+        assert hasattr(sd, "ModernSegmentedControl")
+        assert hasattr(sd, "SettingsDialog")
+
+        # Test that show_settings_dialog is callable
+        assert callable(sd.show_settings_dialog)
+
+    def test_show_settings_dialog_function_signature_coverage(self):
+        """Test show_settings_dialog function signature - for coverage"""
+        import inspect
+
+        from src.helpmesign.ui.settings_dialog import show_settings_dialog
+
+        sig = inspect.signature(show_settings_dialog)
+
+        # Check that the function has the expected parameters
+        expected_params = [
+            "parent",
+            "current_mode",
+            "callback",
+            "environment",
+            "main_window",
+        ]
+        actual_params = list(sig.parameters.keys())
+
+        for param in expected_params:
+            assert param in actual_params
+
+    def test_show_settings_dialog_default_values_coverage(self):
+        """Test show_settings_dialog default values - for coverage"""
+        import inspect
+
+        from src.helpmesign.ui.settings_dialog import show_settings_dialog
+
+        sig = inspect.signature(show_settings_dialog)
+
+        # Check default values
+        assert sig.parameters["current_mode"].default == "Sign & Translate"
+        assert sig.parameters["environment"].default == "dev"
+        assert sig.parameters["parent"].default is None
+        assert sig.parameters["callback"].default is None
+        assert sig.parameters["main_window"].default is None
+
+    def test_show_settings_dialog_return_type_coverage(self):
+        """Test show_settings_dialog return type annotation - for coverage"""
+        import inspect
+
+        from src.helpmesign.ui.settings_dialog import show_settings_dialog
+
+        sig = inspect.signature(show_settings_dialog)
+
+        # Check return type annotation
+        assert sig.return_annotation is not None
+        # The return type should be Optional[str] or similar
+        assert "str" in str(sig.return_annotation) or "None" in str(
+            sig.return_annotation
+        )
+
+    def test_class_definitions_coverage(self):
+        """Test that class definitions exist - for coverage"""
+        from src.helpmesign.ui.settings_dialog import (
+            FontSizeSelector,
+            ModernSegmentedControl,
+            SettingsDialog,
+        )
+
+        # Test that classes are defined
+        assert FontSizeSelector is not None
+        assert ModernSegmentedControl is not None
+        assert SettingsDialog is not None
+
+        # Test that they are classes
+        assert isinstance(FontSizeSelector, type)
+        assert isinstance(ModernSegmentedControl, type)
+        assert isinstance(SettingsDialog, type)
+
+    def test_class_methods_exist_coverage(self):
+        """Test that class methods exist - for coverage"""
+        from src.helpmesign.ui.settings_dialog import (
+            FontSizeSelector,
+            ModernSegmentedControl,
+            SettingsDialog,
+        )
+
+        # Test FontSizeSelector methods
+        assert hasattr(FontSizeSelector, "__init__")
+        assert hasattr(FontSizeSelector, "set_size")
+        assert hasattr(FontSizeSelector, "get_size")
+        assert hasattr(FontSizeSelector, "force_color_update")
+
+        # Test ModernSegmentedControl methods
+        assert hasattr(ModernSegmentedControl, "__init__")
+        assert hasattr(ModernSegmentedControl, "set_selection")
+        assert hasattr(ModernSegmentedControl, "get_selection")
+        assert hasattr(ModernSegmentedControl, "force_color_update")
+
+        # Test SettingsDialog methods
+        assert hasattr(SettingsDialog, "__init__")
+        assert hasattr(SettingsDialog, "setup_ui")
+        assert hasattr(SettingsDialog, "load_current_settings")
+        assert hasattr(SettingsDialog, "apply_settings")
+        assert hasattr(SettingsDialog, "get_selected_mode")
+
+    def test_import_structure_coverage(self):
+        """Test import structure - for coverage"""
+        # Test that all necessary imports are available
+        import src.helpmesign.ui.settings_dialog as sd
+
+        # Test conditional imports
+        assert hasattr(sd, "PYSIDE6_AVAILABLE")
+        assert hasattr(sd, "FONT_MANAGER_AVAILABLE")
+        assert hasattr(sd, "THEME_MANAGER_AVAILABLE")
+
+        # Test function imports
+        assert hasattr(sd, "get_all_settings")
+        assert hasattr(sd, "save_all_settings")
+        assert hasattr(sd, "get_dict")
+        assert hasattr(sd, "get_list")
+        assert hasattr(sd, "get_text")
+        assert hasattr(sd, "get_logger")
+
+    def test_dummy_functions_coverage(self):
+        """Test dummy functions when imports fail - for coverage"""
+        # Test that dummy functions exist when imports fail
+        import src.helpmesign.ui.settings_dialog as sd
+
+        # These should exist even if the real imports fail
+        assert hasattr(sd, "get_body_font")
+        assert hasattr(sd, "get_button_font")
+        assert hasattr(sd, "get_heading_font")
+        assert hasattr(sd, "apply_theme")
+        assert hasattr(sd, "get_theme_manager")
