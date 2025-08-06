@@ -1320,3 +1320,198 @@ class TestLearnMode:
 
         # Assert
         assert len(mode.learning_progress) == 0
+
+
+class TestLearnModeWithQt:
+    """Test cases for LearnMode class using Qt mock framework"""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        """Set up test fixtures with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import QtTestCase
+
+        # Create a mock main window with content_area
+        self.mock_main_window = Mock()
+        self.mock_main_window.content_area = Mock()
+        self.mock_main_window.set_mode = Mock()
+        self.mock_main_window.set_status = Mock()
+        self.mock_main_window.get_text_input = Mock()
+        self.mock_main_window.set_text_output = Mock()
+        self.mock_main_window.set_text_input = Mock()
+
+        # Create the mode instance
+        self.mode = LearnMode(self.mock_main_window, "dev")
+
+        # Set up Qt environment
+        self._setup_qt_environment()
+        yield
+        self._cleanup_qt_environment()
+
+    def _setup_qt_environment(self):
+        """Set up the Qt mock environment."""
+        from tests.mocks.qt.qt_mock_framework import qt_mock_framework
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        # Initialize the Qt mock framework
+        qt_mock_framework.initialize()
+
+        # Activate module-level Qt mocking
+        activate_qt_mocks()
+
+    def _cleanup_qt_environment(self):
+        """Clean up the Qt test environment."""
+        from tests.mocks.qt.qt_mock_framework import qt_mock_framework
+        from tests.mocks.qt.qt_test_case import deactivate_qt_mocks
+
+        # Deactivate module-level Qt mocking
+        deactivate_qt_mocks()
+
+        # Reset the Qt mock framework
+        qt_mock_framework.reset()
+
+    def test_update_button_selection_with_qt(self):
+        """Test button selection update with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Set up required attributes
+        self.mode.alphabet_buttons = {"A": Mock(), "B": Mock()}
+        self.mode.number_buttons = {"1": Mock(), "2": Mock()}
+
+        # Create mock buttons with style method
+        button_dict = {"A": Mock(), "B": Mock()}
+        for button in button_dict.values():
+            button.style.return_value = Mock()
+
+        # Test update_button_selection
+        self.mode.update_button_selection("A", button_dict)
+
+        # Verify button selection was updated
+        assert button_dict["A"].setProperty.called
+
+    def test_update_sign_display_with_qt(self):
+        """Test sign display update with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Create mock sign display label
+        self.mode.sign_display_label = Mock()
+
+        # Test update_sign_display
+        self.mode.update_sign_display("A", "alphabet")
+
+        # Verify sign display was updated
+        assert self.mode.current_character == "A"
+        assert self.mode.current_char_type == "alphabet"
+        assert self.mode.sign_display_label.setText.called
+
+    def test_clear_content_with_learning_widget_with_qt(self):
+        """Test clearing content with learning widget using Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Set up required attributes
+        self.mode.alphabet_buttons = {"A": Mock(), "B": Mock()}
+        self.mode.number_buttons = {"1": Mock(), "2": Mock()}
+        self.mode.sign_display_label = Mock()
+        self.mode.sign_title = Mock()
+
+        # Test clear_content
+        self.mode.clear_content()
+
+        # Verify content was cleared
+        assert self.mode.main_window.set_text_input.called
+        assert self.mode.main_window.set_text_output.called
+        assert self.mode.main_window.set_status.called
+
+    def test_activate_with_qt(self):
+        """Test mode activation with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Test activate
+        self.mode.activate()
+
+        # Verify mode was activated
+        assert self.mode.main_window.set_mode.called
+
+    def test_deactivate_with_qt(self):
+        """Test mode deactivation with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Create mock main window with content_area
+        self.mode.main_window.content_area = Mock()
+        self.mode.main_window.default_content = Mock()
+
+        # Test deactivate
+        self.mode.deactivate()
+
+        # Verify mode was deactivated
+        assert self.mode.main_window.content_area.setCurrentWidget.called
+
+    def test_force_layout_stability_with_qt(self):
+        """Test force layout stability with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Create mock learning widget
+        self.mode.learning_widget = Mock()
+
+        # Test _force_layout_stability
+        self.mode._force_layout_stability()
+
+        # Verify layout stability was enforced
+        assert self.mode.learning_widget.updateGeometry.called
+
+    def test_update_ui_with_qt(self):
+        """Test UI update with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Create mock learning widget with isVisible method
+        self.mode.learning_widget = Mock()
+        self.mode.learning_widget.isVisible.return_value = True
+
+        # Test update_ui
+        self.mode.update_ui()
+
+        # Verify UI was updated (update_ui calls update_fonts)
+        assert self.mode.learning_widget.isVisible.called
+
+    def test_update_fonts_with_qt(self):
+        """Test font update with Qt mocks"""
+        from tests.mocks.qt.qt_test_case import activate_qt_mocks
+
+        activate_qt_mocks()
+
+        # Create mock widgets with isVisible method
+        self.mode.learning_widget = Mock()
+        self.mode.learning_widget.isVisible.return_value = True
+        self.mode.sign_title = Mock()
+        self.mode.selection_title = Mock()
+
+        # Mock the font manager and theme manager to avoid exceptions
+        with patch(
+            "src.helpmesign.utils.font_manager.get_font_manager"
+        ) as mock_font_manager, patch(
+            "src.helpmesign.utils.theme_manager.get_font_size"
+        ) as mock_font_size:
+
+            mock_font_manager.return_value._get_current_font_family.return_value = (
+                "Roboto"
+            )
+            mock_font_size.return_value = 12
+
+            # Test update_fonts - just verify it runs without error
+            self.mode.update_fonts()
+
+            # Verify the method executed (widgets were checked for visibility)
+            assert self.mode.learning_widget.isVisible.called

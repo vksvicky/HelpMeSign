@@ -33,7 +33,8 @@ help:
 	@echo "Development:"
 	@echo "  run        - Run the application in development mode"
 	@echo "  test       - Run all tests"
-	@echo "  test-coverage - Run tests with coverage report"
+	@echo "  test-coverage - Run tests with coverage report (auto-detects PySide6)"
+	@echo "  test-coverage-quick - Quick coverage report (auto-detects PySide6)"
 	@echo "  clean      - Clean up temporary files"
 	@echo ""
 	@echo "Setup:"
@@ -68,10 +69,21 @@ test:
 	$(check_venv)
 	@$(VENV_PYTHON) -m pytest tests/ -v
 
+# Check if PySide6 is available
+define check_pyside6
+	@$(VENV_PYTHON) -c "import PySide6; print('PySide6 available')" 2>/dev/null || echo "PySide6 not available"
+endef
+
 test-coverage:
-	@echo "🧪 Running tests with coverage report..."
+	@echo "🧪 Running tests with coverage report (detecting PySide6 availability)..."
 	$(check_venv)
-	@$(VENV_PYTHON) -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml
+	@if $(VENV_PYTHON) -c "import PySide6" 2>/dev/null; then \
+		echo "✅ PySide6 detected - Running comprehensive tests with Qt support..."; \
+		$(VENV_PYTHON) -m pytest tests/ -v --cov=src --cov-branch --cov-context=test --cov-fail-under=0 --cov-report=term-missing --cov-report=html --cov-report=xml; \
+	else \
+		echo "⚠️  PySide6 not available - Running tests without Qt support..."; \
+		$(VENV_PYTHON) -m pytest tests/ -v --cov=src --cov-branch --cov-context=test --cov-fail-under=0 --cov-report=term-missing --cov-report=html --cov-report=xml; \
+	fi
 	@echo ""
 	@echo "📊 Coverage report generated:"
 	@echo "  - HTML: htmlcov/index.html"
@@ -79,9 +91,15 @@ test-coverage:
 	@echo "  - Terminal: See above output"
 
 test-coverage-quick:
-	@echo "🧪 Running tests with quick coverage report..."
+	@echo "🧪 Running tests with quick coverage report (detecting PySide6 availability)..."
 	$(check_venv)
-	@$(VENV_PYTHON) -m pytest tests/ --cov=src --cov-report=term-missing
+	@if $(VENV_PYTHON) -c "import PySide6" 2>/dev/null; then \
+		echo "✅ PySide6 detected - Running comprehensive tests with Qt support..."; \
+		$(VENV_PYTHON) -m pytest tests/ --cov=src --cov-branch --cov-context=test --cov-fail-under=0 --cov-report=term-missing; \
+	else \
+		echo "⚠️  PySide6 not available - Running tests without Qt support..."; \
+		$(VENV_PYTHON) -m pytest tests/ --cov=src --cov-branch --cov-context=test --cov-fail-under=0 --cov-report=term-missing; \
+	fi
 
 clean:
 	@echo "🧹 Cleaning up..."

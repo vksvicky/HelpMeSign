@@ -724,3 +724,699 @@ class TestThemeManagerEdgeCases:
         result = manager.get_complete_style("general", include_font_size=True)
         assert isinstance(result, str)
         # The result might be empty if no theme is applied, so just check it's a string
+
+
+class TestThemeManagerFontFamilyMethods:
+    """Test ThemeManager font family methods"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_set_font_family(self, mock_logger):
+        """Test set_font_family method"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        manager.set_font_family("Arial")
+        assert manager.current_font_family == "Arial"
+        mock_logger_instance.info.assert_called_with("Font family set to: Arial")
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_get_font_family(self, mock_logger):
+        """Test get_font_family method"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        manager.current_font_family = "Times New Roman"
+        result = manager.get_font_family()
+        assert result == "Times New Roman"
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.get_theme_manager")
+    def test_set_font_family_function(self, mock_get_manager, mock_logger):
+        """Test set_font_family function"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+        mock_manager = MagicMock()
+        mock_get_manager.return_value = mock_manager
+
+        from src.helpmesign.utils.theme_manager import set_font_family
+
+        set_font_family("Arial")
+        mock_manager.set_font_family.assert_called_once_with("Arial")
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.get_theme_manager")
+    def test_get_font_family_function(self, mock_get_manager, mock_logger):
+        """Test get_font_family function"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+        mock_manager = MagicMock()
+        mock_manager.get_font_family.return_value = "Arial"
+        mock_get_manager.return_value = mock_manager
+
+        from src.helpmesign.utils.theme_manager import get_font_family
+
+        result = get_font_family()
+        assert result == "Arial"
+
+
+class TestThemeManagerComplexFontLogic:
+    """Test ThemeManager complex font logic"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_get_font_size_style_with_different_components(self, mock_logger):
+        """Test get_font_size_style with different components"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        manager.current_font_size = 12
+
+        # Test different components
+        components = ["general", "small", "large", "title", "button", "input", "label"]
+        for component in components:
+            result = manager.get_font_size_style(component)
+            assert isinstance(result, str)
+            assert "font-size" in result
+            assert "px;" in result
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_get_complete_style_with_font_size_replacement(self, mock_logger):
+        """Test get_complete_style with font size replacement"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        manager.current_font_size = 16
+
+        # Test with existing font-size in theme style
+        result = manager.get_complete_style("general", include_font_size=True)
+        assert isinstance(result, str)
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_get_complete_style_without_font_size(self, mock_logger):
+        """Test get_complete_style without font size"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        result = manager.get_complete_style("general", include_font_size=False)
+        assert isinstance(result, str)
+
+
+class TestThemeManagerWidgetTreeApplication:
+    """Test ThemeManager widget tree application"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_font_size_to_widget_tree_with_pyside6(self, mock_logger):
+        """Test apply_font_size_to_widget_tree with PySide6 available"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_widget = MagicMock()
+        mock_widget.__class__.__name__ = "QMainWindow"
+        mock_widget.setStyleSheet = MagicMock()
+        mock_widget.findChildren = MagicMock(return_value=[])
+
+        manager.apply_font_size_to_widget_tree(mock_widget)
+        # Should not raise any exceptions
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", False)
+    def test_apply_font_size_to_widget_tree_without_pyside6(self, mock_logger):
+        """Test apply_font_size_to_widget_tree without PySide6"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_widget = MagicMock()
+
+        manager.apply_font_size_to_widget_tree(mock_widget)
+        mock_logger_instance.debug.assert_called_with(
+            "PySide6 not available, skipping widget tree font size application"
+        )
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_force_font_size_update_with_pyside6(self, mock_logger):
+        """Test force_font_size_update with PySide6 available"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_widget = MagicMock()
+        mock_widget.setStyleSheet = MagicMock()
+
+        manager.force_font_size_update(mock_widget)
+        # Should not raise any exceptions
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", False)
+    def test_force_font_size_update_without_pyside6(self, mock_logger):
+        """Test force_font_size_update without PySide6"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_widget = MagicMock()
+
+        manager.force_font_size_update(mock_widget)
+        mock_logger_instance.debug.assert_called_with(
+            "PySide6 not available, skipping font size update"
+        )
+
+
+class TestThemeManagerThemeApplication:
+    """Test ThemeManager theme application methods"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_theme_with_pyside6(self, mock_logger):
+        """Test apply_theme with PySide6 available"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_app = MagicMock()
+
+        result = manager.apply_theme("Light", mock_app)
+        assert result is True
+        assert manager.current_theme == "Light"
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", False)
+    def test_apply_theme_without_pyside6(self, mock_logger):
+        """Test apply_theme without PySide6"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        result = manager.apply_theme("Light")
+        assert result is True
+        mock_logger_instance.debug.assert_called_with(
+            "PySide6 not available, skipping theme application"
+        )
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_apply_theme_invalid_theme(self, mock_logger):
+        """Test apply_theme with invalid theme"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        result = manager.apply_theme("InvalidTheme")
+        assert result is False
+        mock_logger_instance.error.assert_called_with("Theme 'InvalidTheme' not found")
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_get_light_theme(self, mock_logger):
+        """Test _get_light_theme method"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        theme = manager._get_light_theme()
+
+        assert theme["name"] == "Light"
+        assert "colors" in theme
+        assert "styles" in theme
+        assert theme["colors"]["background"] == "#ffffff"
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_get_dark_theme(self, mock_logger):
+        """Test _get_dark_theme method"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        theme = manager._get_dark_theme()
+
+        assert theme["name"] == "Dark"
+        assert "colors" in theme
+        assert "styles" in theme
+        assert theme["colors"]["background"] == "#1c1c1e"
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    def test_get_system_theme(self, mock_logger):
+        """Test _get_system_theme method"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        theme = manager._get_system_theme()
+
+        assert theme["name"] == "Light"  # Currently defaults to light theme
+
+
+class TestThemeManagerMockClasses:
+    """Test ThemeManager mock classes when PySide6 is not available"""
+
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", False)
+    def test_mock_classes_creation(self):
+        """Test that mock classes are created when PySide6 is not available"""
+        # This test verifies that the mock classes are defined
+        # We can't directly test the mock classes since they're created in the except block
+        # But we can test that the module imports without error
+        try:
+            from src.helpmesign.utils.theme_manager import ThemeManager
+
+            manager = ThemeManager()
+            assert manager is not None
+        except ImportError:
+            pytest.skip("PySide6 not available for testing")
+
+
+class TestThemeManagerFunctionWrappers:
+    """Test ThemeManager function wrappers"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.get_theme_manager")
+    def test_all_function_wrappers(self, mock_get_manager, mock_logger):
+        """Test all function wrappers"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+        mock_manager = MagicMock()
+        mock_get_manager.return_value = mock_manager
+
+        from src.helpmesign.utils.theme_manager import (
+            apply_font_size_to_widget_tree,
+            apply_theme,
+            force_font_size_update,
+            get_complete_style,
+            get_font_family,
+            get_font_size,
+            get_font_size_style,
+            get_theme_color,
+            get_theme_style,
+            set_font_family,
+            set_font_size,
+        )
+
+        # Test all function wrappers
+        apply_theme("Light")
+        get_theme_style("general")
+        get_theme_color("background")
+        set_font_size(16)
+        get_font_size()
+        get_font_size_style()
+        get_complete_style("general")
+        force_font_size_update(MagicMock())
+        apply_font_size_to_widget_tree(MagicMock())
+        set_font_family("Arial")
+        get_font_family()
+
+        # Verify all manager methods were called
+        assert mock_manager.apply_theme.called
+        assert mock_manager.get_theme_style.called
+        assert mock_manager.get_theme_color.called
+        assert mock_manager.set_font_size.called
+        assert mock_manager.get_font_size.called
+        assert mock_manager.get_font_size_style.called
+        assert mock_manager.get_complete_style.called
+        assert mock_manager.force_font_size_update.called
+        assert mock_manager.apply_font_size_to_widget_tree.called
+        assert mock_manager.set_font_family.called
+        assert mock_manager.get_font_family.called
+
+
+class TestThemeManagerAdvancedWidgetTreeApplication:
+    """Test ThemeManager advanced widget tree application"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_font_size_to_widget_tree_with_complex_hierarchy(self, mock_logger):
+        """Test apply_font_size_to_widget_tree with complex widget hierarchy"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create a complex widget hierarchy
+        mock_root = MagicMock()
+        mock_root.__class__.__name__ = "QMainWindow"
+        mock_root.setStyleSheet = MagicMock()
+        mock_root.findChildren = MagicMock(return_value=[])
+        mock_root.isVisible = MagicMock(return_value=True)
+        mock_root.isDestroyed = MagicMock(return_value=False)
+        mock_root.hasattr = MagicMock(return_value=True)
+
+        manager.apply_font_size_to_widget_tree(mock_root)
+        # Should not raise any exceptions
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_font_size_to_widget_tree_with_invalid_widget(self, mock_logger):
+        """Test apply_font_size_to_widget_tree with invalid widget"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create an invalid widget (no setStyleSheet method)
+        mock_invalid_widget = MagicMock()
+        del mock_invalid_widget.setStyleSheet
+
+        manager.apply_font_size_to_widget_tree(mock_invalid_widget)
+        mock_logger_instance.warning.assert_called_with(
+            "Root widget is not a valid Qt widget, skipping font size application"
+        )
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_font_size_to_widget_tree_with_destroyed_widget(self, mock_logger):
+        """Test apply_font_size_to_widget_tree with destroyed widget"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create a destroyed widget
+        mock_destroyed_widget = MagicMock()
+        mock_destroyed_widget.setStyleSheet = MagicMock()
+        mock_destroyed_widget.isDestroyed = MagicMock(return_value=True)
+
+        manager.apply_font_size_to_widget_tree(mock_destroyed_widget)
+        mock_logger_instance.warning.assert_called_with(
+            "Root widget is being destroyed, skipping font size application"
+        )
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_font_size_to_widget_tree_with_many_children(self, mock_logger):
+        """Test apply_font_size_to_widget_tree with many children"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create a widget with many children
+        mock_root = MagicMock()
+        mock_root.__class__.__name__ = "QMainWindow"
+        mock_root.setStyleSheet = MagicMock()
+        mock_root.isDestroyed = MagicMock(return_value=False)
+
+        # Create many child widgets
+        mock_children = []
+        for i in range(1500):  # More than the 1000 limit
+            child = MagicMock()
+            child.__class__.__name__ = f"QWidget{i}"
+            child.setStyleSheet = MagicMock()
+            child.isVisible = MagicMock(return_value=True)
+            child.isDestroyed = MagicMock(return_value=False)
+            mock_children.append(child)
+
+        mock_root.findChildren = MagicMock(return_value=mock_children)
+
+        manager.apply_font_size_to_widget_tree(mock_root)
+        # Check if any warning was called (the exact message might vary)
+        assert mock_logger_instance.warning.called
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_force_font_size_update_with_invalid_widget(self, mock_logger):
+        """Test force_font_size_update with invalid widget"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create an invalid widget (no setStyleSheet method)
+        mock_invalid_widget = MagicMock()
+        del mock_invalid_widget.setStyleSheet
+
+        manager.force_font_size_update(mock_invalid_widget)
+        # Should not raise any exceptions
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_force_font_size_update_with_destroyed_widget(self, mock_logger):
+        """Test force_font_size_update with destroyed widget"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create a destroyed widget
+        mock_destroyed_widget = MagicMock()
+        mock_destroyed_widget.setStyleSheet = MagicMock()
+        mock_destroyed_widget.isDestroyed = MagicMock(return_value=True)
+
+        manager.force_font_size_update(mock_destroyed_widget)
+        # Should not raise any exceptions
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_force_font_size_update_with_invisible_widget(self, mock_logger):
+        """Test force_font_size_update with invisible widget"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create an invisible widget
+        mock_invisible_widget = MagicMock()
+        mock_invisible_widget.setStyleSheet = MagicMock()
+        mock_invisible_widget.isVisible = MagicMock(return_value=False)
+
+        manager.force_font_size_update(mock_invisible_widget)
+        # Should not raise any exceptions
+
+
+class TestThemeManagerAdvancedThemeApplication:
+    """Test ThemeManager advanced theme application"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    @patch("src.helpmesign.utils.theme_manager.QPalette")
+    @patch("src.helpmesign.utils.theme_manager.QColor")
+    def test_apply_theme_with_application_palette(
+        self, mock_qcolor, mock_qpalette, mock_logger
+    ):
+        """Test apply_theme with application palette"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+        mock_palette = MagicMock()
+        mock_qpalette.return_value = mock_palette
+        mock_color = MagicMock()
+        mock_qcolor.return_value = mock_color
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_app = MagicMock()
+
+        result = manager.apply_theme("Light", mock_app)
+        assert result is True
+        assert manager.current_theme == "Light"
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_theme_with_exception(self, mock_logger):
+        """Test apply_theme with exception"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Mock the theme to cause an exception
+        manager.themes = {}  # Empty themes dict will cause KeyError
+
+        result = manager.apply_theme("Light")
+        assert result is False
+        mock_logger_instance.error.assert_called()
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_refresh_all_widgets(self, mock_logger):
+        """Test _refresh_all_widgets method"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_app = MagicMock()
+
+        # Create mock top-level widgets
+        mock_widget1 = MagicMock()
+        mock_widget1.isVisible = MagicMock(return_value=True)
+        mock_widget1.update = MagicMock()
+        mock_widget1.repaint = MagicMock()
+        mock_widget1.findChildren = MagicMock(return_value=[])
+
+        mock_widget2 = MagicMock()
+        mock_widget2.isVisible = MagicMock(return_value=False)  # Invisible widget
+
+        mock_app.topLevelWidgets = MagicMock(return_value=[mock_widget1, mock_widget2])
+
+        manager._refresh_all_widgets(mock_app)
+        # Should not raise any exceptions
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", False)
+    def test_refresh_all_widgets_without_pyside6(self, mock_logger):
+        """Test _refresh_all_widgets without PySide6"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_app = MagicMock()
+
+        manager._refresh_all_widgets(mock_app)
+        mock_logger_instance.debug.assert_called_with(
+            "PySide6 not available, skipping widget refresh"
+        )
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_to_application(self, mock_logger):
+        """Test _apply_to_application method"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_app = MagicMock()
+        mock_app.setPalette = MagicMock()
+
+        # Test with a valid theme
+        theme = manager._get_light_theme()
+        manager._apply_to_application(mock_app, theme)
+        # Should not raise any exceptions
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", False)
+    def test_apply_to_application_without_pyside6(self, mock_logger):
+        """Test _apply_to_application without PySide6"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_app = MagicMock()
+        theme = {"colors": {}, "styles": {}}
+
+        manager._apply_to_application(mock_app, theme)
+        mock_logger_instance.debug.assert_called_with(
+            "PySide6 not available, skipping application theme application"
+        )
+
+
+class TestThemeManagerErrorHandling:
+    """Test ThemeManager error handling"""
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_apply_font_size_to_widget_tree_with_exception(self, mock_logger):
+        """Test apply_font_size_to_widget_tree with exception"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create a widget that will cause an exception
+        mock_widget = MagicMock()
+        mock_widget.setStyleSheet = MagicMock()
+        mock_widget.isDestroyed = MagicMock(return_value=False)
+        mock_widget.findChildren = MagicMock(side_effect=Exception("Test exception"))
+
+        manager.apply_font_size_to_widget_tree(mock_widget)
+        # Check if any error was called (the exact message might vary)
+        assert mock_logger_instance.error.called
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_force_font_size_update_with_exception(self, mock_logger):
+        """Test force_font_size_update with exception"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+
+        # Create a widget that will cause an exception
+        mock_widget = MagicMock()
+        mock_widget.setStyleSheet = MagicMock(side_effect=Exception("Test exception"))
+        mock_widget.isVisible = MagicMock(return_value=True)
+        mock_widget.isDestroyed = MagicMock(return_value=False)
+
+        manager.force_font_size_update(mock_widget)
+        # Check if any warning was called (the exact message might vary)
+        assert mock_logger_instance.warning.called
+
+    @patch("src.helpmesign.utils.theme_manager.get_logger")
+    @patch("src.helpmesign.utils.theme_manager.PYSIDE6_AVAILABLE", True)
+    def test_refresh_all_widgets_with_exception(self, mock_logger):
+        """Test _refresh_all_widgets with exception"""
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        mock_app = MagicMock()
+        mock_app.topLevelWidgets = MagicMock(side_effect=Exception("Test exception"))
+
+        manager._refresh_all_widgets(mock_app)
+        mock_logger_instance.error.assert_called_with(
+            "Error refreshing widgets: Test exception"
+        )
