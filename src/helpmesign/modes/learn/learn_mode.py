@@ -18,6 +18,11 @@ class LearnMode(BaseMode):
     """Learn Sign Language mode - character selection and sign display"""
 
     def __init__(self, main_window, environment: str = "dev"):
+        # Initialize logger
+        import logging
+
+        self.logger = logging.getLogger(__name__)
+
         # Initialize font attributes before calling parent __init__
         # Get current font size and family once and store them
         from src.helpmesign.utils.font_manager import get_font_manager
@@ -40,6 +45,7 @@ class LearnMode(BaseMode):
         # Initialize sign language loader
         self.sign_loader = get_sign_language_loader()
         self.current_language = "ASL"  # Default to ASL
+        self.current_category = "all"  # Track current category
 
         # Now call parent __init__ which will call setup_ui()
         super().__init__(main_window, environment)
@@ -291,16 +297,19 @@ class LearnMode(BaseMode):
         return panel
 
     def create_language_selector(self):
-        """Create the language selection component"""
+        """Create a clean, modern language selection component"""
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QFont
         from PySide6.QtWidgets import (
             QComboBox,
             QFrame,
-            QGroupBox,
+            QGridLayout,
             QHBoxLayout,
             QLabel,
             QLineEdit,
+            QListWidget,
+            QListWidgetItem,
+            QMenu,
             QPushButton,
             QScrollArea,
             QVBoxLayout,
@@ -309,32 +318,40 @@ class LearnMode(BaseMode):
 
         from ...utils.language_loader import get_all_languages, get_language_categories
 
-        # Create language selector group
-        language_group = QGroupBox(get_text("ui.language_selection.title"))
-        language_group.setFont(
-            QFont(
-                self.current_font_family, self.current_font_size - 1, QFont.Weight.Bold
-            )
-        )
-        language_group.setStyleSheet(
+        # Create a simple container widget (no group box)
+        container = QWidget()
+        container.setStyleSheet(
             """
-            QGroupBox {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
+            QWidget {
+                background-color: transparent;
+                border: none;
             }
         """
         )
 
-        layout = QVBoxLayout(language_group)
-        layout.setSpacing(10)
+        layout = QVBoxLayout(container)
+        layout.setSpacing(12)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Title label
+        title_label = QLabel(get_text("ui.language_selection.title"))
+        title_label.setFont(
+            QFont(self.current_font_family, self.current_font_size, QFont.Weight.Bold)
+        )
+        title_label.setStyleSheet(
+            """
+            QLabel {
+                color: #2c3e50;
+                padding: 0;
+                margin: 0;
+            }
+        """
+        )
+        layout.addWidget(title_label)
+
+        # Search and filter row
+        filter_layout = QHBoxLayout()
+        filter_layout.setSpacing(8)
 
         # Search box
         self.search_box = QLineEdit()
@@ -345,93 +362,174 @@ class LearnMode(BaseMode):
         self.search_box.setStyleSheet(
             """
             QLineEdit {
-                border: 1px solid #ced4da;
-                border-radius: 4px;
-                padding: 5px;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 8px 12px;
                 background-color: white;
+                font-size: 13px;
+                min-height: 20px;
+                selection-background-color: #007bff;
+                selection-color: white;
             }
             QLineEdit:focus {
                 border-color: #007bff;
+                outline: none;
+            }
+            QLineEdit::placeholder {
+                color: #6c757d;
+                font-style: italic;
             }
         """
         )
-        layout.addWidget(self.search_box)
+        filter_layout.addWidget(self.search_box, 2)  # Takes 2/3 of space
 
-        # Category selector
-        self.category_combo = QComboBox()
-        self.category_combo.addItem(
-            get_text("ui.language_selection.category_popular"), "popular"
+        # Category selector - using QPushButton with custom popup menu
+        # Create a container widget for the button with proper layout
+        category_container = QWidget()
+        category_layout = QHBoxLayout(category_container)
+        category_layout.setContentsMargins(0, 0, 0, 0)
+        category_layout.setSpacing(0)
+
+        # Create the button with text and arrow in separate layout
+        self.category_button = QPushButton()
+        self.category_button.setObjectName("categoryButton")
+        self.category_button.clicked.connect(self.show_category_menu)
+
+        # Create inner layout for text and arrow
+        button_layout = QHBoxLayout(self.category_button)
+        button_layout.setContentsMargins(8, 4, 8, 4)
+        button_layout.setSpacing(8)
+
+        # Text label
+        self.category_text_label = QLabel(
+            get_text("ui.language_selection.category_all")
         )
-        self.category_combo.addItem(
-            get_text("ui.language_selection.category_beginner"), "beginner"
-        )
-        self.category_combo.addItem(
-            get_text("ui.language_selection.category_intermediate"), "intermediate"
-        )
-        self.category_combo.addItem(
-            get_text("ui.language_selection.category_advanced"), "advanced"
-        )
-        self.category_combo.addItem(
-            get_text("ui.language_selection.category_all"), "all"
-        )
-        self.category_combo.currentTextChanged.connect(self.on_category_changed)
-        self.category_combo.setStyleSheet(
+        self.category_text_label.setObjectName("categoryTextLabel")
+        button_layout.addWidget(self.category_text_label, 1)  # Takes available space
+
+        # Arrow label
+        self.category_arrow_label = QLabel("▼")
+        self.category_arrow_label.setObjectName("categoryArrowLabel")
+        button_layout.addWidget(self.category_arrow_label, 0)  # Fixed size
+
+        # Add the button to the container
+        category_layout.addWidget(self.category_button)
+
+        # Create the popup menu
+        self.category_menu = QMenu(self.category_button)
+
+        # Add menu items
+        self.category_actions = {}
+        categories = [
+            (get_text("ui.language_selection.category_all"), "all"),
+            (get_text("ui.language_selection.category_popular"), "popular"),
+            (get_text("ui.language_selection.category_beginner"), "beginner"),
+            (get_text("ui.language_selection.category_intermediate"), "intermediate"),
+            (get_text("ui.language_selection.category_advanced"), "advanced"),
+        ]
+
+        for display_name, category_value in categories:
+            action = self.category_menu.addAction(display_name)
+            action.setData(category_value)
+            self.category_actions[category_value] = action
+            action.triggered.connect(
+                lambda checked, cat=category_value: self.on_category_selected(cat)
+            )
+
+        # Style the button and menu
+        self.category_button.setStyleSheet(
             """
-            QComboBox {
-                border: 1px solid #ced4da;
+            QPushButton#categoryButton {
+                border: 1px solid #ccc;
                 border-radius: 4px;
-                padding: 5px;
+                padding: 4px 8px;
                 background-color: white;
+                min-width: 150px;
+                color: #333;
+                text-align: left;
             }
-            QComboBox::drop-down {
+            QPushButton#categoryButton:hover {
+                border-color: #007bff;
+                background-color: #f8f9fa;
+            }
+            QPushButton#categoryButton:pressed {
+                background-color: #e9ecef;
+            }
+            QLabel#categoryTextLabel {
+                color: #333;
+                background-color: transparent;
                 border: none;
+                padding: 0;
+                margin: 0;
             }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #6c757d;
+            QLabel#categoryArrowLabel {
+                color: #666;
+                background-color: transparent;
+                border: none;
+                padding: 0;
+                margin: 0;
+                font-size: 10px;
             }
         """
         )
-        layout.addWidget(self.category_combo)
 
-        # Language list area
+        self.category_menu.setStyleSheet(
+            """
+            QMenu {
+                border: 1px solid #ccc;
+                background-color: white;
+                padding: 4px 0px;
+            }
+            QMenu::item {
+                padding: 8px 16px;
+                color: #333;
+                background-color: transparent;
+            }
+            QMenu::item:hover {
+                background-color: #f0f0f0;
+                color: #333;
+            }
+            QMenu::item:selected {
+                background-color: #007bff;
+                color: white;
+            }
+        """
+        )
+
+        filter_layout.addWidget(category_container, 1)  # Takes 1/4 of space
+
+        layout.addLayout(filter_layout)
+
+        # Language grid area - clean and simple
         self.language_list_area = QScrollArea()
         self.language_list_area.setWidgetResizable(True)
-        self.language_list_area.setMaximumHeight(
-            280
-        )  # Increased height for better space utilization
+        self.language_list_area.setMaximumHeight(180)
         self.language_list_area.setStyleSheet(
             """
             QScrollArea {
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                background-color: white;
+                border: none;
+                background-color: transparent;
             }
             QScrollBar:vertical {
-                background-color: #f8f9fa;
-                width: 12px;
-                border-radius: 6px;
+                background-color: transparent;
+                width: 6px;
             }
             QScrollBar::handle:vertical {
-                background-color: #ced4da;
-                border-radius: 6px;
+                background-color: #bdc3c7;
+                border-radius: 3px;
                 min-height: 20px;
             }
             QScrollBar::handle:vertical:hover {
-                background-color: #adb5bd;
+                background-color: #95a5a6;
             }
         """
         )
 
-        # Language list widget
+        # Language grid widget
         self.language_list_widget = QWidget()
-        self.language_list_layout = QVBoxLayout(self.language_list_widget)
-        self.language_list_layout.setSpacing(
-            3
-        )  # Reduced spacing for more compact layout
-        self.language_list_layout.setContentsMargins(4, 4, 4, 4)  # Reduced margins
+        self.language_list_layout = QGridLayout(self.language_list_widget)
+        self.language_list_layout.setSpacing(4)
+        self.language_list_layout.setContentsMargins(2, 2, 2, 2)
 
         self.language_list_area.setWidget(self.language_list_widget)
         layout.addWidget(self.language_list_area)
@@ -443,15 +541,20 @@ class LearnMode(BaseMode):
         self.filtered_languages = []
 
         # Populate initial language list
-        self.populate_language_list("popular")
+        self.populate_language_list("all")
 
-        return language_group
+        # Load saved language selection
+        self.load_saved_language_selection()
+
+        return container
 
     def populate_language_list(self, category: str):
-        """Populate the language list based on category"""
+        """Populate the language list based on category using grid layout"""
         # Clear existing items
         for i in reversed(range(self.language_list_layout.count())):
-            self.language_list_layout.itemAt(i).widget().setParent(None)
+            item = self.language_list_layout.itemAt(i)
+            if item and item.widget():
+                item.widget().setParent(None)
 
         # Get languages for category
         if category == "popular":
@@ -467,16 +570,16 @@ class LearnMode(BaseMode):
 
         self.filtered_languages = languages
 
-        # Create language buttons
-        for language in languages:
+        # Create language buttons in a grid layout (4 columns for better space utilization)
+        columns = 4
+        for i, language in enumerate(languages):
             btn = self.create_language_button(language)
-            self.language_list_layout.addWidget(btn)
-
-        # Add stretch to push buttons to top
-        self.language_list_layout.addStretch()
+            row = i // columns
+            col = i % columns
+            self.language_list_layout.addWidget(btn, row, col)
 
     def create_language_button(self, language: dict):
-        """Create a button for a language with enhanced display"""
+        """Create a compact button for a language in grid layout"""
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QFont
         from PySide6.QtWidgets import QPushButton
@@ -491,7 +594,7 @@ class LearnMode(BaseMode):
         regions = language.get("metadata", {}).get("regions", [])
         writing_systems = language.get("writingSystems", {})
 
-        # Format button text with just flag and code
+        # Format button text with just flag and code - compact for grid
         button_text = f"{flag} {code}"
 
         btn = QPushButton(button_text)
@@ -500,21 +603,23 @@ class LearnMode(BaseMode):
         btn.setProperty("language_data", language)
         btn.clicked.connect(lambda: self.on_language_selected(language))
 
-        # Style the button with compact, professional design using Roboto font
+        # Ultra-compact styling for grid layout
         btn.setStyleSheet(
             f"""
             QPushButton {{
                 background-color: #ffffff;
                 border: 1px solid #e9ecef;
-                border-radius: 4px;
-                padding: 6px 8px;
-                text-align: left;
+                border-radius: 6px;
+                padding: 6px 4px;
+                text-align: center;
                 font-family: "{self.current_font_family}";
                 font-size: 11px;
                 font-weight: 500;
                 color: #495057;
                 min-height: 28px;
-                line-height: 1.1;
+                max-height: 28px;
+                min-width: 60px;
+                max-width: 60px;
             }}
             QPushButton:hover {{
                 background-color: #f8f9fa;
@@ -575,6 +680,83 @@ class LearnMode(BaseMode):
         language_code = language.get("code", "ASL")
         self.change_sign_language(language_code)
 
+        # Save language selection to configuration
+        self.save_language_selection(language_code)
+
+    def save_language_selection(self, language_code: str) -> None:
+        """Save the selected language to user configuration"""
+        try:
+            from ...core.startup import get_all_settings, save_all_settings
+
+            # Get current settings
+            current_settings = get_all_settings(self.environment)
+
+            # Update the language selection
+            current_settings["selected_language"] = language_code
+
+            # Save the updated settings
+            if save_all_settings(current_settings, self.environment):
+                self.logger.info(f"Language selection saved to config: {language_code}")
+            else:
+                self.logger.error("Failed to save language selection to config")
+
+        except Exception as e:
+            self.logger.error(f"Error saving language selection: {e}")
+
+    def load_saved_language_selection(self) -> None:
+        """Load the saved language selection from configuration"""
+        try:
+            from ...core.startup import get_all_settings
+
+            # Get current settings
+            current_settings = get_all_settings(self.environment)
+
+            saved_language = current_settings.get("selected_language", "ASL")
+            self.logger.info(f"Loaded saved language selection: {saved_language}")
+
+            # Find and select the saved language
+            self.select_language_by_code(saved_language)
+
+        except Exception as e:
+            self.logger.error(f"Error loading saved language selection: {e}")
+            # Default to ASL if there's an error
+            self.select_language_by_code("ASL")
+
+    def select_language_by_code(self, language_code: str) -> None:
+        """Select a language by its code"""
+        try:
+            # Find the language in the current list
+            for i in range(self.language_list_layout.count()):
+                item = self.language_list_layout.itemAt(i)
+                if item and item.widget():
+                    btn = item.widget()
+                    if btn.property("language_code") == language_code:
+                        # Simulate clicking the button
+                        btn.click()
+                        return
+
+            # If not found in current list, try to find it in all languages
+            from ...utils.language_loader import get_all_languages
+
+            all_languages = get_all_languages()
+
+            for language in all_languages:
+                if language.get("code") == language_code:
+                    self.on_language_selected(language)
+                    return
+
+            # If still not found, default to ASL
+            self.logger.warning(
+                f"Language {language_code} not found, defaulting to ASL"
+            )
+            for language in all_languages:
+                if language.get("code") == "ASL":
+                    self.on_language_selected(language)
+                    return
+
+        except Exception as e:
+            self.logger.error(f"Error selecting language by code: {e}")
+
     def on_search_changed(self, text: str):
         """Handle search text changes"""
         from ...utils.language_loader import search_languages
@@ -585,11 +767,10 @@ class LearnMode(BaseMode):
             self.populate_search_results(search_results)
         else:
             # Show current category
-            current_category = self.category_combo.currentData()
-            self.populate_language_list(current_category)
+            self.populate_language_list(self.current_category)
 
     def populate_search_results(self, languages: list):
-        """Populate language list with search results"""
+        """Populate language list with search results using grid layout"""
         # Clear existing items
         for i in reversed(range(self.language_list_layout.count())):
             item = self.language_list_layout.itemAt(i)
@@ -598,13 +779,49 @@ class LearnMode(BaseMode):
 
         self.filtered_languages = languages
 
-        # Create language buttons for search results
-        for language in languages:
+        # Create language buttons for search results in a grid layout (4 columns for better space utilization)
+        columns = 4
+        for i, language in enumerate(languages):
             btn = self.create_language_button(language)
-            self.language_list_layout.addWidget(btn)
+            row = i // columns
+            col = i % columns
+            self.language_list_layout.addWidget(btn, row, col)
 
-        # Add stretch to push buttons to top
-        self.language_list_layout.addStretch()
+    def show_category_menu(self):
+        """Show the category selection menu"""
+        try:
+            # Position the menu below the button
+            button_rect = self.category_button.rect()
+            menu_pos = self.category_button.mapToGlobal(button_rect.bottomLeft())
+            self.category_menu.popup(menu_pos)
+        except Exception as e:
+            self.logger.error(f"Error showing category menu: {e}")
+
+    def on_category_selected(self, category: str):
+        """Handle category selection from menu"""
+        try:
+            # Update button text
+            category_display_names = {
+                "all": get_text("ui.language_selection.category_all"),
+                "popular": get_text("ui.language_selection.category_popular"),
+                "beginner": get_text("ui.language_selection.category_beginner"),
+                "intermediate": get_text("ui.language_selection.category_intermediate"),
+                "advanced": get_text("ui.language_selection.category_advanced"),
+            }
+            display_name = category_display_names.get(
+                category, get_text("ui.language_selection.category_all")
+            )
+            self.category_text_label.setText(display_name)
+
+            # Update current category
+            self.current_category = category
+
+            # Populate language list
+            self.populate_language_list(category)
+
+        except Exception as e:
+            self.logger.error(f"Error handling category selection: {e}")
+            self.populate_language_list("all")
 
     def on_category_changed(self, category_text: str):
         """Handle category selection changes"""

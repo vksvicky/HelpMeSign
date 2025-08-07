@@ -195,28 +195,28 @@ class TestAppCoverage:
         assert result is True
         assert app.config == {"test": "value"}
 
-    def test_delayed_font_application_exception(self):
-        """Test _delayed_font_application with exception"""
+    def test_apply_configuration_to_app_state_exception(self):
+        """Test _apply_configuration_to_app_state with exception"""
         app = HelpMeSignApp("dev")
 
-        # Mock apply_theme_and_font_settings to raise exception
-        app.apply_theme_and_font_settings = Mock(
-            side_effect=Exception("Delayed font error")
-        )
+        # Mock _apply_font_size_to_main_window to raise exception
+        with patch.object(app, "_apply_font_size_to_main_window") as mock_method:
+            mock_method.side_effect = Exception("Font application error")
 
-        app._delayed_font_application()
-        self.mock_logger.error.assert_called()
-
-    def test_delayed_font_application_exception_alternative(self):
-        """Test _delayed_font_application with exception - alternative approach"""
-        app = HelpMeSignApp("dev")
-
-        # Mock the method to raise exception directly
-        with patch.object(app, "apply_theme_and_font_settings") as mock_method:
-            mock_method.side_effect = Exception("Delayed font error")
-
-            app._delayed_font_application()
+            # Test the method directly
+            app._apply_configuration_to_app_state()
             self.mock_logger.error.assert_called()
+
+    def test_apply_font_size_to_main_window_exception(self):
+        """Test _apply_font_size_to_main_window with exception"""
+        app = HelpMeSignApp("dev")
+
+        # Mock main_window methods to raise exception
+        self.mock_main_window.get_text_input.side_effect = Exception("Font error")
+
+        # Test the method directly
+        app._apply_font_size_to_main_window(12)
+        self.mock_logger.error.assert_called()
 
     def test_setup_application_prod_environment(self):
         """Test setup_application with prod environment"""
@@ -391,14 +391,14 @@ class TestAppCoverage:
         self.mock_logger.error.assert_called()
 
     def test_apply_theme_and_font_settings_exception(self):
-        """Test apply_theme_and_font_settings with exception"""
+        """Test _apply_font_size_to_main_window with theme exception"""
         # Mock main_window methods to raise exception
         self.mock_main_window.get_text_input.side_effect = Exception(
             "Theme font settings error"
         )
 
         app = HelpMeSignApp("dev")
-        app.apply_theme_and_font_settings()
+        app._apply_font_size_to_main_window(12)
 
         self.mock_logger.error.assert_called()
 
@@ -593,11 +593,11 @@ class TestAppCoverage:
             assert app.user_mode == "Sign & Translate"
 
     def test_apply_theme_and_font_settings_success(self):
-        """Test apply_theme_and_font_settings success case"""
+        """Test _apply_font_size_to_main_window success case"""
         app = HelpMeSignApp("dev")
-        app.apply_theme_and_font_settings()
+        app._apply_font_size_to_main_window(12)
 
-        # Should call theme update methods
+        # Should call font size application methods
         # Note: The actual methods are mocked, so we just verify no exceptions
 
     def test_apply_font_size_methods_success(self):

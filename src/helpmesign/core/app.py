@@ -54,56 +54,135 @@ class HelpMeSignApp:
             f"Initializing HelpMeSign application in {self.environment} environment"
         )
 
-        # Initialize user mode
-        self.user_mode: Optional[str] = None
+        # STEP 1: Load user configuration first (or create default)
+        self._load_user_configuration()
 
-        # Create main window
-        self.main_window = MainWindow(title=f"HelpMeSign ({self.environment.upper()})")
-        self.logger.debug("Main window created")
+        # STEP 2: Apply configuration to application state
+        self._apply_configuration_to_app_state()
 
-        # Initialize mode manager
-        self.mode_manager = ModeManager(self.main_window, self.environment)
-        self.logger.debug("Mode manager initialized")
+        # STEP 3: Create UI with correct settings
+        self._create_ui_with_configuration()
 
-        # Set up application
+        # STEP 4: Set up application components
         self.setup_application()
         self.setup_event_handlers()
 
-        # Show startup screen if no user mode is set
+        # STEP 5: Check user mode and show startup if needed
         self.check_user_mode()
-
-        # Apply saved theme and font settings
-        self.apply_theme_and_font_settings()
-
-        # DEBUG: Disabled delayed font application to debug hand preference override issue
-        # Add a small delay to ensure all components are fully initialized
-        # before applying font settings
-        from PySide6.QtCore import QTimer
-
-        QTimer.singleShot(100, self._delayed_font_application)
 
         # Set up application shutdown handling
         self._setup_shutdown_handling()
 
         log_function_exit(get_logger(), "HelpMeSignApp.__init__")
 
-    def _delayed_font_application(self) -> None:
-        """Apply font settings after a delay to ensure all components are initialized"""
-        # DEBUG: Disabled for debugging hand preference override issue
-        self.logger.debug(
-            "Delayed font application disabled for debugging hand preference override issue"
-        )
-        # try:
-        #     from .startup import get_font_size
+    def _load_user_configuration(self) -> None:
+        """STEP 1: Load user configuration or create default if it doesn't exist"""
+        try:
+            from .startup import get_all_settings
 
-        #     font_size = get_font_size(self.environment)
-        #     self.logger.debug(f"Delayed font application for size: {font_size}px")
+            # This will automatically create default config if it doesn't exist
+            self.user_settings = get_all_settings(self.environment)
+            self.logger.info(f"User configuration loaded: {self.user_settings}")
 
-        #     # Re-apply font size to ensure all components are updated
-        #     self._apply_font_size_setting(font_size)
+        except Exception as e:
+            self.logger.error(f"Error loading user configuration: {e}")
+            # Fallback to default settings
+            self.user_settings = {
+                "user_mode": "Sign & Translate",
+                "theme": "Light",
+                "font_size": 12,
+                "hand_preference": "right",
+            }
 
-        # except Exception as e:
-        #     self.logger.error(f"Error in delayed font application: {e}")
+    def _apply_configuration_to_app_state(self) -> None:
+        """STEP 2: Apply configuration values to application state"""
+        try:
+            # Extract settings
+            self.user_mode = self.user_settings.get("user_mode")
+            self.theme = self.user_settings.get("theme", "Light")
+            self.font_size = self.user_settings.get("font_size", 12)
+            self.hand_preference = self.user_settings.get("hand_preference", "right")
+
+            # Apply theme to theme manager
+            from ..utils.theme_manager import get_theme_manager
+
+            theme_manager = get_theme_manager()
+            theme_manager.set_font_size(self.font_size)
+
+            self.logger.info(
+                f"Configuration applied to app state: theme={self.theme}, font_size={self.font_size}, hand_preference={self.hand_preference}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error applying configuration to app state: {e}")
+
+    def _create_ui_with_configuration(self) -> None:
+        """STEP 3: Create UI components with the correct configuration settings"""
+        try:
+            # Create main window with correct title
+            self.main_window = MainWindow(
+                title=f"HelpMeSign ({self.environment.upper()})"
+            )
+            self.logger.debug("Main window created")
+
+            # Initialize mode manager
+            self.mode_manager = ModeManager(self.main_window, self.environment)
+            self.logger.debug("Mode manager initialized")
+
+            # Apply theme to QApplication
+            from PySide6.QtWidgets import QApplication
+
+            from ..utils.theme_manager import apply_theme
+
+            app = QApplication.instance()
+            if app and isinstance(app, QApplication):
+                success = apply_theme(self.theme, app)
+                if success:
+                    self.logger.info(f"Theme applied to QApplication: {self.theme}")
+                else:
+                    self.logger.error(f"Failed to apply theme: {self.theme}")
+
+            # Apply font size to main window
+            self._apply_font_size_to_main_window(self.font_size)
+
+            self.logger.info(
+                f"UI created with configuration: theme={self.theme}, font_size={self.font_size}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error creating UI with configuration: {e}")
+
+    def _apply_font_size_to_main_window(self, font_size: int) -> None:
+        """Apply font size to main window during initialization"""
+        try:
+            # Check if app is shutting down
+            if hasattr(self, "_shutting_down") and self._shutting_down:
+                self.logger.debug("App shutting down, skipping font application")
+                return
+
+            # Check if main window is still valid
+            if not hasattr(self, "main_window") or self.main_window is None:
+                self.logger.debug(
+                    "Main window not available, skipping font application"
+                )
+                return
+
+            from PySide6.QtGui import QFont
+
+            from ..utils.theme_manager import set_font_size
+
+            # Set the font size in the theme manager for consistency
+            set_font_size(font_size)
+            self.logger.debug(f"Font size set in theme manager: {font_size}px")
+
+            # Apply font size directly to main window
+            self._apply_font_size_directly(font_size)
+            self.logger.info(
+                f"Font size applied to main window during initialization: {font_size}px"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error applying font size to main window: {e}")
 
     def _setup_shutdown_handling(self):
         """Set up proper application shutdown handling"""
@@ -362,67 +441,17 @@ class HelpMeSignApp:
             else:
                 self.logger.warning(f"Failed to switch to mode: {mode}")
 
-            # Apply theme and font settings
-            self.apply_theme_and_font_settings()
-
-            # DEBUG: Disabled mode manager font notification to debug hand preference override issue
-            # Notify all modes about font changes
-            if hasattr(self, "mode_manager"):
-                # self.mode_manager.notify_font_changed()
-                pass
+            # Update main window title
+            if hasattr(self, "main_window"):
+                self.main_window.setWindowTitle(
+                    f"HelpMeSign - {mode} ({self.environment.upper()})"
+                )
 
             self._settings_save_in_progress = False
 
         except Exception as e:
             self.logger.error(f"Error handling settings change: {e}")
             self._settings_save_in_progress = False
-
-    def apply_theme_and_font_settings(self) -> None:
-        """Apply theme and font size settings to the UI following the defined process:
-        A) App Launch - Set default font size if not set
-        B) Use consistent font size across application
-        C) Only update fonts in currently visible window
-        """
-        try:
-            from PySide6.QtWidgets import QApplication
-
-            from .startup import get_font_size, get_theme
-
-            # Get current settings (these calls are safe and won't trigger save loops)
-            theme = get_theme(self.environment)
-            font_size = get_font_size(self.environment)
-
-            # A) App Launch - Set default font size if not set
-            if font_size is None or font_size <= 0:
-                font_size = 12  # Default font size
-                from ..utils.theme_manager import set_font_size
-
-                set_font_size(font_size)
-                self.logger.info(f"Default font size set to: {font_size}px")
-
-            # Apply theme to QApplication
-            app = QApplication.instance()
-            if app and isinstance(app, QApplication):
-                success = apply_theme(theme, app)
-                if success:
-                    self.logger.info(f"Theme applied successfully: {theme}")
-
-                    # Update main window styling
-                    self._update_main_window_theme()
-                else:
-                    self.logger.error(f"Failed to apply theme: {theme}")
-            else:
-                self.logger.warning(
-                    "No QApplication instance found for theme application"
-                )
-
-            # B) Use consistent font size across application
-            # Only apply font size to the currently visible window
-            self._apply_font_size_to_current_window(font_size)
-            self.logger.info(f"Font size setting applied: {font_size}")
-
-        except Exception as e:
-            self.logger.error(f"Error applying theme and font settings: {e}")
 
     def _apply_font_size_to_current_window(self, font_size: int) -> None:
         """C) Only update fonts in the currently visible window"""

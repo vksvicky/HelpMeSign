@@ -412,8 +412,10 @@ class SecureConfigManager:
         """Load configuration with HMAC verification"""
         try:
             if not self.config_file.exists():
-                self.logger.debug("Configuration file does not exist")
-                return {}
+                self.logger.debug(
+                    "Configuration file does not exist, creating default configuration"
+                )
+                return self._create_default_config()
 
             with open(self.config_file, "rb") as f:
                 content = f.read()
@@ -444,16 +446,46 @@ class SecureConfigManager:
             return config
 
         except FileNotFoundError:
-            self.logger.debug("Configuration file not found")
-            return {}
+            self.logger.debug(
+                "Configuration file not found, creating default configuration"
+            )
+            return self._create_default_config()
         except json.JSONDecodeError as e:
             self.logger.error(f"Invalid JSON in configuration file: {e}")
-            return {}
+            return self._create_default_config()
         except ValueError as e:
             self.logger.error(f"Configuration verification failed: {e}")
-            return {}
+            return self._create_default_config()
         except Exception as e:
             self.logger.error(f"Error loading configuration: {e}")
+            return self._create_default_config()
+
+    def _create_default_config(self) -> Dict[str, Any]:
+        """Create and save default configuration"""
+        try:
+            from ..utils.language_manager import get_text
+
+            default_config = {
+                "user_mode": get_text("modes.sign_translate.name"),
+                "theme": "Light",
+                "font_size": 12,
+                "hand_preference": "right",
+                "selected_language": "ASL",
+                "environment": self.environment,
+                "version": "1.0",
+                "timestamp": self.get_timestamp(),
+            }
+
+            # Save the default configuration
+            if self.save_config(default_config):
+                self.logger.info("Default configuration created and saved successfully")
+                return default_config
+            else:
+                self.logger.error("Failed to save default configuration")
+                return {}
+
+        except Exception as e:
+            self.logger.error(f"Error creating default configuration: {e}")
             return {}
 
     def get_user_mode(self) -> Optional[str]:

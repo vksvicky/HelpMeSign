@@ -1877,7 +1877,12 @@ class TestSecureConfigManager:
 
         with patch("pathlib.Path.exists", return_value=False):
             result = manager.load_config()
-            assert result == {}
+            # Should return default config when file doesn't exist
+            assert "user_mode" in result
+            assert "theme" in result
+            assert "font_size" in result
+            assert "hand_preference" in result
+            assert "selected_language" in result
 
     def test_secure_config_manager_load_config_with_invalid_json(self):
         """Test load_config with invalid JSON"""
@@ -1888,7 +1893,12 @@ class TestSecureConfigManager:
         with patch("pathlib.Path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data="invalid json")):
                 result = manager.load_config()
-                assert result == {}
+                # Should return default config when JSON is invalid
+                assert "user_mode" in result
+                assert "theme" in result
+                assert "font_size" in result
+                assert "hand_preference" in result
+                assert "selected_language" in result
 
     def test_secure_config_manager_load_config_with_hmac_verification_failure(self):
         """Test load_config with HMAC verification failure"""
@@ -1904,7 +1914,12 @@ class TestSecureConfigManager:
                 "builtins.open", mock_open(read_data=json.dumps(invalid_config))
             ):
                 result = manager.load_config()
-                assert result == {}
+                # Should return default config when HMAC verification fails
+                assert "user_mode" in result
+                assert "theme" in result
+                assert "font_size" in result
+                assert "hand_preference" in result
+                assert "selected_language" in result
 
     def test_secure_config_manager_get_user_mode_with_no_config(self):
         """Test get_user_mode when no config exists"""
@@ -2303,8 +2318,12 @@ class TestSecureConfigManager:
             with patch("builtins.open", mock_open(read_data=json.dumps(config_data))):
                 with patch.object(manager, "_verify_hmac", return_value=True):
                     result = manager.load_config()
-                    # Should return empty dict due to environment mismatch
-                    assert result == {}
+                    # Should return default config due to environment mismatch
+                    assert "user_mode" in result
+                    assert "theme" in result
+                    assert "font_size" in result
+                    assert "hand_preference" in result
+                    assert "selected_language" in result
 
     def test_secure_config_manager_get_user_mode_with_config(self):
         """Test get_user_mode when config exists"""

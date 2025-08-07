@@ -40,19 +40,12 @@ jobs:
         pip install -r requirements.txt
         pip install coverage
     
-    - name: Run tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-        DISPLAY: :99
-      run: |
-        python run_tests.py --verbose
-    
     - name: Run tests with coverage
       env:
         QT_QPA_PLATFORM: offscreen
         DISPLAY: :99
       run: |
-        python run_tests.py --coverage html
+        make test-coverage-quick
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
