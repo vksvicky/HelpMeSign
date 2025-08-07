@@ -794,13 +794,25 @@ class TestLearnMode:
         mode.update_character_buttons = Mock()
         mode._restore_hand_preference_visual_state = Mock()
 
+        # Create a proper mock for content_area with count() method
+        content_area_mock = Mock()
+        content_area_mock.count.return_value = 0  # No existing widgets
+        content_area_mock.widget.return_value = None  # No widget at any index
+        mode.main_window.content_area = content_area_mock
+
         # Act
         mode.activate()
 
         # Assert
         mode.main_window.set_mode.assert_called_with("learn")
         mode.main_window.set_status.assert_called_with("Learning mode activated")
-        mode.learning_widget.show.assert_called_once()
+        # Check that content_area methods are called instead of show()
+        mode.main_window.content_area.addWidget.assert_called_once_with(
+            mode.learning_widget
+        )
+        mode.main_window.content_area.setCurrentWidget.assert_called_once_with(
+            mode.learning_widget
+        )
         mode.load_saved_language_selection.assert_called_once()
         mode.update_character_buttons.assert_called_once()
         mode._restore_hand_preference_visual_state.assert_called_once()
@@ -810,13 +822,16 @@ class TestLearnMode:
         # Arrange
         mode = self.mode
         mode.learning_widget = Mock()
+        mode.main_window.content_area = Mock()
 
         # Act
         mode.deactivate()
 
         # Assert
-        # Should hide the learning widget
-        mode.learning_widget.hide.assert_called_once()
+        # Should remove the learning widget from content area
+        mode.main_window.content_area.removeWidget.assert_called_once_with(
+            mode.learning_widget
+        )
 
     def test_deactivate_without_widget(self):
         """Test deactivate without learning_widget"""
@@ -1523,13 +1538,16 @@ class TestLearnModeWithQt:
 
         # Arrange
         self.mode.learning_widget = Mock()
+        self.mode.main_window.content_area = Mock()
 
         # Act
         self.mode.deactivate()
 
         # Assert
-        # Should hide the learning widget
-        self.mode.learning_widget.hide.assert_called_once()
+        # Should remove the learning widget from content area
+        self.mode.main_window.content_area.removeWidget.assert_called_once_with(
+            self.mode.learning_widget
+        )
 
     def test_force_layout_stability_with_qt(self):
         """Test force layout stability with Qt mocks"""

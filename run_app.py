@@ -130,6 +130,11 @@ def main():
         # Create and run the application
         logger.info(f"Creating application in {args.env} environment")
         
+        # Check if there's already an application instance
+        existing_app = QApplication.instance()
+        if existing_app and existing_app != app:
+            logger.warning("Another QApplication instance detected, this might cause issues")
+        
         # Get the app class safely
         from helpmesign import get_app
         HelpMeSignApp = get_app()
@@ -138,6 +143,7 @@ def main():
             logger.error("PySide6 is not available. Cannot create application.")
             sys.exit(1)
         
+        # Create only one application instance
         helpmesign_app = HelpMeSignApp(args.env)
         helpmesign_app.run()
         

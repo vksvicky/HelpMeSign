@@ -277,46 +277,55 @@ class LearnMode(BaseMode):
         from ...utils.sign_language_loader import get_sign_language_loader
         from ...utils.theme_manager import get_theme_manager
 
-        # Safety check - ensure character layout exists
-        if not hasattr(self, "character_layout"):
-            self.logger.warning(
-                "Character layout not initialized yet, skipping character button update"
-            )
+        # Prevent excessive updates
+        if (
+            hasattr(self, "_updating_character_buttons")
+            and self._updating_character_buttons
+        ):
             return
 
-        # Ensure button dictionaries exist
-        if not hasattr(self, "alphabet_buttons"):
-            self.alphabet_buttons = {}
-        if not hasattr(self, "number_buttons"):
-            self.number_buttons = {}
-
-        # Safely clear existing buttons without deleteLater() to avoid memory corruption
-        for button in self.alphabet_buttons.values():
-            if button and button.parent():
-                button.setParent(None)
-        for button in self.number_buttons.values():
-            if button and button.parent():
-                button.setParent(None)
-        self.alphabet_buttons.clear()
-        self.number_buttons.clear()
-
-        # Safely clear the layout without deleteLater()
-        while self.character_layout.count():
-            child = self.character_layout.takeAt(0)
-            if child.widget():
-                child.widget().setParent(None)
-
-        # Get the selected language and hand preference
-        selected_language = "ASL"  # Default fallback
-        if hasattr(self, "selected_language") and self.selected_language:
-            selected_language = self.selected_language.get("code", "ASL")
-
-        hand_preference = self.current_hand_preference
-
-        # Load sign language data dynamically
-        sign_loader = get_sign_language_loader()
+        self._updating_character_buttons = True
 
         try:
+            # Safety check - ensure character layout exists
+            if not hasattr(self, "character_layout"):
+                self.logger.warning(
+                    "Character layout not initialized yet, skipping character button update"
+                )
+                return
+
+            # Ensure button dictionaries exist
+            if not hasattr(self, "alphabet_buttons"):
+                self.alphabet_buttons = {}
+            if not hasattr(self, "number_buttons"):
+                self.number_buttons = {}
+
+            # Safely clear existing buttons without deleteLater() to avoid memory corruption
+            for button in self.alphabet_buttons.values():
+                if button and button.parent():
+                    button.setParent(None)
+            for button in self.number_buttons.values():
+                if button and button.parent():
+                    button.setParent(None)
+            self.alphabet_buttons.clear()
+            self.number_buttons.clear()
+
+            # Safely clear the layout without deleteLater()
+            while self.character_layout.count():
+                child = self.character_layout.takeAt(0)
+                if child.widget():
+                    child.widget().setParent(None)
+
+            # Get the selected language and hand preference
+            selected_language = "ASL"  # Default fallback
+            if hasattr(self, "selected_language") and self.selected_language:
+                selected_language = self.selected_language.get("code", "ASL")
+
+            hand_preference = self.current_hand_preference
+
+            # Load sign language data dynamically
+            sign_loader = get_sign_language_loader()
+
             # Get alphabet and number signs for the selected language and hand
             alphabet_signs = sign_loader.get_alphabet_signs(
                 selected_language, hand_preference
@@ -376,6 +385,43 @@ class LearnMode(BaseMode):
                 self.character_layout.addWidget(error_label, 0, 0)
                 return
 
+            # Improved layout: 6 columns, 48px buttons, better spacing
+            max_columns = 6
+            button_size = 48
+
+            # Get theme-aware character button styling from theme manager with dynamic font size
+            theme_manager = get_theme_manager()
+            char_button_style = theme_manager.get_complete_style(
+                "learn_mode_character_button", include_font_size=True
+            )
+
+            row, col = 0, 0
+            for char in all_characters:
+                btn = QPushButton(char)
+                btn.setFixedSize(button_size, button_size)
+                btn.setMinimumSize(button_size, button_size)
+                btn.setMaximumSize(button_size, button_size)
+                btn.setStyleSheet(char_button_style)
+
+                # Connect to appropriate handler based on character type
+                if char in alphabet_chars:
+                    btn.clicked.connect(
+                        lambda checked, c=char: self.on_alphabet_selected(c)
+                    )
+                    self.alphabet_buttons[char] = btn
+                else:
+                    btn.clicked.connect(
+                        lambda checked, c=char: self.on_number_selected(c)
+                    )
+                    self.number_buttons[char] = btn
+
+                self.character_layout.addWidget(btn, row, col)
+
+                col += 1
+                if col >= max_columns:
+                    col = 0
+                    row += 1
+
         except Exception as e:
             # Error loading sign data - show error message
             error_label = QLabel(
@@ -396,42 +442,8 @@ class LearnMode(BaseMode):
             """
             )
             self.character_layout.addWidget(error_label, 0, 0)
-            return
-
-        # Improved layout: 6 columns, 48px buttons, better spacing
-        max_columns = 6
-        button_size = 48
-
-        # Get theme-aware character button styling from theme manager with dynamic font size
-        theme_manager = get_theme_manager()
-        char_button_style = theme_manager.get_complete_style(
-            "learn_mode_character_button", include_font_size=True
-        )
-
-        row, col = 0, 0
-        for char in all_characters:
-            btn = QPushButton(char)
-            btn.setFixedSize(button_size, button_size)
-            btn.setMinimumSize(button_size, button_size)
-            btn.setMaximumSize(button_size, button_size)
-            btn.setStyleSheet(char_button_style)
-
-            # Connect to appropriate handler based on character type
-            if char in alphabet_chars:
-                btn.clicked.connect(
-                    lambda checked, c=char: self.on_alphabet_selected(c)
-                )
-                self.alphabet_buttons[char] = btn
-            else:
-                btn.clicked.connect(lambda checked, c=char: self.on_number_selected(c))
-                self.number_buttons[char] = btn
-
-            self.character_layout.addWidget(btn, row, col)
-
-            col += 1
-            if col >= max_columns:
-                col = 0
-                row += 1
+        finally:
+            self._updating_character_buttons = False
 
     def create_language_selector(self):
         """Create a clean, modern language selection component"""
@@ -605,25 +617,37 @@ class LearnMode(BaseMode):
 
     def populate_language_list(self, category: str):
         """Populate the language list based on category using grid layout"""
-        # Clear existing items
-        for i in reversed(range(self.language_list_layout.count())):
-            item = self.language_list_layout.itemAt(i)
-            if item and item.widget():
-                item.widget().setParent(None)
+        # Prevent excessive recalculations
+        if hasattr(self, "_populating_languages") and getattr(
+            self, "_populating_languages", False
+        ):
+            return
 
-        # Get languages for category
-        if category == "popular":
-            languages = self.categories.get("popular", [])
-        elif category == "beginner":
-            languages = self.categories.get("beginner", [])
-        elif category == "intermediate":
-            languages = self.categories.get("intermediate", [])
-        elif category == "advanced":
-            languages = self.categories.get("advanced", [])
-        else:
-            languages = self.categories.get("all", [])
+        self._populating_languages = True
 
-        self.filtered_languages = languages
+        try:
+            # Clear existing items
+            for i in reversed(range(self.language_list_layout.count())):
+                item = self.language_list_layout.itemAt(i)
+                if item and item.widget():
+                    item.widget().setParent(None)
+
+            # Get languages for category
+            if category == "popular":
+                languages = self.categories.get("popular", [])
+            elif category == "beginner":
+                languages = self.categories.get("beginner", [])
+            elif category == "intermediate":
+                languages = self.categories.get("intermediate", [])
+            elif category == "advanced":
+                languages = self.categories.get("advanced", [])
+            else:
+                languages = self.categories.get("all", [])
+
+            self.filtered_languages = languages
+            self.current_category = category
+        finally:
+            self._populating_languages = False
 
         # Calculate optimal number of columns based on available width
         # Get actual available width from the scroll area, accounting for scrollbar
@@ -663,10 +687,18 @@ class LearnMode(BaseMode):
 
         QScrollArea.resizeEvent(self.language_list_area, event)
 
-        # Recalculate grid layout if we have languages loaded
+        # Only recalculate if we have languages loaded and the resize is significant
         if hasattr(self, "filtered_languages") and self.filtered_languages:
-            # Recalculate immediately to avoid memory issues with timers
-            self._recalculate_grid_layout()
+            # Use a timer to debounce rapid resize events
+            if not hasattr(self, "_resize_timer"):
+                from PySide6.QtCore import QTimer
+
+                self._resize_timer = QTimer()
+                self._resize_timer.setSingleShot(True)
+                self._resize_timer.timeout.connect(self._recalculate_grid_layout)
+
+            # Reset the timer to prevent excessive recalculations
+            self._resize_timer.start(100)  # 100ms delay
 
     def _recalculate_grid_layout(self):
         """Recalculate the grid layout based on current width"""
@@ -780,6 +812,12 @@ class LearnMode(BaseMode):
 
     def load_saved_language_selection(self) -> None:
         """Load the saved language selection from configuration"""
+        # Prevent multiple calls
+        if hasattr(self, "_language_loaded") and getattr(
+            self, "_language_loaded", False
+        ):
+            return
+
         try:
             from ...core.startup import get_all_settings
 
@@ -791,6 +829,8 @@ class LearnMode(BaseMode):
 
             # Find and select the saved language
             self.select_language_by_code(saved_language)
+
+            self._language_loaded = True
 
         except Exception as e:
             self.logger.error(f"Error loading saved language selection: {e}")
@@ -1325,13 +1365,24 @@ class LearnMode(BaseMode):
             self.main_window.set_mode("learn")
             self.main_window.set_status("Learning mode activated")
 
-            # Show the learning widget
+            # Add the learning widget to the main window's content area
             if hasattr(self, "learning_widget") and self.learning_widget:
-                self.learning_widget.show()
+                if hasattr(self.main_window, "content_area"):
+                    # Remove any existing learning widget
+                    for i in range(self.main_window.content_area.count()):
+                        widget = self.main_window.content_area.widget(i)
+                        if widget == self.learning_widget:
+                            self.main_window.content_area.removeWidget(widget)
 
-            # Load saved language selection and update character buttons
-            self.load_saved_language_selection()
-            self.update_character_buttons()
+                    # Add the learning widget to the content area
+                    self.main_window.content_area.addWidget(self.learning_widget)
+                    self.main_window.content_area.setCurrentWidget(self.learning_widget)
+
+            # Load saved language selection and update character buttons (only once)
+            if not hasattr(self, "_activated"):
+                self.load_saved_language_selection()
+                self.update_character_buttons()
+                self._activated = True
 
             # Restore hand preference visual state
             self._restore_hand_preference_visual_state()
@@ -1342,9 +1393,10 @@ class LearnMode(BaseMode):
     def deactivate(self) -> None:
         """Deactivate the learning mode"""
         try:
-            # Hide the learning widget
+            # Remove the learning widget from the content area
             if hasattr(self, "learning_widget") and self.learning_widget:
-                self.learning_widget.hide()
+                if hasattr(self.main_window, "content_area"):
+                    self.main_window.content_area.removeWidget(self.learning_widget)
 
         except Exception as e:
             self.logger.error(f"Error deactivating learn mode: {e}")
