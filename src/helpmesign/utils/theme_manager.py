@@ -556,9 +556,131 @@ class ThemeManager:
 
     def _get_system_theme(self) -> Dict[str, Any]:
         """Get system theme (follows OS preference)"""
-        # For now, default to light theme
-        # In the future, this could detect OS theme preference
-        return self._get_light_theme()
+        # Detect the current system theme preference
+        system_theme = self._detect_system_theme()
+        if system_theme == "Dark":
+            return self._get_dark_theme()
+        else:
+            return self._get_light_theme()
+
+    def _detect_system_theme(self) -> str:
+        """Detect the current system theme preference"""
+        try:
+            import platform
+            import subprocess
+            import sys
+
+            system = platform.system()
+
+            if system == "Darwin":  # macOS
+                return self._detect_macos_theme()
+            elif system == "Windows":
+                return self._detect_windows_theme()
+            elif system == "Linux":
+                return self._detect_linux_theme()
+            else:
+                self.logger.debug(
+                    f"Unknown system: {system}, defaulting to light theme"
+                )
+                return "Light"
+
+        except Exception as e:
+            self.logger.warning(
+                f"Error detecting system theme: {e}, defaulting to light theme"
+            )
+            return "Light"
+
+    def _detect_macos_theme(self) -> str:
+        """Detect macOS system theme"""
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                ["defaults", "read", "-g", "AppleInterfaceStyle"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip() == "Dark":
+                return "Dark"
+            else:
+                return "Light"
+        except Exception as e:
+            self.logger.debug(
+                f"Error detecting macOS theme: {e}, defaulting to light theme"
+            )
+            return "Light"
+
+    def _detect_windows_theme(self) -> str:
+        """Detect Windows system theme"""
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                [
+                    "reg",
+                    "query",
+                    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                    "/v",
+                    "AppsUseLightTheme",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                # If AppsUseLightTheme is 0, it means dark theme is enabled
+                if "0x0" in result.stdout:
+                    return "Dark"
+                else:
+                    return "Light"
+            else:
+                return "Light"
+        except Exception as e:
+            self.logger.debug(
+                f"Error detecting Windows theme: {e}, defaulting to light theme"
+            )
+            return "Light"
+
+    def _detect_linux_theme(self) -> str:
+        """Detect Linux system theme"""
+        try:
+            import os
+            import subprocess
+
+            # Try to detect GTK theme
+            gtk_theme = os.environ.get("GTK_THEME", "")
+            if "dark" in gtk_theme.lower():
+                return "Dark"
+
+            # Try to detect KDE theme
+            kde_theme = os.environ.get("KDEWM", "")
+            if kde_theme:
+                # For KDE, we'd need to check the actual theme file
+                # This is a simplified approach
+                pass
+
+            # Try to detect using gsettings (GNOME)
+            try:
+                result = subprocess.run(
+                    ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if result.returncode == 0 and "dark" in result.stdout.lower():
+                    return "Dark"
+            except:
+                pass
+
+            # Default to light theme for Linux
+            return "Light"
+
+        except Exception as e:
+            self.logger.debug(
+                f"Error detecting Linux theme: {e}, defaulting to light theme"
+            )
+            return "Light"
 
     def apply_theme(self, theme_name: str, app: Optional[QApplication] = None) -> bool:
         """Apply a theme to the application"""
@@ -567,12 +689,25 @@ class ThemeManager:
             return True
 
         try:
-            if theme_name not in self.themes:
-                self.logger.error(f"Theme '{theme_name}' not found")
-                return False
+            # Handle "System" theme by detecting current system preference
+            if theme_name == "System":
+                detected_theme = self._detect_system_theme()
+                self.logger.info(f"System theme detected as: {detected_theme}")
 
-            self.current_theme = theme_name
-            theme = self.themes[theme_name]
+                # Apply the detected theme
+                if detected_theme == "Dark":
+                    theme = self.themes["Dark"]
+                    self.current_theme = "System (Dark)"
+                else:
+                    theme = self.themes["Light"]
+                    self.current_theme = "System (Light)"
+            else:
+                if theme_name not in self.themes:
+                    self.logger.error(f"Theme '{theme_name}' not found")
+                    return False
+
+                self.current_theme = theme_name
+                theme = self.themes[theme_name]
 
             # Store current font size
             current_font_size = self.current_font_size

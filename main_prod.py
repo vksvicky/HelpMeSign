@@ -39,7 +39,7 @@ def main():
     try:
         resource_manager = ResourceManager()
         icon_path = resource_manager.get_image_path('icon.png')
-        if resource_manager.resource_exists('image', 'icon.png'):
+        if resource_manager.resource_exists('images', 'icon.png'):
             app.setWindowIcon(QIcon(icon_path))
     except Exception:
         pass  # Icon not critical for production

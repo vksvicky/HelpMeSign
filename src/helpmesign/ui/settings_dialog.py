@@ -586,7 +586,6 @@ class SettingsDialog(QDialog):
         self.tab_widget = QTabWidget()
         self.tab_widget.addTab(self.create_general_tab(), "General")
         self.tab_widget.addTab(self.create_appearance_tab(), "Appearance")
-        self.tab_widget.addTab(self.create_preferences_tab(), "Preferences")
 
         # Tab bar styling will be applied after settings are loaded
         content_layout.addWidget(self.tab_widget)
@@ -968,82 +967,6 @@ class SettingsDialog(QDialog):
         layout.addStretch()
         return tab
 
-    def create_preferences_tab(self) -> QWidget:
-        """Create the preferences tab with hand preference settings"""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setContentsMargins(25, 25, 25, 25)  # Increased margins
-        layout.setSpacing(25)  # Increased spacing
-
-        # Hand Preference Group
-        hand_preference_title = get_text("ui.language_selection.hand_preference_title")
-        # Fallback to string if get_text returns a mock object
-        if hasattr(hand_preference_title, "__call__") or not isinstance(
-            hand_preference_title, str
-        ):
-            hand_preference_title = "Hand Preference"
-        hand_group = QGroupBox(hand_preference_title)
-        hand_layout = QVBoxLayout(hand_group)
-        hand_layout.setContentsMargins(20, 25, 20, 20)  # Increased margins
-        hand_layout.setSpacing(15)  # Increased spacing
-
-        # Hand preference description
-        hand_description = QLabel(
-            "Choose your preferred hand for sign language gestures"
-        )
-        hand_layout.addWidget(hand_description)
-
-        # Hand preference radio buttons
-        self.hand_button_group = QButtonGroup()
-
-        right_hand_text = get_text("ui.language_selection.right_hand")
-        if hasattr(right_hand_text, "__call__") or not isinstance(right_hand_text, str):
-            right_hand_text = "Right Hand"
-        self.right_hand_radio = QRadioButton(right_hand_text)
-        self.right_hand_radio.setChecked(True)  # Default to right hand
-        self.hand_button_group.addButton(self.right_hand_radio)
-        hand_layout.addWidget(self.right_hand_radio)
-
-        left_hand_text = get_text("ui.language_selection.left_hand")
-        if hasattr(left_hand_text, "__call__") or not isinstance(left_hand_text, str):
-            left_hand_text = "Left Hand"
-        self.left_hand_radio = QRadioButton(left_hand_text)
-        self.hand_button_group.addButton(self.left_hand_radio)
-        hand_layout.addWidget(self.left_hand_radio)
-
-        # Connect hand preference changes
-        self.right_hand_radio.toggled.connect(self._on_hand_preference_changed)
-        self.left_hand_radio.toggled.connect(self._on_hand_preference_changed)
-
-        layout.addWidget(hand_group)
-        layout.addStretch()
-        return tab
-
-    def _on_hand_preference_changed(self) -> None:
-        """Handle hand preference changes"""
-        try:
-            # Get the selected hand preference
-            if self.right_hand_radio.isChecked():
-                hand_preference = "right"
-            elif self.left_hand_radio.isChecked():
-                hand_preference = "left"
-            else:
-                hand_preference = "right"  # Default fallback
-
-            # Store the preference in current settings
-            self.current_settings["hand_preference"] = hand_preference
-
-            self.logger.debug(f"Hand preference changed to: {hand_preference}")
-
-            # Update any relevant UI components that depend on hand preference
-            if hasattr(self, "main_window") and self.main_window:
-                # Notify main window of hand preference change
-                if hasattr(self.main_window, "update_hand_preference"):
-                    self.main_window.update_hand_preference(hand_preference)
-
-        except Exception as e:
-            self.logger.error(f"Error handling hand preference change: {e}")
-
     def _update_group_box_styling(self, theme_name: str) -> None:
         """Update GroupBox styling based on the current theme"""
         try:
@@ -1053,12 +976,22 @@ class SettingsDialog(QDialog):
             group_box_style = theme_manager.get_theme_style("group_box")
 
             # Find all GroupBox widgets in the dialog and update their styling
-            for group_box in self.findChildren(QGroupBox):
-                group_box.setStyleSheet(group_box_style)
+            # Add more robust error handling for each widget
+            group_boxes = self.findChildren(QGroupBox)
+            for group_box in group_boxes:
+                try:
+                    if group_box and hasattr(group_box, "setStyleSheet"):
+                        group_box.setStyleSheet(group_box_style)
+                except Exception as widget_error:
+                    self.logger.error(
+                        f"Error styling individual GroupBox: {widget_error}"
+                    )
+                    # Continue with other widgets
 
             self.logger.debug(f"Updated GroupBox styling for theme: {theme_name}")
         except Exception as e:
             self.logger.error(f"Error updating GroupBox styling: {e}")
+            # Don't crash the application if styling fails
 
     def _on_theme_changed(self, theme_name: str) -> None:
         """Handle theme change in real-time"""
@@ -1088,18 +1021,30 @@ class SettingsDialog(QDialog):
                     else:
                         self._apply_light_theme()
 
-                    # Update GroupBox styling
-                    self._update_group_box_styling(theme_name)
+                    # Update GroupBox styling with error handling
+                    try:
+                        self._update_group_box_styling(theme_name)
+                    except Exception as e:
+                        self.logger.error(f"Error updating GroupBox styling: {e}")
 
                     # Update theme description based on selection
-                    self._update_theme_description(theme_name)
+                    try:
+                        self._update_theme_description(theme_name)
+                    except Exception as e:
+                        self.logger.error(f"Error updating theme description: {e}")
 
                     # Force update of the dialog
-                    self.update()
-                    self.repaint()
+                    try:
+                        self.update()
+                        self.repaint()
+                    except Exception as e:
+                        self.logger.error(f"Error updating dialog: {e}")
 
                     # Update all segmented controls to match the new theme
-                    self._update_all_segmented_controls(theme_name)
+                    try:
+                        self._update_all_segmented_controls(theme_name)
+                    except Exception as e:
+                        self.logger.error(f"Error updating segmented controls: {e}")
 
                     # Don't update main window preview during initialization
                     # This prevents overriding the font size that was just set
@@ -1234,15 +1179,6 @@ class SettingsDialog(QDialog):
             saved_font_size = self.current_settings.get("font_size", 12)
             self.font_size_selector.set_size(saved_font_size)
 
-            # Set hand preference
-            saved_hand_preference = self.current_settings.get(
-                "hand_preference", "right"
-            )
-            if saved_hand_preference == "left":
-                self.left_hand_radio.setChecked(True)
-            else:
-                self.right_hand_radio.setChecked(True)
-
             # Update description
             self.update_description(saved_mode)
 
@@ -1288,22 +1224,21 @@ class SettingsDialog(QDialog):
             # Keep current mode unchanged
             current_mode = self.segmented_control.get_selection()
 
-            # Reset only theme, font size, and hand preference to default values
+            # Reset only theme and font size to default values (hand preference managed in LearnMode)
             default_theme = "Light"
             default_font_size = 12
-            default_hand_preference = "right"
 
-            # Update UI controls (only theme, font size, and hand preference)
+            # Update UI controls (only theme and font size)
             self.theme_control.set_selection(default_theme)
             self.font_size_selector.set_size(default_font_size)
-            self.right_hand_radio.setChecked(True)  # Default to right hand
+            # Note: hand preference is no longer managed in settings dialog
 
             # Update current settings (keep current mode)
             self.current_settings = {
                 "user_mode": current_mode,
                 "theme": default_theme,
                 "font_size": default_font_size,
-                "hand_preference": default_hand_preference,
+                # Note: hand_preference is no longer managed in settings dialog
             }
 
             # Apply changes immediately for preview
@@ -1342,13 +1277,13 @@ class SettingsDialog(QDialog):
             if hasattr(self, "main_window") and self.main_window:
                 self.main_window._settings_save_in_progress = True
 
-            # Get current settings
-            hand_preference = "left" if self.left_hand_radio.isChecked() else "right"
+            # Get current settings (hand preference is now managed in LearnMode)
             new_settings = {
                 "user_mode": self.segmented_control.get_selection(),
                 "theme": self.theme_control.get_selection(),
                 "font_size": self.font_size_selector.get_size(),
-                "hand_preference": hand_preference,
+                # Note: hand_preference is no longer managed in settings dialog
+                # It's now handled directly in the LearnMode UI
             }
 
             self.logger.info(

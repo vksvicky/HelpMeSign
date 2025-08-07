@@ -163,8 +163,6 @@ success = set_user_mode("learn", "prod")
 
 ### Security Verification
 ```bash
-# Check that no secret key file exists
-ls -la ~/.helpmesign/.secret_key  # Should not exist
 
 # Verify configuration file exists and is encrypted
 ls -la ~/.helpmesign/user_config.secure  # Should exist

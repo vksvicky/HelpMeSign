@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from PySide6.QtGui import QFont
 
 from ...utils.language_manager import get_text
+from ...utils.sign_language_loader import get_sign_language_loader
 from ..base_mode import BaseMode
 
 
@@ -35,6 +36,10 @@ class LearnMode(BaseMode):
         self.learning_progress: Dict[str, Dict[str, Any]] = {}
         self.lesson_history: List[Dict[str, Any]] = []
         self.current_lesson: Optional[Dict[str, Any]] = None
+
+        # Initialize sign language loader
+        self.sign_loader = get_sign_language_loader()
+        self.current_language = "ASL"  # Default to ASL
 
         # Now call parent __init__ which will call setup_ui()
         super().__init__(main_window, environment)
@@ -104,6 +109,7 @@ class LearnMode(BaseMode):
         from PySide6.QtWidgets import (
             QFrame,
             QGridLayout,
+            QHBoxLayout,
             QLabel,
             QPushButton,
             QVBoxLayout,
@@ -124,18 +130,90 @@ class LearnMode(BaseMode):
         )
 
         layout = QVBoxLayout(panel)
-        layout.setSpacing(25)  # More spacing between title and grid
+        layout.setSpacing(15)  # Reduced spacing for better layout
 
-        # Title
-        self.selection_title = QLabel(
-            get_text("ui.language_selection.select_character_title")
-        )
-        self.selection_title.setFont(
-            QFont(self.current_font_family, self.current_font_size, QFont.Weight.Bold)
-        )
-        self.selection_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.selection_title.setFixedSize(300, 40)  # Fixed size prevents panel resizing
-        layout.addWidget(self.selection_title)
+        # Hand preference selector - innovative icon-based design
+        hand_selector_layout = QHBoxLayout()
+        hand_selector_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        # Add stretch first to push buttons to the right
+        hand_selector_layout.addStretch()
+
+        # Hand preference icons
+        self.right_hand_btn = QPushButton("🖐️")
+        self.left_hand_btn = QPushButton("🤚")
+
+        # Style the hand preference buttons with better visual feedback
+        hand_button_style = """
+            QPushButton {
+                background-color: #f8f9fa;
+                border: 2px solid #e9ecef;
+                border-radius: 8px;
+                padding: 8px;
+                font-size: 20px;
+                min-width: 40px;
+                min-height: 40px;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+                border-color: #dee2e6;
+            }
+            QPushButton:pressed {
+                background-color: #0056b3;
+                border-color: #0056b3;
+                color: white;
+            }
+            QPushButton[selected="true"] {
+                background-color: #28a745;
+                border-color: #28a745;
+                color: white;
+                border-width: 4px;
+                font-weight: bold;
+            }
+        """
+
+        self.right_hand_btn.setStyleSheet(hand_button_style)
+        self.left_hand_btn.setStyleSheet(hand_button_style)
+
+        # Set tooltips
+        self.right_hand_btn.setToolTip("Right Hand Signs")
+        self.left_hand_btn.setToolTip("Left Hand Signs")
+
+        # Load hand preference from config (default to right hand)
+        try:
+            from src.helpmesign.core.startup import get_hand_preference
+
+            self.current_hand_preference = get_hand_preference()
+        except Exception:
+            self.current_hand_preference = "right"  # Default fallback
+
+        # Set initial button selection based on loaded preference
+        if self.current_hand_preference == "left":
+            self.left_hand_btn.setProperty("selected", True)
+            self.right_hand_btn.setProperty("selected", False)
+        else:
+            self.right_hand_btn.setProperty("selected", True)
+            self.left_hand_btn.setProperty("selected", False)
+
+        # DEBUG: Commented out style updates to debug override issue
+        # # Force style update to ensure visual state is applied
+        # self.right_hand_btn.style().unpolish(self.right_hand_btn)
+        # self.right_hand_btn.style().polish(self.right_hand_btn)
+        # self.left_hand_btn.style().unpolish(self.left_hand_btn)
+        # self.left_hand_btn.style().polish(self.left_hand_btn)
+        #
+        # # Force a repaint to ensure visual state is visible
+        # self.right_hand_btn.update()
+        # self.left_hand_btn.update()
+
+        # Connect hand preference buttons
+        self.right_hand_btn.clicked.connect(lambda: self._set_hand_preference("right"))
+        self.left_hand_btn.clicked.connect(lambda: self._set_hand_preference("left"))
+
+        hand_selector_layout.addWidget(self.right_hand_btn)
+        hand_selector_layout.addWidget(self.left_hand_btn)
+
+        layout.addLayout(hand_selector_layout)
 
         # Fixed grid layout with absolute spacing to prevent layout shifts
         combined_layout = QGridLayout()
@@ -493,6 +571,10 @@ class LearnMode(BaseMode):
         code = language.get("code", "Unknown")
         self.sign_title.setText(f"{flag} {code}")
 
+        # Change the sign language for the sign display
+        language_code = language.get("code", "ASL")
+        self.change_sign_language(language_code)
+
     def on_search_changed(self, text: str):
         """Handle search text changes"""
         from ...utils.language_loader import search_languages
@@ -510,7 +592,9 @@ class LearnMode(BaseMode):
         """Populate language list with search results"""
         # Clear existing items
         for i in reversed(range(self.language_list_layout.count())):
-            self.language_list_layout.itemAt(i).widget().setParent(None)
+            item = self.language_list_layout.itemAt(i)
+            if item and item.widget():
+                item.widget().setParent(None)
 
         self.filtered_languages = languages
 
@@ -572,13 +656,19 @@ class LearnMode(BaseMode):
         layout = QVBoxLayout(panel)
         layout.setSpacing(15)
 
-        # Title
-        self.sign_title = QLabel(get_text("ui.language_selection.sign_display_title"))
-        self.sign_title.setFont(
-            QFont(self.current_font_family, self.current_font_size, QFont.Weight.Bold)
-        )
+        # Sign title
+        self.sign_title = QLabel("Sign Language")
         self.sign_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sign_title.setFixedSize(300, 40)  # Fixed size prevents panel resizing
+        self.sign_title.setStyleSheet(
+            """
+            QLabel {
+                font-weight: bold;
+                font-size: 16px;
+                color: #333;
+                margin-bottom: 10px;
+            }
+        """
+        )
         layout.addWidget(self.sign_title)
 
         # Sign display area
@@ -595,6 +685,10 @@ class LearnMode(BaseMode):
         """
         )
         self.sign_display_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.sign_display_label.setTextFormat(
+            Qt.TextFormat.RichText
+        )  # Enable HTML support
+        self.sign_display_label.setWordWrap(True)  # Enable word wrapping
         self.sign_display_label.setText(
             get_text("ui.language_selection.sign_will_appear_here")
         )
@@ -616,9 +710,6 @@ class LearnMode(BaseMode):
         # Update sign display
         self.update_sign_display(letter, "letter")
 
-        # Update title
-        self.sign_title.setText(f"Sign for '{letter}'")
-
     def on_number_selected(self, number: str) -> None:
         """Handle number selection"""
         # Update button styling
@@ -626,9 +717,6 @@ class LearnMode(BaseMode):
 
         # Update sign display
         self.update_sign_display(number, "number")
-
-        # Update title
-        self.sign_title.setText(f"Sign for '{number}'")
 
     def update_button_selection(self, selected: str, button_dict: dict) -> None:
         """Update button styling to show selection using property, not stylesheet"""
@@ -648,7 +736,7 @@ class LearnMode(BaseMode):
             button_dict[selected].style().polish(button_dict[selected])
 
     def update_sign_display(self, character: str, char_type: str) -> None:
-        """Update the sign display area"""
+        """Update the sign display area with actual SVG signs"""
         # Safety check - ensure sign display label exists
         if not hasattr(self, "sign_display_label") or self.sign_display_label is None:
             return
@@ -657,16 +745,46 @@ class LearnMode(BaseMode):
         self.current_character = character
         self.current_char_type = char_type
 
-        # Get hand preference from settings (default to right)
-        hand_preference = "right"  # Default fallback
+        # Get hand preference from local UI state
+        hand_preference = getattr(self, "current_hand_preference", "right")
 
-        # Simple placeholder text
-        sign_info = f"ASL sign for {char_type} '{character}' ({hand_preference} hand)"
-
-        # Update display
-        self.sign_display_label.setText(
-            f"ASL Sign for '{character}'\n({hand_preference} hand)"
+        # Load the sign data from our JSON files
+        svg_data = self.sign_loader.get_sign_svg(
+            self.current_language, character, hand_preference
         )
+        instructions = self.sign_loader.get_sign_instructions(
+            self.current_language, character, hand_preference
+        )
+
+        if svg_data and instructions:
+            # Create HTML content with SVG and instructions
+            html_content = f"""
+            <div style="text-align: center; padding: 20px;">
+                <div style="margin-bottom: 20px;">
+                    {svg_data}
+                </div>
+                <div style="font-family: {self.current_font_family}; font-size: {self.current_font_size}px; color: #333;">
+                    <h3 style="margin: 10px 0; color: #2c3e50;">{hand_preference.title()} Hand Sign</h3>
+                    <p style="margin: 10px 0; color: #7f8c8d; font-style: italic;">{instructions}</p>
+                    <p style="margin: 10px 0; color: #95a5a6; font-size: 0.9em;">Character: '{character}'</p>
+                </div>
+            </div>
+            """
+
+            # Set the HTML content
+            self.sign_display_label.setText(html_content)
+        else:
+            # Fallback if sign not found
+            fallback_text = f"""
+            <div style="text-align: center; padding: 20px;">
+                <div style="font-family: {self.current_font_family}; font-size: {self.current_font_size}px; color: #e74c3c;">
+                    <h3>Sign Not Found</h3>
+                    <p>No sign data available for '{character}' in {self.current_language}</p>
+                    <p>Please check the sign language data files.</p>
+                </div>
+            </div>
+            """
+            self.sign_display_label.setText(fallback_text)
 
     def setup_behavior(self) -> None:
         """Set up mode-specific behavior and event handlers"""
@@ -678,6 +796,72 @@ class LearnMode(BaseMode):
 
         if hasattr(self.main_window, "process_requested"):
             self.main_window.process_requested.connect(self._on_learn_requested)
+
+        # Connect to hand preference changes if main window supports it
+        if hasattr(self.main_window, "update_hand_preference"):
+            # Connect to the signal, not the method
+            self.main_window.update_hand_preference.connect(
+                self._on_hand_preference_changed
+            )
+
+    def _set_hand_preference(self, hand_preference: str) -> None:
+        """Set hand preference and update UI"""
+        self.current_hand_preference = hand_preference
+
+        # Update button states
+        if hand_preference == "right":
+            self.right_hand_btn.setProperty("selected", True)
+            self.left_hand_btn.setProperty("selected", False)
+        else:
+            self.right_hand_btn.setProperty("selected", False)
+            self.left_hand_btn.setProperty("selected", True)
+
+        # DEBUG: Commented out style updates to debug override issue
+        # # Force style update with more aggressive approach
+        # self.right_hand_btn.style().unpolish(self.right_hand_btn)
+        # self.right_hand_btn.style().polish(self.right_hand_btn)
+        # self.left_hand_btn.style().unpolish(self.left_hand_btn)
+        # self.left_hand_btn.style().polish(self.left_hand_btn)
+        #
+        # # Force immediate repaint
+        # self.right_hand_btn.repaint()
+        # self.left_hand_btn.repaint()
+        #
+        # # Force parent widget to update
+        # if hasattr(self, 'learning_widget') and self.learning_widget:
+        #     self.learning_widget.update()
+
+        # Save hand preference to config
+        try:
+            from src.helpmesign.core.startup import set_hand_preference
+
+            set_hand_preference(hand_preference)
+        except Exception as e:
+            # Log error but don't crash the application
+            if hasattr(self, "logger"):
+                self.logger.error(f"Failed to save hand preference to config: {e}")
+
+        # Update sign display if we have a current character
+        if (
+            hasattr(self, "current_character")
+            and self.current_character
+            and self.current_char_type
+        ):
+            self.update_sign_display(self.current_character, self.current_char_type)
+
+    def _on_hand_preference_changed(self, hand_preference: str) -> None:
+        """Handle hand preference changes and update sign display"""
+        # Update the sign display if we have a current character
+        if self.current_character and self.current_char_type:
+            self.update_sign_display(self.current_character, self.current_char_type)
+
+    def change_sign_language(self, language: str) -> None:
+        """Change the current sign language and update display"""
+        self.current_language = language
+
+        # Update the sign display if we have a current character
+        if self.current_character and self.current_char_type:
+            self.update_sign_display(self.current_character, self.current_char_type)
 
     def process_text(self, text: str) -> str:
         """Process input text according to mode-specific logic"""
@@ -777,8 +961,10 @@ class LearnMode(BaseMode):
 
     def update_ui(self) -> None:
         """Update the UI to reflect the current mode"""
+        # DEBUG: Disabled font updates to debug hand preference override issue
         # Update fonts to match current font size setting
-        self.update_fonts()
+        # self.update_fonts()
+        pass
 
     def update_fonts(self) -> None:
         """Update fonts following the defined process:
@@ -849,11 +1035,6 @@ class LearnMode(BaseMode):
         if hasattr(self, "sign_display_label"):
             self.sign_display_label.setText(
                 get_text("ui.language_selection.sign_will_appear_here")
-            )
-
-        if hasattr(self, "sign_title"):
-            self.sign_title.setText(
-                get_text("ui.language_selection.sign_display_title")
             )
 
         # Sign description removed for better space utilization
@@ -927,15 +1108,67 @@ class LearnMode(BaseMode):
 
         self.main_window.set_mode(self.mode_name)
 
+        # DEBUG: Disabled layout stability to debug hand preference override issue
         # Force a layout update after a short delay to ensure all font updates are complete
         from PySide6.QtCore import QTimer
 
-        QTimer.singleShot(100, self._force_layout_stability)
+        # QTimer.singleShot(100, self._force_layout_stability)
+        # DEBUG: Commented out hand preference restoration to debug override issue
+        # # Ensure hand preference visual state is properly restored
+        # QTimer.singleShot(50, self._restore_hand_preference_visual_state)
 
     def deactivate(self) -> None:
         """Deactivate this mode - called when switching away from this mode"""
         # Switch back to default content
         self.main_window.content_area.setCurrentWidget(self.main_window.default_content)
+
+    def _restore_hand_preference_visual_state(self) -> None:
+        """Restore the visual state of hand preference buttons based on saved preference"""
+        try:
+            if hasattr(self, "right_hand_btn") and hasattr(self, "left_hand_btn"):
+                # Get current preference from config
+                try:
+                    from src.helpmesign.core.startup import get_hand_preference
+
+                    current_pref = get_hand_preference()
+                except Exception:
+                    current_pref = "right"  # Default fallback
+
+                # Update internal state
+                self.current_hand_preference = current_pref
+
+                # Set button properties
+                if current_pref == "left":
+                    self.left_hand_btn.setProperty("selected", True)
+                    self.right_hand_btn.setProperty("selected", False)
+                else:
+                    self.right_hand_btn.setProperty("selected", True)
+                    self.left_hand_btn.setProperty("selected", False)
+
+                    # DEBUG: Commented out style updates to debug override issue
+                # # Force style update with more aggressive approach
+                # self.right_hand_btn.style().unpolish(self.right_hand_btn)
+                # self.right_hand_btn.style().polish(self.right_hand_btn)
+                # self.left_hand_btn.style().unpolish(self.left_hand_btn)
+                # self.left_hand_btn.style().polish(self.left_hand_btn)
+                #
+                # # Force immediate repaint
+                # self.right_hand_btn.repaint()
+                # self.left_hand_btn.repaint()
+                #
+                # # Force parent widget to update
+                # if hasattr(self, 'learning_widget') and self.learning_widget:
+                #     self.learning_widget.update()
+
+                # Log success if logger is available
+                if hasattr(self, "logger"):
+                    self.logger.debug(
+                        f"Hand preference visual state restored: {current_pref}"
+                    )
+        except Exception as e:
+            # Log error if logger is available
+            if hasattr(self, "logger"):
+                self.logger.error(f"Error restoring hand preference visual state: {e}")
 
     def _force_layout_stability(self) -> None:
         """Force the layout to remain stable after all font updates are complete"""

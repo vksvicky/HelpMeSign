@@ -1001,7 +1001,21 @@ class TestThemeManagerThemeApplication:
         manager = ThemeManager()
         theme = manager._get_system_theme()
 
-        assert theme["name"] == "Light"  # Currently defaults to light theme
+        # The system theme should return either Light or Dark based on actual system detection
+        # We can't predict which one, so we just verify it returns a valid theme
+        assert theme["name"] in ["Light", "Dark"]
+        assert "colors" in theme
+        assert "styles" in theme
+
+    def test_detect_system_theme(self):
+        """Test _detect_system_theme method"""
+        from src.helpmesign.utils.theme_manager import ThemeManager
+
+        manager = ThemeManager()
+        detected_theme = manager._detect_system_theme()
+
+        # Should return either "Light" or "Dark" based on actual system detection
+        assert detected_theme in ["Light", "Dark"]
 
 
 class TestThemeManagerMockClasses:

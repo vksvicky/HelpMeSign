@@ -75,6 +75,7 @@ class HelpMeSignApp:
         # Apply saved theme and font settings
         self.apply_theme_and_font_settings()
 
+        # DEBUG: Disabled delayed font application to debug hand preference override issue
         # Add a small delay to ensure all components are fully initialized
         # before applying font settings
         from PySide6.QtCore import QTimer
@@ -88,17 +89,21 @@ class HelpMeSignApp:
 
     def _delayed_font_application(self) -> None:
         """Apply font settings after a delay to ensure all components are initialized"""
-        try:
-            from .startup import get_font_size
+        # DEBUG: Disabled for debugging hand preference override issue
+        self.logger.debug(
+            "Delayed font application disabled for debugging hand preference override issue"
+        )
+        # try:
+        #     from .startup import get_font_size
 
-            font_size = get_font_size(self.environment)
-            self.logger.debug(f"Delayed font application for size: {font_size}px")
+        #     font_size = get_font_size(self.environment)
+        #     self.logger.debug(f"Delayed font application for size: {font_size}px")
 
-            # Re-apply font size to ensure all components are updated
-            self._apply_font_size_setting(font_size)
+        #     # Re-apply font size to ensure all components are updated
+        #     self._apply_font_size_setting(font_size)
 
-        except Exception as e:
-            self.logger.error(f"Error in delayed font application: {e}")
+        # except Exception as e:
+        #     self.logger.error(f"Error in delayed font application: {e}")
 
     def _setup_shutdown_handling(self):
         """Set up proper application shutdown handling"""
@@ -360,9 +365,11 @@ class HelpMeSignApp:
             # Apply theme and font settings
             self.apply_theme_and_font_settings()
 
+            # DEBUG: Disabled mode manager font notification to debug hand preference override issue
             # Notify all modes about font changes
             if hasattr(self, "mode_manager"):
-                self.mode_manager.notify_font_changed()
+                # self.mode_manager.notify_font_changed()
+                pass
 
             self._settings_save_in_progress = False
 
@@ -487,68 +494,74 @@ class HelpMeSignApp:
 
     def _apply_font_size_directly(self, font_size: int) -> None:
         """Apply font size directly to specific UI components for immediate effect"""
-        try:
-            # Check if app is shutting down
-            if hasattr(self, "_shutting_down") and self._shutting_down:
-                self.logger.debug("App shutting down, skipping direct font application")
-                return
+        # DEBUG: Commented out direct font application to debug hand preference override issue
+        # try:
+        #     # Check if app is shutting down
+        #     if hasattr(self, "_shutting_down") and self._shutting_down:
+        #         self.logger.debug("App shutting down, skipping direct font application")
+        #         return
 
-            # Check if main window is still valid
-            if not hasattr(self, "main_window") or self.main_window is None:
-                self.logger.debug(
-                    "Main window not available, skipping direct font application"
-                )
-                return
+        #     # Check if main window is still valid
+        #     if not hasattr(self, "main_window") or self.main_window is None:
+        #         self.logger.debug(
+        #             "Main window not available, skipping direct font application"
+        #         )
+        #         return
 
-            from PySide6.QtGui import QFont
+        #     from PySide6.QtGui import QFont
 
-            from src.helpmesign.utils.font_manager import get_font_manager
+        #     from src.helpmesign.utils.font_manager import get_font_manager
 
-            # Create a new font with the specified size using app's font family
-            font_manager = get_font_manager()
-            new_font = font_manager.get_font(size=font_size)
+        #     # Create a new font with the specified size using app's font family
+        #     font_manager = get_font_manager()
+        #     new_font = font_manager.get_font(size=font_size)
 
-            # Apply to text input components
-            if hasattr(self.main_window, "text_input_frame"):
-                if hasattr(self.main_window.text_input_frame, "text_input"):
-                    self.main_window.text_input_frame.text_input.setFont(new_font)
-                if hasattr(self.main_window.text_input_frame, "process_button"):
-                    self.main_window.text_input_frame.process_button.setFont(new_font)
-                if hasattr(self.main_window.text_input_frame, "clear_button"):
-                    self.main_window.text_input_frame.clear_button.setFont(new_font)
+        #     # Apply to text input components
+        #     if hasattr(self.main_window, "text_input_frame"):
+        #         if hasattr(self.main_window.text_input_frame, "text_input"):
+        #             self.main_window.text_input_frame.text_input.setFont(new_font)
+        #         if hasattr(self.main_window.text_input_frame, "process_button"):
+        #             self.main_window.text_input_frame.process_button.setFont(new_font)
+        #         if hasattr(self.main_window.text_input_frame, "clear_button"):
+        #             self.main_window.text_input_frame.clear_button.setFont(new_font)
 
-            # Apply to output components
-            if hasattr(self.main_window, "output_frame"):
-                if hasattr(self.main_window.output_frame, "text_output"):
-                    self.main_window.output_frame.text_output.setFont(new_font)
+        #     # Apply to output components
+        #     if hasattr(self.main_window, "output_frame"):
+        #         if hasattr(self.main_window.output_frame, "text_output"):
+        #             self.main_window.output_frame.text_output.setFont(new_font)
 
-            # Apply to status bar
-            if hasattr(self.main_window, "status_bar"):
-                if hasattr(self.main_window.status_bar, "status_label"):
-                    self.main_window.status_bar.status_label.setFont(new_font)
+        #     # Apply to status bar
+        #     if hasattr(self.main_window, "status_bar"):
+        #         if hasattr(self.main_window.status_bar, "status_label"):
+        #             self.main_window.status_bar.status_label.setFont(new_font)
 
-            # Apply to menu bar
-            if hasattr(self.main_window, "menuBar"):
-                menu_bar = self.main_window.menuBar()
-                if menu_bar:
-                    menu_bar.setFont(new_font)
+        #     # Apply to menu bar
+        #     if hasattr(self.main_window, "menuBar"):
+        #         menu_bar = self.main_window.menuBar()
+        #         if menu_bar:
+        #             menu_bar.setFont(new_font)
 
-            # Update fonts using the MainWindow's update_fonts method LAST
-            # This ensures all font manager functions use the updated font size
-            if hasattr(self.main_window, "update_fonts"):
-                self.main_window.update_fonts()
-                self.logger.debug("MainWindow update_fonts() called successfully")
+        #     # Update fonts using the MainWindow's update_fonts method LAST
+        #     # This ensures all font manager functions use the updated font size
+        #     if hasattr(self.main_window, "update_fonts"):
+        #         self.main_window.update_fonts()
+        #         self.logger.debug("MainWindow update_fonts() called successfully")
 
-            # Force refresh
-            self.main_window.update()
-            self.main_window.repaint()
+        #     # Force refresh
+        #     self.main_window.update()
+        #     self.main_window.repaint()
 
-            self.logger.debug(
-                f"Direct font size application completed for {font_size}px"
-            )
+        #     self.logger.debug(
+        #         f"Direct font size application completed for {font_size}px"
+        #     )
 
-        except Exception as e:
-            self.logger.error(f"Error applying font size directly: {e}")
+        # except Exception as e:
+        #     self.logger.error(f"Error applying font size directly: {e}")
+
+        # DEBUG: Just log that direct font application is disabled
+        self.logger.debug(
+            "Direct font application disabled for debugging hand preference issue"
+        )
 
     def _update_input_fields_theme_with_font_size(self, input_style: str) -> None:
         """Update input field styling with font size"""
