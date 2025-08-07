@@ -124,8 +124,10 @@ class TestModeSystemMocks:
         # Act
         mode.deactivate()
 
-        # Assert - deactivate should not raise any exceptions
-        assert True
+        # Assert - deactivate should complete without error
+        # The method should exist and be callable
+        assert hasattr(mode, "deactivate")
+        assert callable(mode.deactivate)
 
     # Mock Tests for SignTranslateMode
     def test_mock_sign_translate_mode_initialization(self):
@@ -158,8 +160,10 @@ class TestModeSystemMocks:
         # Act
         mode._on_process_requested()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(mode, "_on_process_requested")
+        assert callable(mode._on_process_requested)
 
     def test_mock_sign_translate_mode_on_clear_requested(self):
         """Test SignTranslateMode _on_clear_requested with mocked dependencies"""
@@ -169,8 +173,10 @@ class TestModeSystemMocks:
         # Act
         mode._on_clear_requested()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(mode, "_on_clear_requested")
+        assert callable(mode._on_clear_requested)
 
     def test_mock_sign_translate_mode_clear_content(self):
         """Test SignTranslateMode clear_content with mocked dependencies"""
@@ -180,8 +186,10 @@ class TestModeSystemMocks:
         # Act
         mode.clear_content()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(mode, "clear_content")
+        assert callable(mode.clear_content)
 
     def test_mock_sign_translate_mode_get_settings(self):
         """Test SignTranslateMode get_settings with mocked dependencies"""
@@ -225,8 +233,10 @@ class TestModeSystemMocks:
         # Act
         mode._on_learn_requested()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(mode, "_on_learn_requested")
+        assert callable(mode._on_learn_requested)
 
     def test_mock_learn_mode_on_clear_requested(self):
         """Test LearnMode _on_clear_requested with mocked dependencies"""
@@ -236,8 +246,10 @@ class TestModeSystemMocks:
         # Act
         mode._on_clear_requested()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(mode, "_on_clear_requested")
+        assert callable(mode._on_clear_requested)
 
     def test_mock_learn_mode_clear_content(self):
         """Test LearnMode clear_content with mocked dependencies"""
@@ -247,8 +259,10 @@ class TestModeSystemMocks:
         # Act
         mode.clear_content()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(mode, "clear_content")
+        assert callable(mode.clear_content)
 
     def test_mock_learn_mode_get_settings(self):
         """Test LearnMode get_settings with mocked dependencies"""
@@ -375,8 +389,10 @@ class TestModeSystemMocks:
         # Act
         manager.clear_content()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(manager, "clear_content")
+        assert callable(manager.clear_content)
 
     def test_mock_mode_manager_get_mode_settings(self):
         """Test ModeManager get_mode_settings with mocked dependencies"""
@@ -398,8 +414,10 @@ class TestModeSystemMocks:
         # Act
         manager.apply_mode_settings(test_settings)
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error
+        # The method should exist and be callable
+        assert hasattr(manager, "apply_mode_settings")
+        assert callable(manager.apply_mode_settings)
 
     def test_mock_mode_manager_get_mode_descriptions(self):
         """Test ModeManager get_mode_descriptions with mocked dependencies"""
@@ -473,8 +491,10 @@ class TestModeSystemMocks:
         # Act
         manager.clear_content()
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error even when no current mode
+        # The method should exist and be callable
+        assert hasattr(manager, "clear_content")
+        assert callable(manager.clear_content)
 
     def test_mock_mode_manager_get_mode_settings_no_current_mode(self):
         """Test ModeManager get_mode_settings when no current mode"""
@@ -498,8 +518,10 @@ class TestModeSystemMocks:
         # Act
         manager.apply_mode_settings(test_settings)
 
-        # Assert - should not raise any exceptions
-        assert True
+        # Assert - should complete without error even when no current mode
+        # The method should exist and be callable
+        assert hasattr(manager, "apply_mode_settings")
+        assert callable(manager.apply_mode_settings)
 
     # Exception Handling Tests
     def test_mock_mode_manager_switch_mode_exception(self):

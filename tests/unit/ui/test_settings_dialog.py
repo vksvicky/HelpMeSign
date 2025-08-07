@@ -1388,7 +1388,9 @@ class TestSettingsDialogModuleStructure:
 
         # Test that TYPE_CHECKING imports are handled
         # This covers the TYPE_CHECKING conditional import block
-        assert True  # If we get here, the TYPE_CHECKING block was processed
+        # If we get here, the TYPE_CHECKING block was processed successfully
+        assert hasattr(sd, "__name__")
+        assert sd.__name__ == "src.helpmesign.ui.settings_dialog"
 
     def test_signal_definitions_coverage(self):
         """Test signal definitions coverage"""
@@ -1407,7 +1409,9 @@ class TestSettingsDialogModuleStructure:
         # Test that Qt imports are handled
         if sd.PYSIDE6_AVAILABLE:
             # Test that Qt classes are imported
-            assert True  # If we get here, Qt imports were successful
+            # If we get here, Qt imports were successful
+            assert hasattr(sd, "__name__")
+            assert sd.__name__ == "src.helpmesign.ui.settings_dialog"
         else:
             # Test that dummy functions are available
             assert hasattr(sd, "get_body_font")
@@ -2357,8 +2361,24 @@ class TestSettingsDialogRealInstantiation:
 
     def test_fallback_function_definitions(self):
         """Test fallback function definitions when imports fail"""
-        # Skip this test to avoid segfaults - the module still tries to import real functions
-        assert True  # Placeholder test
+        # Test that fallback functions are defined when imports fail
+        import src.helpmesign.ui.settings_dialog as sd
+
+        # Test that fallback font functions exist
+        assert hasattr(sd, "get_body_font")
+        assert hasattr(sd, "get_button_font")
+        assert hasattr(sd, "get_heading_font")
+
+        # Test that fallback theme functions exist
+        assert hasattr(sd, "apply_theme")
+        assert hasattr(sd, "get_theme_manager")
+
+        # Test that the functions are callable
+        assert callable(sd.get_body_font)
+        assert callable(sd.get_button_font)
+        assert callable(sd.get_heading_font)
+        assert callable(sd.apply_theme)
+        assert callable(sd.get_theme_manager)
 
 
 class TestSettingsDialogRealModuleCoverage:

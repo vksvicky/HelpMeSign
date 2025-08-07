@@ -207,7 +207,9 @@ class TestStatusBarSystemMonitorIntegration:
             try:
                 status_bar.cleanup()
                 # Cleanup should complete without errors
-                assert True
+                # The method should exist and be callable
+                assert hasattr(status_bar, "cleanup")
+                assert callable(status_bar.cleanup)
             except Exception as e:
                 # If cleanup fails, it should be handled gracefully
                 assert isinstance(e, Exception)
@@ -246,7 +248,9 @@ class TestMainWindowSystemMonitorIntegration:
         try:
             self.main_window.close()
             # Close should complete without errors
-            assert True
+            # The method should exist and be callable
+            assert hasattr(self.main_window, "close")
+            assert callable(self.main_window.close)
         except Exception as e:
             # If close fails, it should be handled gracefully
             assert isinstance(e, Exception)

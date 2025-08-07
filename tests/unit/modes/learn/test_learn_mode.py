@@ -655,14 +655,28 @@ class TestLearnMode:
         """Test update_button_selection method"""
         # Arrange
         mode = self.mode
-        mode.alphabet_buttons = {"A": Mock(), "B": Mock()}
-        mode.number_buttons = {"1": Mock(), "2": Mock()}
+        mock_button_a = Mock()
+        mock_button_b = Mock()
+        mock_button_1 = Mock()
+        mock_button_2 = Mock()
+
+        # Mock the style methods
+        mock_button_a.style.return_value = Mock()
+        mock_button_b.style.return_value = Mock()
+        mock_button_1.style.return_value = Mock()
+        mock_button_2.style.return_value = Mock()
+
+        mode.alphabet_buttons = {"A": mock_button_a, "B": mock_button_b}
+        mode.number_buttons = {"1": mock_button_1, "2": mock_button_2}
 
         # Act
         mode.update_button_selection("A", mode.alphabet_buttons)
 
         # Assert
-        assert True  # Should not crash
+        # Should set selected property on the selected button
+        mock_button_a.setProperty.assert_called_with("selected", True)
+        # Should call style polish on the selected button
+        mock_button_a.style().polish.assert_called_with(mock_button_a)
 
     @patch("src.helpmesign.modes.learn.learn_mode.get_text")
     def test_update_sign_display(self, mock_get_text):
@@ -697,12 +711,20 @@ class TestLearnMode:
         """Test setup_behavior method"""
         # Arrange
         mode = self.mode
+        mode.main_window.clear_requested = Mock()
+        mode.main_window.process_requested = Mock()
 
         # Act
         mode.setup_behavior()
 
         # Assert
-        assert True  # Should not crash
+        # Should connect to main window signals
+        mode.main_window.clear_requested.connect.assert_called_with(
+            mode._on_clear_requested
+        )
+        mode.main_window.process_requested.connect.assert_called_with(
+            mode._on_learn_requested
+        )
 
     def test_setup_behavior_with_signals(self):
         """Test setup_behavior with signal connections"""
@@ -710,12 +732,22 @@ class TestLearnMode:
         mode = self.mode
         mode.main_window.process_requested = Mock()
         mode.main_window.clear_requested = Mock()
+        mode.main_window.update_hand_preference = Mock()
 
         # Act
         mode.setup_behavior()
 
         # Assert
-        assert True  # Should not crash
+        # Should connect to all available signals
+        mode.main_window.clear_requested.connect.assert_called_with(
+            mode._on_clear_requested
+        )
+        mode.main_window.process_requested.connect.assert_called_with(
+            mode._on_learn_requested
+        )
+        mode.main_window.update_hand_preference.connect.assert_called_with(
+            mode._on_hand_preference_changed
+        )
 
     # Language Selection Tests
     def test_on_language_selected(self):
@@ -753,39 +785,6 @@ class TestLearnMode:
         # Assert
         assert mode.selected_language == language_data
 
-    def test_on_search_changed(self):
-        """Test on_search_changed method - skipped to avoid segfault"""
-        # Skip this test to avoid segfaults
-        assert True
-
-    def test_on_search_changed_empty(self):
-        """Test on_search_changed with empty search - skipped to avoid segfault"""
-        # Skip this test to avoid segfaults
-        assert True
-
-    def test_populate_search_results(self):
-        """Test populate_search_results method - skipped to avoid segfault"""
-        # Skip this test to avoid segfaults
-        assert True
-
-    def test_on_category_changed(self):
-        """Test on_category_changed method - legacy method for compatibility"""
-        # This is a legacy method that's kept for compatibility
-        # New category selection tests are in test_category_selection.py
-        assert True
-
-    def test_populate_language_list(self):
-        """Test populate_language_list method - basic functionality"""
-        # Basic test for populate_language_list
-        # Detailed category tests are in test_category_selection.py
-        assert True
-
-    def test_populate_language_list_with_categories(self):
-        """Test populate_language_list with different categories"""
-        # Basic test for populate_language_list with categories
-        # Detailed category tests are in test_category_selection.py
-        assert True
-
     # Mode Lifecycle Tests
     def test_activate(self):
         """Test activate method"""
@@ -803,47 +802,75 @@ class TestLearnMode:
         # Arrange
         mode = self.mode
         mode.learning_widget = Mock()
+        mode.main_window.content_area = Mock()
+        mode.main_window.default_content = Mock()
 
         # Act
         mode.deactivate()
 
         # Assert
-        assert True  # Should not crash
+        # Should switch back to default content
+        mode.main_window.content_area.setCurrentWidget.assert_called_with(
+            mode.main_window.default_content
+        )
 
     def test_deactivate_without_widget(self):
         """Test deactivate without learning_widget"""
         # Arrange
         mode = self.mode
         mode.learning_widget = None
+        mode.main_window.content_area = Mock()
+        mode.main_window.default_content = Mock()
 
         # Act
         mode.deactivate()
 
         # Assert
-        assert True  # Should not crash
+        # Should still switch back to default content even without learning_widget
+        mode.main_window.content_area.setCurrentWidget.assert_called_with(
+            mode.main_window.default_content
+        )
 
     def test_force_layout_stability(self):
         """Test _force_layout_stability method"""
         # Arrange
         mode = self.mode
-
-        # Act
-        mode._force_layout_stability()
-
-        # Assert
-        assert True  # Should not crash
-
-    def test_force_layout_stability_with_widget(self):
-        """Test _force_layout_stability with learning_widget"""
-        # Arrange
-        mode = self.mode
+        mode.alphabet_buttons = {"A": Mock(), "B": Mock()}
+        mode.number_buttons = {"1": Mock(), "2": Mock()}
         mode.learning_widget = Mock()
 
         # Act
         mode._force_layout_stability()
 
         # Assert
-        assert True  # Should not crash
+        # Should set fixed sizes on all buttons
+        for btn in mode.alphabet_buttons.values():
+            btn.setFixedSize.assert_called_with(48, 48)
+            btn.setMinimumSize.assert_called_with(48, 48)
+            btn.setMaximumSize.assert_called_with(48, 48)
+        for btn in mode.number_buttons.values():
+            btn.setFixedSize.assert_called_with(48, 48)
+            btn.setMinimumSize.assert_called_with(48, 48)
+            btn.setMaximumSize.assert_called_with(48, 48)
+        # Should update the learning widget
+        mode.learning_widget.updateGeometry.assert_called()
+        mode.learning_widget.update.assert_called()
+
+    def test_force_layout_stability_with_widget(self):
+        """Test _force_layout_stability with learning_widget"""
+        # Arrange
+        mode = self.mode
+        mode.learning_widget = Mock()
+        mode.alphabet_buttons = {"A": Mock()}
+        mode.number_buttons = {"1": Mock()}
+
+        # Act
+        mode._force_layout_stability()
+
+        # Assert
+        # Should update the learning widget
+        mode.learning_widget.updateGeometry.assert_called()
+        mode.learning_widget.update.assert_called()
 
     # Update Methods Tests
     def test_update_ui(self):
@@ -855,18 +882,26 @@ class TestLearnMode:
         mode.update_ui()
 
         # Assert
-        assert True  # Should not crash
+        # update_ui currently just passes, so we verify it completes without error
+        # This test ensures the method exists and can be called
+        assert hasattr(mode, "update_ui")
 
     def test_update_fonts(self):
         """Test update_fonts method"""
         # Arrange
         mode = self.mode
+        mode.learning_widget = Mock()
+        mode.learning_widget.isVisible.return_value = True
+        mode.sign_title = Mock()
+        mode.selection_title = Mock()
 
         # Act
         mode.update_fonts()
 
         # Assert
-        assert True  # Should not crash
+        # The method should complete without error
+        # It may hit the exception handler and use default fonts, but should not crash
+        assert hasattr(mode, "update_fonts")
 
     # Internal Method Tests
     def test_get_single_word_info_hello(self):
@@ -1178,24 +1213,70 @@ class TestLearnMode:
             mode.activate()
 
     def test_deactivate_with_widget_exception(self):
-        """Test deactivate with widget exception - skipped as method doesn't call setParent"""
-        # Skip this test as the method doesn't actually call setParent
-        assert True
+        """Test deactivate with widget exception"""
+        # Arrange
+        mode = self.mode
+        mode.main_window.content_area = Mock()
+        mode.main_window.content_area.setCurrentWidget.side_effect = Exception(
+            "Widget error"
+        )
+        mode.main_window.default_content = Mock()
+
+        # Act & Assert
+        # The method doesn't have exception handling, so it should raise the exception
+        with pytest.raises(Exception, match="Widget error"):
+            mode.deactivate()
 
     def test_force_layout_stability_with_widget_exception(self):
-        """Test _force_layout_stability with widget exception - skipped as method doesn't call updateGeometry"""
-        # Skip this test as the method doesn't actually call updateGeometry
-        assert True
+        """Test _force_layout_stability with widget exception"""
+        # Arrange
+        mode = self.mode
+        mode.alphabet_buttons = {"A": Mock()}
+        mode.number_buttons = {"1": Mock()}
+        mode.learning_widget = Mock()
+        # Make one of the buttons raise an exception
+        mode.alphabet_buttons["A"].setFixedSize.side_effect = Exception("Button error")
+
+        # Act
+        mode._force_layout_stability()
+
+        # Assert
+        # The method should handle exceptions gracefully (it has a try/except block)
+        # and complete without raising an exception
+        # We verify this by checking that the method completed without error
+        assert mode.alphabet_buttons["A"].setFixedSize.called
 
     def test_update_ui_with_exception(self):
-        """Test update_ui with exception - skipped as method doesn't call update"""
-        # Skip this test as the method doesn't actually call update
-        assert True
+        """Test update_ui with exception"""
+        # Arrange
+        mode = self.mode
+        # update_ui just has 'pass', so there's nothing to test for exceptions
+        # This test verifies the method exists and can be called
+
+        # Act
+        mode.update_ui()
+
+        # Assert
+        # The method should complete without error
+        assert hasattr(mode, "update_ui")
 
     def test_update_fonts_with_exception(self):
-        """Test update_fonts with exception - skipped as method doesn't call setFont"""
-        # Skip this test as the method doesn't actually call setFont
-        assert True
+        """Test update_fonts with exception"""
+        # Arrange
+        mode = self.mode
+        mode.learning_widget = Mock()
+        mode.learning_widget.isVisible.return_value = True
+        mode.sign_title = Mock()
+        mode.sign_title.setFont.side_effect = Exception("Font error")
+
+        # Act
+        mode.update_fonts()
+
+        # Assert
+        # The method should handle exceptions gracefully (it has a try/except block)
+        # and complete without raising an exception
+        # We verify this by checking that the method completed without error
+        assert hasattr(mode, "update_fonts")
 
     def test_get_settings_with_empty_progress(self):
         """Test get_settings with empty learning progress"""
@@ -1251,7 +1332,9 @@ class TestLearnMode:
         mode.setup_behavior()
 
         # Assert
-        assert True  # Should not crash
+        # Should complete without error even when signals don't exist
+        # The method checks for signal existence before connecting
+        assert hasattr(mode, "setup_behavior")
 
     def test_on_learn_requested_with_empty_input(self):
         """Test _on_learn_requested with empty input"""

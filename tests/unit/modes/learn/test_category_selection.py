@@ -185,7 +185,9 @@ class TestCategorySelection:
 
         # Assert
         # Should handle exception gracefully without crashing
-        assert True
+        # The method should not raise an exception and should complete execution
+        # We verify this by checking that the method completed without error
+        assert self.mode.category_button.rect.called
 
     def test_current_category_tracking(self):
         """Test that current_category is properly tracked"""
@@ -225,13 +227,13 @@ class TestCategorySelection:
         self.mode.current_category = "popular"
         self.mode.populate_search_results = Mock()
 
-        # Act - Search with text (simplified test)
+        # Act - Search with text
         self.mode.on_search_changed("ASL")
 
         # Assert
         # The search should populate search results instead of category
-        # This is a basic test - detailed search logic testing can be added later
-        assert True
+        # Verify that populate_search_results was called (indicating search was performed)
+        self.mode.populate_search_results.assert_called()
 
     def test_initial_category_default(self):
         """Test that initial category defaults to 'all'"""
@@ -307,13 +309,17 @@ class TestCategorySelectionWithQt:
         # Arrange
         self.mode.category_button = Mock()
         self.mode.category_menu = Mock()
+        self.mode.category_button.rect.return_value = Mock()
+        self.mode.category_button.mapToGlobal.return_value = (100, 200)
 
         # Act
         self.mode.show_category_menu()
 
         # Assert
-        # Should not crash with Qt mocks
-        assert True
+        # Should not crash with Qt mocks and should call the expected methods
+        self.mode.category_button.rect.assert_called_once()
+        self.mode.category_button.mapToGlobal.assert_called_once()
+        self.mode.category_menu.popup.assert_called_once_with((100, 200))
 
     @patch("src.helpmesign.modes.learn.learn_mode.get_text")
     def test_category_selection_workflow_with_qt(self, mock_get_text):

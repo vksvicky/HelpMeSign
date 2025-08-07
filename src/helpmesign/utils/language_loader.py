@@ -14,7 +14,7 @@ from ..utils.resource_manager import ResourceManager
 class LanguageLoader:
     """Loads and manages sign languages from languages.json"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.resource_manager = ResourceManager()
         self.languages: List[Dict[str, Any]] = []
         self.load_languages()
