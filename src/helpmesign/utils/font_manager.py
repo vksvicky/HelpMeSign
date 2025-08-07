@@ -28,6 +28,15 @@ class FontManager:
             return
 
         try:
+            # Check if QApplication exists before loading fonts
+            from PySide6.QtWidgets import QApplication
+
+            app = QApplication.instance()
+            if app is None:
+                self.logger.warning("QApplication not available, skipping font loading")
+                self._fonts_initialized = True
+                return
+
             # Get the path to the fonts directory
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(
@@ -178,6 +187,19 @@ class FontManager:
         except Exception:
             # Fallback to default family if theme manager is not available
             return "Roboto"
+
+    def get_loaded_font_family(self) -> str:
+        """Get the actual loaded Roboto font family name"""
+        self._ensure_fonts_loaded()
+
+        # Return the first loaded Roboto font family, or fallback to "Roboto"
+        if self.font_families:
+            # Get the first available font family
+            first_family = list(self.font_families.values())[0]
+            return first_family
+
+        # Fallback to theme manager or default
+        return self._get_current_font_family()
 
 
 # Global font manager instance

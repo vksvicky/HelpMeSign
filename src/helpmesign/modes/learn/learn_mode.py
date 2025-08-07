@@ -25,13 +25,11 @@ class LearnMode(BaseMode):
 
         # Initialize font attributes before calling parent __init__
         # Get current font size and family once and store them
-        from src.helpmesign.utils.font_manager import get_font_manager
-        from src.helpmesign.utils.theme_manager import get_font_size
+        from src.helpmesign.utils.theme_manager import get_font_family, get_font_size
 
         self.current_font_size = get_font_size()
-        # Use font manager to get proper Roboto font family
-        font_manager = get_font_manager()
-        self.current_font_family = font_manager._get_current_font_family()
+        # Use theme manager to get font family (safer than font manager during init)
+        self.current_font_family = get_font_family()
 
         # Initialize character tracking variables
         self.current_character: Optional[str] = None
@@ -351,7 +349,7 @@ class LearnMode(BaseMode):
 
         # Search and filter row
         filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(8)
+        filter_layout.setSpacing(12)  # Increased spacing
 
         # Search box
         self.search_box = QLineEdit()
@@ -364,10 +362,10 @@ class LearnMode(BaseMode):
             QLineEdit {
                 border: 1px solid #e9ecef;
                 border-radius: 8px;
-                padding: 8px 12px;
+                padding: 10px 14px;
                 background-color: white;
                 font-size: 13px;
-                min-height: 20px;
+                min-height: 24px;
                 selection-background-color: #007bff;
                 selection-color: white;
             }
@@ -381,7 +379,7 @@ class LearnMode(BaseMode):
             }
         """
         )
-        filter_layout.addWidget(self.search_box, 2)  # Takes 2/3 of space
+        filter_layout.addWidget(self.search_box, 3)  # Takes 3/4 of space
 
         # Category selector - using QPushButton with custom popup menu
         # Create a container widget for the button with proper layout
@@ -440,13 +438,14 @@ class LearnMode(BaseMode):
         self.category_button.setStyleSheet(
             """
             QPushButton#categoryButton {
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 4px 8px;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 10px 14px;
                 background-color: white;
-                min-width: 150px;
+                min-width: 120px;
                 color: #333;
                 text-align: left;
+                min-height: 24px;
             }
             QPushButton#categoryButton:hover {
                 border-color: #007bff;
@@ -461,6 +460,7 @@ class LearnMode(BaseMode):
                 border: none;
                 padding: 0;
                 margin: 0;
+                font-size: 13px;
             }
             QLabel#categoryArrowLabel {
                 color: #666;
@@ -504,6 +504,9 @@ class LearnMode(BaseMode):
         self.language_list_area = QScrollArea()
         self.language_list_area.setWidgetResizable(True)
         self.language_list_area.setMaximumHeight(180)
+
+        # Connect resize event to recalculate grid layout
+        self.language_list_area.resizeEvent = self._on_language_area_resize
         self.language_list_area.setStyleSheet(
             """
             QScrollArea {
@@ -528,8 +531,10 @@ class LearnMode(BaseMode):
         # Language grid widget
         self.language_list_widget = QWidget()
         self.language_list_layout = QGridLayout(self.language_list_widget)
-        self.language_list_layout.setSpacing(4)
-        self.language_list_layout.setContentsMargins(2, 2, 2, 2)
+        self.language_list_layout.setSpacing(
+            8
+        )  # Increased spacing for better visual separation
+        self.language_list_layout.setContentsMargins(4, 4, 4, 4)  # Increased margins
 
         self.language_list_area.setWidget(self.language_list_widget)
         layout.addWidget(self.language_list_area)
@@ -570,13 +575,55 @@ class LearnMode(BaseMode):
 
         self.filtered_languages = languages
 
-        # Create language buttons in a grid layout (4 columns for better space utilization)
-        columns = 4
+        # Calculate optimal number of columns based on available width
+        # Get actual available width from the scroll area, accounting for scrollbar
+        available_width = (
+            self.language_list_area.width()
+            if self.language_list_area.width() > 0
+            else 600
+        )
+        scrollbar_width = 16  # Approximate scrollbar width
+        effective_width = available_width - scrollbar_width
+
+        button_width = 70  # Target button width
+        spacing = 8  # Grid spacing
+        margins = 8  # Total margins
+
+        # Calculate optimal columns: (effective_width - margins) / (button_width + spacing)
+        # Allow more columns to better utilize space
+        optimal_columns = max(
+            4, min(8, (effective_width - margins) // (button_width + spacing))
+        )
+
+        # Create language buttons in a grid layout with optimal columns
         for i, language in enumerate(languages):
             btn = self.create_language_button(language)
-            row = i // columns
-            col = i % columns
+            row = i // optimal_columns
+            col = i % optimal_columns
             self.language_list_layout.addWidget(btn, row, col)
+
+        # Add stretch factors to make buttons expand and fill available space
+        for col in range(optimal_columns):
+            self.language_list_layout.setColumnStretch(col, 1)
+
+    def _on_language_area_resize(self, event):
+        """Handle resize events to recalculate grid layout"""
+        # Call the original resize event handler
+        from PySide6.QtWidgets import QScrollArea
+
+        QScrollArea.resizeEvent(self.language_list_area, event)
+
+        # Recalculate grid layout if we have languages loaded
+        if hasattr(self, "filtered_languages") and self.filtered_languages:
+            # Use a timer to avoid multiple recalculations during resize
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(100, lambda: self._recalculate_grid_layout())
+
+    def _recalculate_grid_layout(self):
+        """Recalculate the grid layout based on current width"""
+        if hasattr(self, "current_category"):
+            self.populate_language_list(self.current_category)
 
     def create_language_button(self, language: dict):
         """Create a compact button for a language in grid layout"""
@@ -603,7 +650,7 @@ class LearnMode(BaseMode):
         btn.setProperty("language_data", language)
         btn.clicked.connect(lambda: self.on_language_selected(language))
 
-        # Ultra-compact styling for grid layout
+        # Flexible styling for grid layout that utilizes available space
         btn.setStyleSheet(
             f"""
             QPushButton {{
@@ -619,7 +666,7 @@ class LearnMode(BaseMode):
                 min-height: 28px;
                 max-height: 28px;
                 min-width: 60px;
-                max-width: 60px;
+                max-width: 100px;  /* Allow buttons to expand to fill available space */
             }}
             QPushButton:hover {{
                 background-color: #f8f9fa;

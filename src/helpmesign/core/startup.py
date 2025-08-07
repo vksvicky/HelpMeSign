@@ -607,6 +607,7 @@ class SecureConfigManager:
                 "theme": config.get("theme", "Light"),
                 "font_size": config.get("font_size", 12),
                 "hand_preference": config.get("hand_preference", "right"),
+                "selected_language": config.get("selected_language", "ASL"),
             }
         except Exception as e:
             self.logger.warning(f"Could not get all settings: {e}")
@@ -615,6 +616,7 @@ class SecureConfigManager:
                 "theme": "Light",
                 "font_size": 12,
                 "hand_preference": "right",
+                "selected_language": "ASL",
             }
 
     def save_all_settings(self, settings: Dict[str, Any]) -> bool:
