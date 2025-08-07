@@ -8,14 +8,19 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from src.helpmesign.modes.learn.learn_mode import LearnMode
+from tests.mocks.qt.qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks
+from tests.mocks.qt.qt_test_case import QtTestCase
 
 
-class TestCategorySelection:
+class TestCategorySelection(QtTestCase):
     """Test cases for category selection functionality"""
 
     @pytest.fixture(autouse=True)
     def setup(self):
         """Set up test fixtures"""
+        # Activate Qt mocks to prevent fatal errors
+        activate_qt_mocks()
+
         # Create a mock main window
         self.mock_main_window = Mock()
         self.mock_main_window._is_mock = True  # Mark as mock to skip UI creation
@@ -27,6 +32,11 @@ class TestCategorySelection:
 
         # Create the mode instance
         self.mode = LearnMode(self.mock_main_window, "dev")
+
+        yield
+
+        # Clean up
+        deactivate_qt_mocks()
 
     @patch("src.helpmesign.modes.learn.learn_mode.get_text")
     def test_category_button_creation(self, mock_get_text):
@@ -271,13 +281,14 @@ class TestCategorySelection:
             self.mode.category_text_label.reset_mock()
 
 
-class TestCategorySelectionWithQt:
+class TestCategorySelectionWithQt(QtTestCase):
     """Test cases for category selection using Qt mock framework"""
 
     @pytest.fixture(autouse=True)
     def setup(self):
         """Set up test fixtures with Qt mocks"""
-        from tests.mocks.qt.qt_test_case import QtTestCase
+        # Activate Qt mocks to prevent fatal errors
+        activate_qt_mocks()
 
         # Create a simple test case without inheritance issues
         self.mock_main_window = Mock()
@@ -289,6 +300,11 @@ class TestCategorySelectionWithQt:
         self.mock_main_window.set_text_input = Mock()
 
         self.mode = LearnMode(self.mock_main_window, "dev")
+
+        yield
+
+        # Clean up
+        deactivate_qt_mocks()
 
     @patch("src.helpmesign.modes.learn.learn_mode.get_text")
     def test_category_button_creation_with_qt(self, mock_get_text):

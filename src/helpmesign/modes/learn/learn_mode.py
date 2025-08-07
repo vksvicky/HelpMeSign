@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 from ...utils.language_manager import get_text
 from ...utils.sign_language_loader import get_sign_language_loader
+from ...utils.theme_manager import get_theme_style
 from ..base_mode import BaseMode
 
 
@@ -23,13 +24,8 @@ class LearnMode(BaseMode):
 
         self.logger = logging.getLogger(__name__)
 
-        # Initialize font attributes before calling parent __init__
-        # Get current font size and family once and store them
-        from src.helpmesign.utils.theme_manager import get_font_family, get_font_size
-
-        self.current_font_size = get_font_size()
-        # Use theme manager to get font family (safer than font manager during init)
-        self.current_font_family = get_font_family()
+        # Get theme and font information from main window or config
+        self._initialize_theme_and_font_info(main_window, environment)
 
         # Initialize character tracking variables
         self.current_character: Optional[str] = None
@@ -48,6 +44,69 @@ class LearnMode(BaseMode):
         # Now call parent __init__ which will call setup_ui()
         super().__init__(main_window, environment)
 
+    def _initialize_theme_and_font_info(self, main_window, environment: str) -> None:
+        """Initialize theme and font information from main window or config"""
+        try:
+            # Try to get theme and font info from main window first
+            if hasattr(main_window, "theme") and hasattr(main_window, "font_size"):
+                self.current_theme = main_window.theme
+                self.current_font_size = main_window.font_size
+                self.logger.debug(
+                    f"Using theme and font from main window: {self.current_theme}, {self.current_font_size}"
+                )
+            else:
+                # Fallback to config
+                from src.helpmesign.core.startup import get_all_settings
+
+                settings = get_all_settings(environment)
+                self.current_theme = settings.get("theme", "Light")
+                self.current_font_size = settings.get("font_size", 12)
+                self.logger.debug(
+                    f"Using theme and font from config: {self.current_theme}, {self.current_font_size}"
+                )
+
+            # Get effective theme (handle System theme)
+            self.effective_theme = self._get_effective_theme_from_theme(
+                self.current_theme
+            )
+
+            # Get font family from theme manager
+            from src.helpmesign.utils.theme_manager import get_font_family
+
+            self.current_font_family = get_font_family()
+
+        except Exception as e:
+            self.logger.error(f"Error initializing theme and font info: {e}")
+            # Fallback to defaults
+            self.current_theme = "Light"
+            self.effective_theme = "Light"
+            self.current_font_size = 12
+            self.current_font_family = "Roboto"
+
+    def _get_effective_theme_from_theme(self, theme: str) -> str:
+        """Get effective theme (Dark/Light) from theme name"""
+        if theme == "System":
+            # Detect system theme
+            try:
+                from src.helpmesign.utils.theme_manager import get_theme_manager
+
+                theme_manager = get_theme_manager()
+                current_theme = theme_manager.get_current_theme()
+
+                if current_theme.startswith("System ("):
+                    if "Dark" in current_theme:
+                        return "Dark"
+                    else:
+                        return "Light"
+                else:
+                    return "Light"  # Fallback
+            except Exception:
+                return "Light"  # Fallback
+        elif theme == "Dark":
+            return "Dark"
+        else:
+            return "Light"
+
     def get_mode_name(self) -> str:
         """Get the display name for this mode"""
         return get_text("modes.learn.name")
@@ -56,345 +115,6 @@ class LearnMode(BaseMode):
         """Get mode description"""
         return "Learn sign language with interactive lessons and practice"
 
-    def _get_effective_theme(self) -> str:
-        """Get the effective theme (Dark/Light) regardless of System theme selection"""
-        try:
-            from src.helpmesign.utils.theme_manager import get_theme_manager
-
-            theme_manager = get_theme_manager()
-            current_theme = theme_manager.get_current_theme()
-
-            # Handle System theme variations
-            if current_theme.startswith("System ("):
-                if "Dark" in current_theme:
-                    return "Dark"
-                else:
-                    return "Light"
-            elif current_theme == "Dark":
-                return "Dark"
-            else:
-                return "Light"
-        except Exception:
-            return "Light"  # Fallback to light theme
-
-    def _refresh_theme_styling(self) -> None:
-        """Refresh all styling to match the current theme"""
-        try:
-            effective_theme = self._get_effective_theme()
-            self.logger.debug(
-                f"Refreshing theme styling for effective theme: {effective_theme}"
-            )
-
-            # Refresh styling for all major components
-            if hasattr(self, "right_hand_btn") and hasattr(self, "left_hand_btn"):
-                self._update_hand_button_styling(effective_theme)
-
-            if hasattr(self, "sign_title"):
-                self._update_sign_title_styling(effective_theme)
-
-            if hasattr(self, "sign_display_label"):
-                self._update_sign_display_styling(effective_theme)
-
-            if hasattr(self, "search_box"):
-                self._update_search_box_styling(effective_theme)
-
-            if hasattr(self, "category_button"):
-                self._update_category_button_styling(effective_theme)
-
-            # Force repaint of all widgets
-            if hasattr(self, "main_window") and self.main_window:
-                self.main_window.update()
-                self.main_window.repaint()
-
-        except Exception as e:
-            self.logger.error(f"Error refreshing theme styling: {e}")
-
-    def _update_hand_button_styling(self, effective_theme: str) -> None:
-        """Update hand preference button styling"""
-        if effective_theme == "Dark":
-            hand_button_style = """
-                QPushButton {
-                    background-color: #2c2c2e;
-                    border: 2px solid #48484a;
-                    border-radius: 8px;
-                    padding: 8px;
-                    font-size: 20px;
-                    min-width: 40px;
-                    min-height: 40px;
-                    color: #ebebf5;
-                }
-                QPushButton:hover {
-                    background-color: #3a3a3c;
-                    border-color: #5a5a5c;
-                }
-                QPushButton:pressed {
-                    background-color: #0a84ff;
-                    border-color: #0a84ff;
-                    color: white;
-                }
-                QPushButton[selected="true"] {
-                    background-color: #30d158;
-                    border-color: #30d158;
-                    color: white;
-                    border-width: 4px;
-                    font-weight: bold;
-                }
-            """
-        else:
-            hand_button_style = """
-                QPushButton {
-                    background-color: #f8f9fa;
-                    border: 2px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 8px;
-                    font-size: 20px;
-                    min-width: 40px;
-                    min-height: 40px;
-                    color: #1e293b;
-                }
-                QPushButton:hover {
-                    background-color: #e9ecef;
-                    border-color: #dee2e6;
-                }
-                QPushButton:pressed {
-                    background-color: #0056b3;
-                    border-color: #0056b3;
-                    color: white;
-                }
-                QPushButton[selected="true"] {
-                    background-color: #28a745;
-                    border-color: #28a745;
-                    color: white;
-                    border-width: 4px;
-                    font-weight: bold;
-                }
-            """
-
-        if hasattr(self, "right_hand_btn"):
-            self.right_hand_btn.setStyleSheet(hand_button_style)
-        if hasattr(self, "left_hand_btn"):
-            self.left_hand_btn.setStyleSheet(hand_button_style)
-
-    def _update_sign_title_styling(self, effective_theme: str) -> None:
-        """Update sign title styling"""
-        if effective_theme == "Dark":
-            title_style = """
-                QLabel {
-                    font-weight: bold;
-                    font-size: 16px;
-                    color: #ffffff;
-                    margin-bottom: 10px;
-                }
-            """
-        else:
-            title_style = """
-                QLabel {
-                    font-weight: bold;
-                    font-size: 16px;
-                    color: #333;
-                    margin-bottom: 10px;
-                }
-            """
-
-        if hasattr(self, "sign_title"):
-            self.sign_title.setStyleSheet(title_style)
-
-    def _update_sign_display_styling(self, effective_theme: str) -> None:
-        """Update sign display label styling"""
-        if effective_theme == "Dark":
-            display_style = """
-                QLabel {
-                    background-color: #2c2c2e;
-                    border: 2px dashed #48484a;
-                    border-radius: 10px;
-                    color: #8e8e93;
-                }
-            """
-        else:
-            display_style = """
-                QLabel {
-                    background-color: #f8f9fa;
-                    border: 2px dashed #dee2e6;
-                    border-radius: 10px;
-                    color: #6c757d;
-                }
-            """
-
-        if hasattr(self, "sign_display_label"):
-            self.sign_display_label.setStyleSheet(display_style)
-
-    def _update_search_box_styling(self, effective_theme: str) -> None:
-        """Update search box styling"""
-        if effective_theme == "Dark":
-            search_style = """
-                QLineEdit {
-                    border: 1px solid #48484a;
-                    border-radius: 8px;
-                    padding: 10px 14px;
-                    background-color: #2c2c2e;
-                    font-size: 13px;
-                    min-height: 24px;
-                    color: #ffffff;
-                    selection-background-color: #0a84ff;
-                    selection-color: white;
-                }
-                QLineEdit:focus {
-                    border-color: #0a84ff;
-                    outline: none;
-                }
-                QLineEdit::placeholder {
-                    color: #8e8e93;
-                    font-style: italic;
-                }
-            """
-        else:
-            search_style = """
-                QLineEdit {
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 10px 14px;
-                    background-color: white;
-                    font-size: 13px;
-                    min-height: 24px;
-                    color: #1e293b;
-                    selection-background-color: #007bff;
-                    selection-color: white;
-                }
-                QLineEdit:focus {
-                    border-color: #007bff;
-                    outline: none;
-                }
-                QLineEdit::placeholder {
-                    color: #6c757d;
-                    font-style: italic;
-                }
-            """
-
-        if hasattr(self, "search_box"):
-            self.search_box.setStyleSheet(search_style)
-
-    def _update_category_button_styling(self, effective_theme: str) -> None:
-        """Update category button styling"""
-        if effective_theme == "Dark":
-            category_button_style = """
-                QPushButton#categoryButton {
-                    border: 1px solid #48484a;
-                    border-radius: 8px;
-                    padding: 10px 14px;
-                    background-color: #2c2c2e;
-                    min-width: 120px;
-                    color: #ffffff;
-                    text-align: left;
-                    min-height: 24px;
-                }
-                QPushButton#categoryButton:hover {
-                    border-color: #0a84ff;
-                    background-color: #3a3a3c;
-                }
-                QPushButton#categoryButton:pressed {
-                    background-color: #48484a;
-                }
-                QLabel#categoryTextLabel {
-                    color: #ffffff;
-                    background-color: transparent;
-                    border: none;
-                    padding: 0;
-                    margin: 0;
-                    font-size: 13px;
-                }
-                QLabel#categoryArrowLabel {
-                    color: #8e8e93;
-                    background-color: transparent;
-                    border: none;
-                    padding: 0;
-                    margin: 0;
-                    font-size: 10px;
-                }
-            """
-
-            category_menu_style = """
-                QMenu {
-                    border: 1px solid #48484a;
-                    background-color: #2c2c2e;
-                    padding: 4px 0px;
-                }
-                QMenu::item {
-                    padding: 8px 16px;
-                    color: #ffffff;
-                    background-color: transparent;
-                }
-                QMenu::item:hover {
-                    background-color: #3a3a3c;
-                    color: #ffffff;
-                }
-                QMenu::item:selected {
-                    background-color: #0a84ff;
-                    color: white;
-                }
-            """
-        else:
-            category_button_style = """
-                QPushButton#categoryButton {
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 10px 14px;
-                    background-color: white;
-                    min-width: 120px;
-                    color: #333;
-                    text-align: left;
-                    min-height: 24px;
-                }
-                QPushButton#categoryButton:hover {
-                    border-color: #007bff;
-                    background-color: #f8f9fa;
-                }
-                QPushButton#categoryButton:pressed {
-                    background-color: #e9ecef;
-                }
-                QLabel#categoryTextLabel {
-                    color: #333;
-                    background-color: transparent;
-                    border: none;
-                    padding: 0;
-                    margin: 0;
-                    font-size: 13px;
-                }
-                QLabel#categoryArrowLabel {
-                    color: #666;
-                    background-color: transparent;
-                    border: none;
-                    padding: 0;
-                    margin: 0;
-                    font-size: 10px;
-                }
-            """
-
-            category_menu_style = """
-                QMenu {
-                    border: 1px solid #ccc;
-                    background-color: white;
-                    padding: 4px 0px;
-                }
-                QMenu::item {
-                    padding: 8px 16px;
-                    color: #333;
-                    background-color: transparent;
-                }
-                QMenu::item:hover {
-                    background-color: #f0f0f0;
-                    color: #333;
-                }
-                QMenu::item:selected {
-                    background-color: #007bff;
-                    color: white;
-                }
-            """
-
-        if hasattr(self, "category_button"):
-            self.category_button.setStyleSheet(category_button_style)
-        if hasattr(self, "category_menu"):
-            self.category_menu.setStyleSheet(category_menu_style)
-
     def setup_ui(self) -> None:
         """Set up the mode-specific UI components"""
         # Create the main layout
@@ -402,37 +122,6 @@ class LearnMode(BaseMode):
 
         # Set up behavior and event handlers
         self.setup_behavior()
-
-        # Connect to theme changes
-        self._connect_to_theme_changes()
-
-    def _connect_to_theme_changes(self) -> None:
-        """Connect to theme change events to refresh styling"""
-        try:
-            from PySide6.QtWidgets import QApplication
-
-            from src.helpmesign.utils.theme_manager import get_theme_manager
-
-            app = QApplication.instance()
-            if app and hasattr(app, "paletteChanged"):
-                # Store a reference to the theme manager
-                self.theme_manager = get_theme_manager()
-
-                # Connect to the application's palette change event
-                app.paletteChanged.connect(self._on_palette_changed)
-
-                self.logger.debug("Connected to theme change events")
-        except Exception as e:
-            self.logger.error(f"Error connecting to theme changes: {e}")
-
-    def _on_palette_changed(self) -> None:
-        """Handle palette changes (theme changes)"""
-        try:
-            self.logger.debug("Palette changed, refreshing theme styling")
-            # Apply theme styling immediately without timer delay
-            self._refresh_theme_styling()
-        except Exception as e:
-            self.logger.error(f"Error handling palette change: {e}")
 
     def create_learning_layout(self) -> None:
         """Create the learning mode layout with alphabet selection and sign display"""
@@ -484,45 +173,21 @@ class LearnMode(BaseMode):
             QLabel,
             QPushButton,
             QVBoxLayout,
+            QWidget,
         )
+
+        from ...utils.theme_manager import get_theme_manager
+
+        # Initialize button dictionaries early to prevent AttributeError
+        self.alphabet_buttons = {}
+        self.number_buttons = {}
 
         # Create panel frame
         panel = QFrame()
         panel.setFrameStyle(QFrame.Shape.Box)
 
-        # Get theme-aware styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                panel_style = """
-                    QFrame {
-                        background-color: #1c1c1e;
-                        border: 2px solid #38383a;
-                        border-radius: 10px;
-                        padding: 15px;
-                    }
-                """
-            else:
-                panel_style = """
-            QFrame {
-                background-color: white;
-                border: 2px solid #e0e0e0;
-                border-radius: 10px;
-                padding: 15px;
-            }
-        """
-        except Exception:
-            # Fallback to light theme
-            panel_style = """
-                QFrame {
-                    background-color: white;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 10px;
-                    padding: 15px;
-                }
-            """
-
+        # Get theme-aware panel styling from theme manager
+        panel_style = get_theme_style("learn_mode_panel")
         panel.setStyleSheet(panel_style)
 
         layout = QVBoxLayout(panel)
@@ -539,97 +204,11 @@ class LearnMode(BaseMode):
         self.right_hand_btn = QPushButton("🖐️")
         self.left_hand_btn = QPushButton("🤚")
 
-        # Get theme-aware hand button styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                hand_button_style = """
-                    QPushButton {
-                        background-color: #2c2c2e;
-                        border: 2px solid #48484a;
-                        border-radius: 8px;
-                        padding: 8px;
-                        font-size: 20px;
-                        min-width: 40px;
-                        min-height: 40px;
-                        color: #ebebf5;
-                    }
-                    QPushButton:hover {
-                        background-color: #3a3a3c;
-                        border-color: #5a5a5c;
-                    }
-                    QPushButton:pressed {
-                        background-color: #0a84ff;
-                        border-color: #0a84ff;
-                        color: white;
-                    }
-                    QPushButton[selected="true"] {
-                        background-color: #30d158;
-                        border-color: #30d158;
-                        color: white;
-                        border-width: 4px;
-                        font-weight: bold;
-                    }
-                """
-            else:
-                hand_button_style = """
-                    QPushButton {
-                        background-color: #f8f9fa;
-                        border: 2px solid #e9ecef;
-                        border-radius: 8px;
-                        padding: 8px;
-                        font-size: 20px;
-                        min-width: 40px;
-                        min-height: 40px;
-                        color: #1e293b;
-                    }
-                    QPushButton:hover {
-                        background-color: #e9ecef;
-                        border-color: #dee2e6;
-                    }
-                    QPushButton:pressed {
-                        background-color: #0056b3;
-                        border-color: #0056b3;
-                        color: white;
-                    }
-                    QPushButton[selected="true"] {
-                        background-color: #28a745;
-                        border-color: #28a745;
-                        color: white;
-                        border-width: 4px;
-                        font-weight: bold;
-                    }
-                """
-        except Exception:
-            # Fallback to light theme
-            hand_button_style = """
-                QPushButton {
-                    background-color: #f8f9fa;
-                    border: 2px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 8px;
-                    font-size: 20px;
-                    min-width: 40px;
-                    min-height: 40px;
-                }
-                QPushButton:hover {
-                    background-color: #e9ecef;
-                    border-color: #dee2e6;
-                }
-                QPushButton:pressed {
-                    background-color: #0056b3;
-                    border-color: #0056b3;
-                    color: white;
-                }
-                QPushButton[selected="true"] {
-                    background-color: #28a745;
-                    border-color: #28a745;
-                    color: white;
-                    border-width: 4px;
-                    font-weight: bold;
-                }
-            """
+        # Get theme-aware hand button styling from theme manager with dynamic font size
+        theme_manager = get_theme_manager()
+        hand_button_style = theme_manager.get_complete_style(
+            "learn_mode_hand_button", include_font_size=True
+        )
 
         self.right_hand_btn.setStyleSheet(hand_button_style)
         self.left_hand_btn.setStyleSheet(hand_button_style)
@@ -673,92 +252,161 @@ class LearnMode(BaseMode):
 
         layout.addLayout(hand_selector_layout)
 
-        # Fixed grid layout with absolute spacing to prevent layout shifts
-        combined_layout = QGridLayout()
-        combined_layout.setSpacing(16)  # Fixed spacing between buttons
-        combined_layout.setContentsMargins(16, 16, 16, 16)  # Fixed margins
-        combined_layout.setRowStretch(0, 0)  # Prevent row stretching
-        combined_layout.setColumnStretch(0, 0)  # Prevent column stretching
+        # Create a container for character buttons that can be updated dynamically
+        self.character_container = QWidget()
+        self.character_layout = QGridLayout(self.character_container)
+        self.character_layout.setSpacing(16)  # Fixed spacing between buttons
+        self.character_layout.setContentsMargins(16, 16, 16, 16)  # Fixed margins
+        self.character_layout.setRowStretch(0, 0)  # Prevent row stretching
+        self.character_layout.setColumnStretch(0, 0)  # Prevent column stretching
 
-        # Create all buttons in a single dictionary
-        self.alphabet_buttons = {}
-        self.number_buttons = {}
+        # Add the character container to the main layout
+        layout.addWidget(self.character_container)
+        layout.addStretch(1)  # Add stretch to prevent grid from expanding
 
-        # ASL characters - English alphabet and numbers
-        all_characters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + list("0123456789")
+        # Store the panel for later updates
+        self.selection_panel = panel
+
+        return panel
+
+    def update_character_buttons(self):
+        """Update the character buttons based on the selected language and hand preference"""
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QLabel, QPushButton
+
+        from ...utils.sign_language_loader import get_sign_language_loader
+        from ...utils.theme_manager import get_theme_manager
+
+        # Safety check - ensure character layout exists
+        if not hasattr(self, "character_layout"):
+            self.logger.warning(
+                "Character layout not initialized yet, skipping character button update"
+            )
+            return
+
+        # Ensure button dictionaries exist
+        if not hasattr(self, "alphabet_buttons"):
+            self.alphabet_buttons = {}
+        if not hasattr(self, "number_buttons"):
+            self.number_buttons = {}
+
+        # Safely clear existing buttons without deleteLater() to avoid memory corruption
+        for button in self.alphabet_buttons.values():
+            if button and button.parent():
+                button.setParent(None)
+        for button in self.number_buttons.values():
+            if button and button.parent():
+                button.setParent(None)
+        self.alphabet_buttons.clear()
+        self.number_buttons.clear()
+
+        # Safely clear the layout without deleteLater()
+        while self.character_layout.count():
+            child = self.character_layout.takeAt(0)
+            if child.widget():
+                child.widget().setParent(None)
+
+        # Get the selected language and hand preference
+        selected_language = "ASL"  # Default fallback
+        if hasattr(self, "selected_language") and self.selected_language:
+            selected_language = self.selected_language.get("code", "ASL")
+
+        hand_preference = self.current_hand_preference
+
+        # Load sign language data dynamically
+        sign_loader = get_sign_language_loader()
+
+        try:
+            # Get alphabet and number signs for the selected language and hand
+            alphabet_signs = sign_loader.get_alphabet_signs(
+                selected_language, hand_preference
+            )
+            number_signs = sign_loader.get_number_signs(
+                selected_language, hand_preference
+            )
+
+            if not alphabet_signs and not number_signs:
+                # No sign data available - show error message
+                error_label = QLabel(
+                    f"Sign language data for {selected_language} ({hand_preference} hand) is not available.\nPlease contact support@cycleruncode.club for assistance."
+                )
+                error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                error_label.setStyleSheet(
+                    """
+                    QLabel {
+                        color: #dc3545;
+                        font-weight: bold;
+                        padding: 20px;
+                        background-color: #f8d7da;
+                        border: 1px solid #f5c6cb;
+                        border-radius: 5px;
+                        margin: 10px;
+                    }
+                """
+                )
+                self.character_layout.addWidget(error_label, 0, 0)
+                return
+
+            # Extract characters from the sign data
+            alphabet_chars = list(alphabet_signs.keys())
+            number_chars = list(number_signs.keys())
+
+            # Combine all characters
+            all_characters = alphabet_chars + number_chars
+
+            if not all_characters:
+                # No characters available - show error message
+                error_label = QLabel(
+                    f"No characters available for {selected_language} ({hand_preference} hand).\nPlease contact support@cycleruncode.club for assistance."
+                )
+                error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                error_label.setStyleSheet(
+                    """
+                    QLabel {
+                        color: #dc3545;
+                        font-weight: bold;
+                        padding: 20px;
+                        background-color: #f8d7da;
+                        border: 1px solid #f5c6cb;
+                        border-radius: 5px;
+                        margin: 10px;
+                    }
+                """
+                )
+                self.character_layout.addWidget(error_label, 0, 0)
+                return
+
+        except Exception as e:
+            # Error loading sign data - show error message
+            error_label = QLabel(
+                f"Error loading sign language data for {selected_language} ({hand_preference} hand).\nPlease contact support@cycleruncode.club for assistance.\nError: {str(e)}"
+            )
+            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            error_label.setStyleSheet(
+                """
+                QLabel {
+                    color: #dc3545;
+                    font-weight: bold;
+                    padding: 20px;
+                    background-color: #f8d7da;
+                    border: 1px solid #f5c6cb;
+                    border-radius: 5px;
+                    margin: 10px;
+                }
+            """
+            )
+            self.character_layout.addWidget(error_label, 0, 0)
+            return
 
         # Improved layout: 6 columns, 48px buttons, better spacing
         max_columns = 6
         button_size = 48
 
-        # Get theme-aware character button styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                char_button_style = """
-                    QPushButton {
-                        background-color: #0a84ff;
-                        border: 1px solid #0056d6;
-                        border-radius: 6px;
-                        color: white;
-                        font-weight: bold;
-                    }
-                    QPushButton[selected="true"] {
-                        background-color: #0056d6;
-                        border: 1px solid #0056d6;
-                    }
-                    QPushButton:hover {
-                        background-color: #0056d6;
-                        border-color: #004085;
-                    }
-                    QPushButton:pressed {
-                        background-color: #004085;
-                    }
-                """
-            else:
-                char_button_style = """
-                QPushButton {
-                    background-color: #007bff;
-                    border: 1px solid #0056b3;
-                    border-radius: 6px;
-                    color: white;
-                    font-weight: bold;
-                }
-                QPushButton[selected="true"] {
-                    background-color: #0056b3;
-                    border: 1px solid #0056b3;
-                }
-                QPushButton:hover {
-                    background-color: #0056b3;
-                    border-color: #004085;
-                }
-                QPushButton:pressed {
-                    background-color: #004085;
-                }
-            """
-        except Exception:
-            # Fallback to light theme
-            char_button_style = """
-                QPushButton {
-                    background-color: #007bff;
-                    border: 1px solid #0056b3;
-                    border-radius: 6px;
-                    color: white;
-                    font-weight: bold;
-                }
-                QPushButton[selected="true"] {
-                    background-color: #0056b3;
-                    border: 1px solid #0056b3;
-                }
-                QPushButton:hover {
-                    background-color: #0056b3;
-                    border-color: #004085;
-                }
-                QPushButton:pressed {
-                    background-color: #004085;
-                }
-            """
+        # Get theme-aware character button styling from theme manager with dynamic font size
+        theme_manager = get_theme_manager()
+        char_button_style = theme_manager.get_complete_style(
+            "learn_mode_character_button", include_font_size=True
+        )
 
         row, col = 0, 0
         for char in all_characters:
@@ -766,15 +414,10 @@ class LearnMode(BaseMode):
             btn.setFixedSize(button_size, button_size)
             btn.setMinimumSize(button_size, button_size)
             btn.setMaximumSize(button_size, button_size)
-            btn.setFont(
-                QFont(
-                    self.current_font_family, self.current_font_size, QFont.Weight.Bold
-                )
-            )
             btn.setStyleSheet(char_button_style)
 
             # Connect to appropriate handler based on character type
-            if char.isalpha():
+            if char in alphabet_chars:
                 btn.clicked.connect(
                     lambda checked, c=char: self.on_alphabet_selected(c)
                 )
@@ -783,18 +426,12 @@ class LearnMode(BaseMode):
                 btn.clicked.connect(lambda checked, c=char: self.on_number_selected(c))
                 self.number_buttons[char] = btn
 
-            combined_layout.addWidget(btn, row, col)
+            self.character_layout.addWidget(btn, row, col)
 
             col += 1
             if col >= max_columns:
                 col = 0
                 row += 1
-
-        # Add the grid layout to the main layout with no stretching
-        layout.addLayout(combined_layout)
-        layout.addStretch(1)  # Add stretch to prevent grid from expanding
-
-        return panel
 
     def create_language_selector(self):
         """Create a clean, modern language selection component"""
@@ -817,6 +454,7 @@ class LearnMode(BaseMode):
         )
 
         from ...utils.language_loader import get_all_languages, get_language_categories
+        from ...utils.theme_manager import get_theme_manager
 
         # Create a simple container widget (no group box)
         container = QWidget()
@@ -835,40 +473,12 @@ class LearnMode(BaseMode):
 
         # Title label
         title_label = QLabel(get_text("ui.language_selection.title"))
-        title_label.setFont(
-            QFont(self.current_font_family, self.current_font_size, QFont.Weight.Bold)
+
+        # Use theme manager's complete style with dynamic font size
+        theme_manager = get_theme_manager()
+        title_style = theme_manager.get_complete_style(
+            "learn_mode_title", include_font_size=True
         )
-
-        # Get theme-aware title styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                title_style = """
-                    QLabel {
-                        color: #ffffff;
-                        padding: 0;
-                        margin: 0;
-                    }
-                """
-            else:
-                title_style = """
-                    QLabel {
-                        color: #2c3e50;
-                        padding: 0;
-                        margin: 0;
-                    }
-                """
-        except Exception:
-            # Fallback to light theme
-            title_style = """
-                QLabel {
-                    color: #2c3e50;
-                    padding: 0;
-                    margin: 0;
-                }
-            """
-
         title_label.setStyleSheet(title_style)
         layout.addWidget(title_label)
 
@@ -883,76 +493,10 @@ class LearnMode(BaseMode):
         )
         self.search_box.textChanged.connect(self.on_search_changed)
 
-        # Get theme-aware search box styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                search_style = """
-                    QLineEdit {
-                        border: 1px solid #48484a;
-                        border-radius: 8px;
-                        padding: 10px 14px;
-                        background-color: #2c2c2e;
-                        font-size: 13px;
-                        min-height: 24px;
-                        color: #ffffff;
-                        selection-background-color: #0a84ff;
-                        selection-color: white;
-                    }
-                    QLineEdit:focus {
-                        border-color: #0a84ff;
-                        outline: none;
-                    }
-                    QLineEdit::placeholder {
-                        color: #8e8e93;
-                        font-style: italic;
-                    }
-                """
-            else:
-                search_style = """
-            QLineEdit {
-                        border: 1px solid #e9ecef;
-                        border-radius: 8px;
-                        padding: 10px 14px;
-                background-color: white;
-                        font-size: 13px;
-                        min-height: 24px;
-                        color: #1e293b;
-                        selection-background-color: #007bff;
-                        selection-color: white;
-            }
-            QLineEdit:focus {
-                border-color: #007bff;
-                        outline: none;
-                    }
-                    QLineEdit::placeholder {
-                        color: #6c757d;
-                        font-style: italic;
-                    }
-                """
-        except Exception:
-            # Fallback to light theme
-            search_style = """
-                QLineEdit {
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 10px 14px;
-                    background-color: white;
-                    font-size: 13px;
-                    min-height: 24px;
-                    selection-background-color: #007bff;
-                    selection-color: white;
-                }
-                QLineEdit:focus {
-                    border-color: #007bff;
-                    outline: none;
-                }
-                QLineEdit::placeholder {
-                    color: #6c757d;
-                    font-style: italic;
-                }
-            """
+        # Get theme-aware search box styling from theme manager
+        search_style = theme_manager.get_complete_style(
+            "learn_mode_search_box", include_font_size=True
+        )
 
         self.search_box.setStyleSheet(search_style)
         filter_layout.addWidget(self.search_box, 3)  # Takes 3/4 of space
@@ -1010,183 +554,9 @@ class LearnMode(BaseMode):
                 lambda checked, cat=category_value: self.on_category_selected(cat)
             )
 
-        # Style the button and menu
-        # Get theme-aware category button styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                category_button_style = """
-                    QPushButton#categoryButton {
-                        border: 1px solid #48484a;
-                        border-radius: 8px;
-                        padding: 10px 14px;
-                        background-color: #2c2c2e;
-                        min-width: 120px;
-                        color: #ffffff;
-                        text-align: left;
-                        min-height: 24px;
-                    }
-                    QPushButton#categoryButton:hover {
-                        border-color: #0a84ff;
-                        background-color: #3a3a3c;
-                    }
-                    QPushButton#categoryButton:pressed {
-                        background-color: #48484a;
-                    }
-                    QLabel#categoryTextLabel {
-                        color: #ffffff;
-                        background-color: transparent;
-                        border: none;
-                        padding: 0;
-                        margin: 0;
-                        font-size: 13px;
-                    }
-                    QLabel#categoryArrowLabel {
-                        color: #8e8e93;
-                        background-color: transparent;
-                        border: none;
-                        padding: 0;
-                        margin: 0;
-                        font-size: 10px;
-                    }
-                """
-
-                category_menu_style = """
-                    QMenu {
-                        border: 1px solid #48484a;
-                        background-color: #2c2c2e;
-                        padding: 4px 0px;
-                    }
-                    QMenu::item {
-                        padding: 8px 16px;
-                        color: #ffffff;
-                        background-color: transparent;
-                    }
-                    QMenu::item:hover {
-                        background-color: #3a3a3c;
-                        color: #ffffff;
-                    }
-                    QMenu::item:selected {
-                        background-color: #0a84ff;
-                        color: white;
-                    }
-                """
-            else:
-                category_button_style = """
-                    QPushButton#categoryButton {
-                        border: 1px solid #e9ecef;
-                        border-radius: 8px;
-                        padding: 10px 14px;
-                background-color: white;
-                        min-width: 120px;
-                        color: #333;
-                        text-align: left;
-                        min-height: 24px;
-                    }
-                    QPushButton#categoryButton:hover {
-                        border-color: #007bff;
-                        background-color: #f8f9fa;
-                    }
-                    QPushButton#categoryButton:pressed {
-                        background-color: #e9ecef;
-                    }
-                    QLabel#categoryTextLabel {
-                        color: #333;
-                        background-color: transparent;
-                border: none;
-                        padding: 0;
-                        margin: 0;
-                        font-size: 13px;
-                    }
-                    QLabel#categoryArrowLabel {
-                        color: #666;
-                        background-color: transparent;
-                        border: none;
-                        padding: 0;
-                        margin: 0;
-                        font-size: 10px;
-                    }
-                """
-
-                category_menu_style = """
-                    QMenu {
-                        border: 1px solid #ccc;
-                        background-color: white;
-                        padding: 4px 0px;
-                    }
-                    QMenu::item {
-                        padding: 8px 16px;
-                        color: #333;
-                        background-color: transparent;
-                    }
-                    QMenu::item:hover {
-                        background-color: #f0f0f0;
-                        color: #333;
-                    }
-                    QMenu::item:selected {
-                        background-color: #007bff;
-                        color: white;
-                    }
-                """
-        except Exception:
-            # Fallback to light theme
-            category_button_style = """
-                QPushButton#categoryButton {
-                    border: 1px solid #e9ecef;
-                    border-radius: 8px;
-                    padding: 10px 14px;
-                    background-color: white;
-                    min-width: 120px;
-                    color: #333;
-                    text-align: left;
-                    min-height: 24px;
-                }
-                QPushButton#categoryButton:hover {
-                    border-color: #007bff;
-                    background-color: #f8f9fa;
-                }
-                QPushButton#categoryButton:pressed {
-                    background-color: #e9ecef;
-                }
-                QLabel#categoryTextLabel {
-                    color: #333;
-                    background-color: transparent;
-                    border: none;
-                    padding: 0;
-                    margin: 0;
-                    font-size: 13px;
-                }
-                QLabel#categoryArrowLabel {
-                    color: #666;
-                    background-color: transparent;
-                    border: none;
-                    padding: 0;
-                    margin: 0;
-                    font-size: 10px;
-                }
-            """
-
-            category_menu_style = """
-                QMenu {
-                    border: 1px solid #ccc;
-                    background-color: white;
-                    padding: 4px 0px;
-                }
-                QMenu::item {
-                    padding: 8px 16px;
-                    color: #333;
-                    background-color: transparent;
-                }
-                QMenu::item:hover {
-                    background-color: #f0f0f0;
-                    color: #333;
-                }
-                QMenu::item:selected {
-                    background-color: #007bff;
-                    color: white;
-                }
-            """
+            # Get theme-aware category button and menu styling from theme manager
+        category_button_style = get_theme_style("learn_mode_category_button")
+        category_menu_style = get_theme_style("learn_mode_category_menu")
 
         self.category_button.setStyleSheet(category_button_style)
         self.category_menu.setStyleSheet(category_menu_style)
@@ -1203,68 +573,8 @@ class LearnMode(BaseMode):
         # Connect resize event to recalculate grid layout
         self.language_list_area.resizeEvent = self._on_language_area_resize
 
-        # Get theme-aware scroll area styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                scroll_area_style = """
-                    QScrollArea {
-                        border: none;
-                        background-color: transparent;
-                    }
-                    QScrollBar:vertical {
-                        background-color: transparent;
-                        width: 6px;
-                    }
-                    QScrollBar::handle:vertical {
-                        background-color: #48484a;
-                        border-radius: 3px;
-                        min-height: 20px;
-                    }
-                    QScrollBar::handle:vertical:hover {
-                        background-color: #5a5a5c;
-                    }
-                """
-            else:
-                scroll_area_style = """
-            QScrollArea {
-                        border: none;
-                        background-color: transparent;
-            }
-            QScrollBar:vertical {
-                        background-color: transparent;
-                        width: 6px;
-            }
-            QScrollBar::handle:vertical {
-                        background-color: #bdc3c7;
-                        border-radius: 3px;
-                min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                        background-color: #95a5a6;
-                    }
-                """
-        except Exception:
-            # Fallback to light theme
-            scroll_area_style = """
-                QScrollArea {
-                    border: none;
-                    background-color: transparent;
-                }
-                QScrollBar:vertical {
-                    background-color: transparent;
-                    width: 6px;
-                }
-                QScrollBar::handle:vertical {
-                    background-color: #bdc3c7;
-                    border-radius: 3px;
-                    min-height: 20px;
-                }
-                QScrollBar::handle:vertical:hover {
-                    background-color: #95a5a6;
-                }
-            """
+        # Get theme-aware scroll area styling from theme manager
+        scroll_area_style = get_theme_style("learn_mode_scroll_area")
 
         self.language_list_area.setStyleSheet(scroll_area_style)
 
@@ -1355,10 +665,8 @@ class LearnMode(BaseMode):
 
         # Recalculate grid layout if we have languages loaded
         if hasattr(self, "filtered_languages") and self.filtered_languages:
-            # Use a timer to avoid multiple recalculations during resize
-            from PySide6.QtCore import QTimer
-
-            QTimer.singleShot(100, lambda: self._recalculate_grid_layout())
+            # Recalculate immediately to avoid memory issues with timers
+            self._recalculate_grid_layout()
 
     def _recalculate_grid_layout(self):
         """Recalculate the grid layout based on current width"""
@@ -1390,104 +698,13 @@ class LearnMode(BaseMode):
         btn.setProperty("language_data", language)
         btn.clicked.connect(lambda: self.on_language_selected(language))
 
-        # Get theme-aware language button styling
-        try:
-            effective_theme = self._get_effective_theme()
+        # Get theme-aware language button styling from theme manager
+        language_button_style = get_theme_style("learn_mode_language_button")
 
-            if effective_theme == "Dark":
-                language_button_style = f"""
-                    QPushButton {{
-                        background-color: #2c2c2e;
-                        border: 1px solid #48484a;
-                        border-radius: 6px;
-                        padding: 6px 4px;
-                        text-align: center;
-                        font-family: "{self.current_font_family}";
-                        font-size: 11px;
-                        font-weight: 500;
-                        color: #ebebf5;
-                        min-height: 28px;
-                        max-height: 28px;
-                        min-width: 60px;
-                        max-width: 100px;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #3a3a3c;
-                        border-color: #0a84ff;
-                    }}
-                    QPushButton:checked {{
-                        background-color: #0a84ff;
-                        color: white;
-                        border-color: #0056d6;
-                        font-weight: 600;
-                    }}
-                    QPushButton:pressed {{
-                        background-color: #0056d6;
-                    }}
-                """
-            else:
-                language_button_style = f"""
-            QPushButton {{
-                background-color: #ffffff;
-                border: 1px solid #e9ecef;
-                        border-radius: 6px;
-                        padding: 6px 4px;
-                        text-align: center;
-                font-family: "{self.current_font_family}";
-                font-size: 11px;
-                font-weight: 500;
-                color: #495057;
-                min-height: 28px;
-                        max-height: 28px;
-                        min-width: 60px;
-                        max-width: 100px;
-            }}
-            QPushButton:hover {{
-                background-color: #f8f9fa;
-                border-color: #007bff;
-            }}
-            QPushButton:checked {{
-                background-color: #007bff;
-                color: white;
-                border-color: #0056b3;
-                font-weight: 600;
-            }}
-            QPushButton:pressed {{
-                background-color: #0056b3;
-            }}
-        """
-        except Exception:
-            # Fallback to light theme
-            language_button_style = f"""
-                QPushButton {{
-                    background-color: #ffffff;
-                    border: 1px solid #e9ecef;
-                    border-radius: 6px;
-                    padding: 6px 4px;
-                    text-align: center;
-                    font-family: "{self.current_font_family}";
-                    font-size: 11px;
-                    font-weight: 500;
-                    color: #495057;
-                    min-height: 28px;
-                    max-height: 28px;
-                    min-width: 60px;
-                    max-width: 100px;
-                }}
-                QPushButton:hover {{
-                    background-color: #f8f9fa;
-                    border-color: #007bff;
-                }}
-                QPushButton:checked {{
-                    background-color: #007bff;
-                    color: white;
-                    border-color: #0056b3;
-                    font-weight: 600;
-                }}
-                QPushButton:pressed {{
-                    background-color: #0056b3;
-                }}
-            """
+        # Replace font-family placeholder with actual font family
+        language_button_style = language_button_style.replace(
+            'font-family: "Roboto"', f'font-family: "{self.current_font_family}"'
+        )
 
         # Flexible styling for grid layout that utilizes available space
         btn.setStyleSheet(language_button_style)
@@ -1537,6 +754,9 @@ class LearnMode(BaseMode):
 
         # Save language selection to configuration
         self.save_language_selection(language_code)
+
+        # Update character buttons based on new language
+        self.update_character_buttons()
 
     def save_language_selection(self, language_code: str) -> None:
         """Save the selected language to user configuration"""
@@ -1711,42 +931,14 @@ class LearnMode(BaseMode):
             QWidget,
         )
 
+        from ...utils.theme_manager import get_theme_manager
+
         # Create panel frame
         panel = QFrame()
         panel.setFrameStyle(QFrame.Shape.Box)
 
-        # Get theme-aware panel styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                panel_style = """
-                    QFrame {
-                        background-color: #1c1c1e;
-                        border: 2px solid #38383a;
-                        border-radius: 10px;
-                        padding: 15px;
-                    }
-                """
-            else:
-                panel_style = """
-            QFrame {
-                background-color: white;
-                border: 2px solid #e0e0e0;
-                border-radius: 10px;
-                padding: 15px;
-            }
-        """
-        except Exception:
-            # Fallback to light theme
-            panel_style = """
-                QFrame {
-                    background-color: white;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 10px;
-                    padding: 15px;
-                }
-            """
+        # Get theme-aware panel styling from theme manager
+        panel_style = get_theme_style("learn_mode_panel")
 
         panel.setStyleSheet(panel_style)
 
@@ -1757,38 +949,11 @@ class LearnMode(BaseMode):
         self.sign_title = QLabel("Sign Language")
         self.sign_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Get theme-aware title styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                title_style = """
-                    QLabel {
-                        font-weight: bold;
-                        font-size: 16px;
-                        color: #ffffff;
-                        margin-bottom: 10px;
-                    }
-                """
-            else:
-                title_style = """
-                    QLabel {
-                        font-weight: bold;
-                        font-size: 16px;
-                        color: #333;
-                        margin-bottom: 10px;
-                    }
-                """
-        except Exception:
-            # Fallback to light theme
-            title_style = """
-                QLabel {
-                    font-weight: bold;
-                    font-size: 16px;
-                    color: #333;
-                    margin-bottom: 10px;
-                }
-            """
+        # Get theme-aware title styling from theme manager with dynamic font size
+        theme_manager = get_theme_manager()
+        title_style = theme_manager.get_complete_style(
+            "learn_mode_title", include_font_size=True
+        )
 
         self.sign_title.setStyleSheet(title_style)
         layout.addWidget(self.sign_title)
@@ -1797,38 +962,8 @@ class LearnMode(BaseMode):
         self.sign_display_label = QLabel()
         self.sign_display_label.setMinimumSize(300, 300)
 
-        # Get theme-aware display label styling
-        try:
-            effective_theme = self._get_effective_theme()
-
-            if effective_theme == "Dark":
-                display_style = """
-                    QLabel {
-                        background-color: #2c2c2e;
-                        border: 2px dashed #48484a;
-                        border-radius: 10px;
-                        color: #8e8e93;
-                    }
-                """
-            else:
-                display_style = """
-                QLabel {
-                    background-color: #f8f9fa;
-                    border: 2px dashed #dee2e6;
-                    border-radius: 10px;
-                    color: #6c757d;
-                }
-            """
-        except Exception:
-            # Fallback to light theme
-            display_style = """
-                QLabel {
-                    background-color: #f8f9fa;
-                    border: 2px dashed #dee2e6;
-                    border-radius: 10px;
-                    color: #6c757d;
-                }
-            """
+        # Get theme-aware display label styling from theme manager
+        display_style = get_theme_style("learn_mode_sign_display")
 
         self.sign_display_label.setStyleSheet(display_style)
         self.sign_display_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1952,50 +1087,52 @@ class LearnMode(BaseMode):
             )
 
     def _set_hand_preference(self, hand_preference: str) -> None:
-        """Set hand preference and update UI"""
-        self.current_hand_preference = hand_preference
-
-        # Update button states
-        if hand_preference == "right":
-            self.right_hand_btn.setProperty("selected", True)
-            self.left_hand_btn.setProperty("selected", False)
-        else:
-            self.right_hand_btn.setProperty("selected", False)
-            self.left_hand_btn.setProperty("selected", True)
-
-        # Force style update to ensure visual state is applied
-        self.right_hand_btn.style().unpolish(self.right_hand_btn)
-        self.right_hand_btn.style().polish(self.right_hand_btn)
-        self.left_hand_btn.style().unpolish(self.left_hand_btn)
-        self.left_hand_btn.style().polish(self.left_hand_btn)
-
-        # Force immediate repaint
-        self.right_hand_btn.repaint()
-        self.left_hand_btn.repaint()
-
-        # Save hand preference to config
+        """Set the hand preference and update the UI"""
         try:
-            from src.helpmesign.core.startup import set_hand_preference
+            # Update internal state
+            self.current_hand_preference = hand_preference
 
-            set_hand_preference(hand_preference)
+            # Update button visual state
+            if hand_preference == "left":
+                self.left_hand_btn.setProperty("selected", True)
+                self.right_hand_btn.setProperty("selected", False)
+            else:
+                self.right_hand_btn.setProperty("selected", True)
+                self.left_hand_btn.setProperty("selected", False)
+
+            # Force style update
+            self.right_hand_btn.style().unpolish(self.right_hand_btn)
+            self.right_hand_btn.style().polish(self.right_hand_btn)
+            self.left_hand_btn.style().unpolish(self.left_hand_btn)
+            self.left_hand_btn.style().polish(self.left_hand_btn)
+
+            # Save to configuration
+            try:
+                from src.helpmesign.core.startup import set_hand_preference
+
+                set_hand_preference(hand_preference)
+            except Exception as e:
+                self.logger.warning(f"Could not save hand preference: {e}")
+
+            # Update character buttons with new hand preference
+            self.update_character_buttons()
+
+            # Notify main window of preference change
+            self._on_hand_preference_changed(hand_preference)
+
         except Exception as e:
-            # Log error but don't crash the application
-            if hasattr(self, "logger"):
-                self.logger.error(f"Failed to save hand preference to config: {e}")
-
-        # Update sign display if we have a current character
-        if (
-            hasattr(self, "current_character")
-            and self.current_character
-            and self.current_char_type
-        ):
-            self.update_sign_display(self.current_character, self.current_char_type)
+            self.logger.error(f"Error setting hand preference: {e}")
 
     def _on_hand_preference_changed(self, hand_preference: str) -> None:
-        """Handle hand preference changes and update sign display"""
-        # Update the sign display if we have a current character
-        if self.current_character and self.current_char_type:
-            self.update_sign_display(self.current_character, self.current_char_type)
+        """Handle hand preference change"""
+        try:
+            # Update sign display if there's a current selection
+            if hasattr(self, "sign_display_label") and self.sign_display_label:
+                # Refresh the current sign display with new hand preference
+                pass  # This will be handled by the character selection methods
+
+        except Exception as e:
+            self.logger.error(f"Error handling hand preference change: {e}")
 
     def change_sign_language(self, language: str) -> None:
         """Change the current sign language and update display"""
@@ -2103,61 +1240,13 @@ class LearnMode(BaseMode):
 
     def update_ui(self) -> None:
         """Update the UI to reflect the current mode"""
-        # DEBUG: Disabled font updates to debug hand preference override issue
-        # Update fonts to match current font size setting
-        # self.update_fonts()
+        # No updates needed - theme and font are set during initialization
         pass
 
     def update_fonts(self) -> None:
-        """Update fonts following the defined process:
-        Only update fonts in currently visible window, never update button fonts
-        """
-        from src.helpmesign.utils.font_manager import get_font_manager
-        from src.helpmesign.utils.theme_manager import get_font_size
-
-        try:
-            # Only update fonts if this mode is currently visible
-            if (
-                not hasattr(self, "learning_widget")
-                or not self.learning_widget.isVisible()
-            ):
-                return
-
-            # Update stored font size and family using proper font manager
-            self.current_font_size = get_font_size()
-            font_manager = get_font_manager()
-            self.current_font_family = font_manager._get_current_font_family()
-
-            # Update title fonts - consistent with other modes
-            if hasattr(self, "sign_title"):
-                self.sign_title.setFont(
-                    QFont(
-                        self.current_font_family,
-                        self.current_font_size,
-                        QFont.Weight.Bold,
-                    )
-                )
-
-            if hasattr(self, "selection_title"):
-                self.selection_title.setFont(
-                    QFont(
-                        self.current_font_family,
-                        self.current_font_size,
-                        QFont.Weight.Bold,
-                    )
-                )
-
-            # CRITICAL: DO NOT update button fonts at all - this causes layout shifts
-            # The buttons are created with fixed size and font, and must remain unchanged
-            # Any font updates will cause Qt to recalculate sizes and break the layout
-
-            # Hand preference group moved to settings window
-
-            # Sign description removed for better space utilization
-
-        except Exception as e:
-            # Fallback to default font sizes if theme manager is not available
-            pass
+        """Update fonts - not needed as fonts are set during initialization"""
+        # Fonts are set during component creation with stored theme and font information
+        pass
 
     def clear_content(self) -> None:
         """Clear all content in this mode"""
@@ -2230,103 +1319,59 @@ class LearnMode(BaseMode):
         return suggestions[:5]  # Limit to 5 suggestions
 
     def activate(self) -> None:
-        """Activate this mode - called when switching to this mode"""
-        # Skip UI operations if in test mode or missing UI elements
-        if hasattr(self.main_window, "_is_mock") or not hasattr(
-            self, "learning_widget"
-        ):
-            self.main_window.set_mode(self.mode_name)
-            return
+        """Activate the learning mode"""
+        try:
+            # Set the mode in the main window
+            self.main_window.set_mode("learn")
+            self.main_window.set_status("Learning mode activated")
 
-        # Add the learning widget to the content area if not already present
-        if self.main_window.content_area.indexOf(self.learning_widget) == -1:
-            self.main_window.content_area.addWidget(self.learning_widget)
+            # Show the learning widget
+            if hasattr(self, "learning_widget") and self.learning_widget:
+                self.learning_widget.show()
 
-        # Switch to learning content
-        self.main_window.content_area.setCurrentWidget(self.learning_widget)
+            # Load saved language selection and update character buttons
+            self.load_saved_language_selection()
+            self.update_character_buttons()
 
-        # Update UI for learning mode
-        self.update_ui()
+            # Restore hand preference visual state
+            self._restore_hand_preference_visual_state()
 
-        self.main_window.set_mode(self.mode_name)
-
-        # Force a layout update after a short delay to ensure all font updates are complete
-        from PySide6.QtCore import QTimer
-
-        QTimer.singleShot(100, self._force_layout_stability)
-        # Ensure hand preference visual state is properly restored
-        QTimer.singleShot(50, self._restore_hand_preference_visual_state)
-        # Refresh theme styling immediately to ensure it matches current theme
-        self._refresh_theme_styling()
+        except Exception as e:
+            self.logger.error(f"Error activating learn mode: {e}")
 
     def deactivate(self) -> None:
-        """Deactivate this mode - called when switching away from this mode"""
-        # Switch back to default content
-        self.main_window.content_area.setCurrentWidget(self.main_window.default_content)
+        """Deactivate the learning mode"""
+        try:
+            # Hide the learning widget
+            if hasattr(self, "learning_widget") and self.learning_widget:
+                self.learning_widget.hide()
+
+        except Exception as e:
+            self.logger.error(f"Error deactivating learn mode: {e}")
 
     def _restore_hand_preference_visual_state(self) -> None:
-        """Restore the visual state of hand preference buttons based on saved preference"""
+        """Restore the visual state of hand preference buttons"""
         try:
             if hasattr(self, "right_hand_btn") and hasattr(self, "left_hand_btn"):
-                # Get current preference from config
-                try:
-                    from src.helpmesign.core.startup import get_hand_preference
+                # Reset both buttons
+                self.right_hand_btn.setProperty("selected", False)
+                self.left_hand_btn.setProperty("selected", False)
 
-                    current_pref = get_hand_preference()
-                except Exception:
-                    current_pref = "right"  # Default fallback
-
-                # Update internal state
-                self.current_hand_preference = current_pref
-
-                # Set button properties
-                if current_pref == "left":
+                # Apply the current preference
+                if self.current_hand_preference == "left":
                     self.left_hand_btn.setProperty("selected", True)
-                    self.right_hand_btn.setProperty("selected", False)
                 else:
                     self.right_hand_btn.setProperty("selected", True)
-                    self.left_hand_btn.setProperty("selected", False)
 
-                # Force style update to ensure visual state is applied
+                # Force style update
                 self.right_hand_btn.style().unpolish(self.right_hand_btn)
                 self.right_hand_btn.style().polish(self.right_hand_btn)
                 self.left_hand_btn.style().unpolish(self.left_hand_btn)
                 self.left_hand_btn.style().polish(self.left_hand_btn)
 
-                # Force immediate repaint
-                self.right_hand_btn.repaint()
-                self.left_hand_btn.repaint()
-
-                # Log success if logger is available
-                if hasattr(self, "logger"):
-                    self.logger.debug(
-                        f"Hand preference visual state restored: {current_pref}"
-                    )
         except Exception as e:
-            # Log error if logger is available
-            if hasattr(self, "logger"):
-                self.logger.error(f"Error restoring hand preference visual state: {e}")
+            self.logger.error(f"Error restoring hand preference visual state: {e}")
 
     def _force_layout_stability(self) -> None:
-        """Force the layout to remain stable after all font updates are complete"""
-        try:
-            # Re-apply fixed sizes to all buttons to ensure they stay the correct size
-            if hasattr(self, "alphabet_buttons"):
-                for btn in self.alphabet_buttons.values():
-                    btn.setFixedSize(48, 48)
-                    btn.setMinimumSize(48, 48)
-                    btn.setMaximumSize(48, 48)
-
-            if hasattr(self, "number_buttons"):
-                for btn in self.number_buttons.values():
-                    btn.setFixedSize(48, 48)
-                    btn.setMinimumSize(48, 48)
-                    btn.setMaximumSize(48, 48)
-
-            # Force the layout to update
-            if hasattr(self, "learning_widget"):
-                self.learning_widget.updateGeometry()
-                self.learning_widget.update()
-        except Exception as e:
-            # Silently ignore any errors
-            pass
+        """Force layout stability to prevent flickering"""
+        pass

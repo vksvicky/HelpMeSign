@@ -518,10 +518,27 @@ class SecureConfigManager:
         try:
             config = self.load_config()
             if config:
-                return config.get("theme", "Light")
+                theme = config.get("theme", "Light")
+                # If theme is "System", resolve it to the actual system theme
+                if theme == "System":
+                    return self._resolve_system_theme()
+                return theme
             return "Light"
         except Exception as e:
             self.logger.warning(f"Could not get theme: {e}")
+            return "Light"
+
+    def _resolve_system_theme(self) -> str:
+        """Resolve System theme to actual Light or Dark based on OS preference"""
+        try:
+            from ..utils.theme_manager import get_theme_manager
+
+            theme_manager = get_theme_manager()
+            return theme_manager._detect_system_theme()
+        except Exception as e:
+            self.logger.warning(
+                f"Could not resolve system theme: {e}, defaulting to Light"
+            )
             return "Light"
 
     def set_theme(self, theme: str) -> bool:
@@ -600,11 +617,16 @@ class SecureConfigManager:
         """Get all user settings"""
         try:
             config = self.load_config() or {}
+            theme = config.get("theme", "Light")
+            # If theme is "System", resolve it to the actual system theme
+            if theme == "System":
+                theme = self._resolve_system_theme()
+
             return {
                 "user_mode": config.get(
                     "user_mode", get_text("modes.sign_translate.name")
                 ),
-                "theme": config.get("theme", "Light"),
+                "theme": theme,
                 "font_size": config.get("font_size", 12),
                 "hand_preference": config.get("hand_preference", "right"),
                 "selected_language": config.get("selected_language", "ASL"),

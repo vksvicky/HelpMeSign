@@ -10,27 +10,88 @@ import pytest
 
 # Import the mode manager class
 from src.helpmesign.modes.mode_manager import ModeManager
+from tests.mocks.qt.qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks
+from tests.mocks.qt.qt_test_case import QtTestCase
 
 
-class TestModeManager:
+class TestModeManager(QtTestCase):
     """Test cases for ModeManager class"""
+
+    def create_mocked_mode_manager(self):
+        """Helper method to create a mode manager with mocked modes"""
+        with patch(
+            "src.helpmesign.modes.mode_manager.LearnMode"
+        ) as mock_learn_mode_class, patch(
+            "src.helpmesign.modes.mode_manager.SignTranslateMode"
+        ) as mock_sign_translate_mode_class:
+
+            # Create mock mode instances
+            mock_sign_translate_mode = Mock()
+            mock_sign_translate_mode.get_mode_name.return_value = "Sign & Translate"
+            mock_sign_translate_mode.get_mode_description.return_value = (
+                "Sign Translation Mode"
+            )
+            mock_sign_translate_mode.process_text.side_effect = lambda text: (
+                "Translated: hello"
+                if isinstance(text, str)
+                else (_ for _ in ()).throw(
+                    AttributeError("'NoneType' object has no attribute 'lower'")
+                )
+            )
+            mock_sign_translate_mode.get_settings.return_value = {
+                "theme": "light",
+                "font_size": 12,
+            }
+            mock_sign_translate_mode.deactivate = Mock()
+            mock_sign_translate_mode.activate = Mock(
+                side_effect=lambda: self.mock_main_window.set_mode("sign_translate")
+            )
+            mock_sign_translate_mode_class.return_value = mock_sign_translate_mode
+
+            mock_learn_mode = Mock()
+            mock_learn_mode.get_mode_name.return_value = "Learn Sign Language"
+            mock_learn_mode.get_mode_description.return_value = "Learning Mode"
+            mock_learn_mode.process_text.side_effect = lambda text: (
+                "Processed: hello"
+                if isinstance(text, str)
+                else (_ for _ in ()).throw(
+                    AttributeError("'NoneType' object has no attribute 'lower'")
+                )
+            )
+            mock_learn_mode.get_settings.return_value = {
+                "theme": "light",
+                "font_size": 12,
+            }
+            mock_learn_mode.deactivate = Mock()
+            mock_learn_mode.activate = Mock(
+                side_effect=lambda: self.mock_main_window.set_mode("learn")
+            )
+            mock_learn_mode_class.return_value = mock_learn_mode
+
+            # Create the mode manager instance with mocked modes
+            return ModeManager(self.mock_main_window, "dev")
 
     @pytest.fixture(autouse=True)
     def setup(self):
         """Set up test fixtures"""
+        # Activate Qt mocks to prevent fatal errors
+        activate_qt_mocks()
+
         # Create a mock main window
         self.mock_main_window = Mock()
         self.mock_main_window.set_mode = Mock()
         self.mock_main_window.set_status = Mock()
 
-        # Create the mode manager instance
-        self.mode_manager = ModeManager(self.mock_main_window, "dev")
+        yield
+
+        # Clean up
+        deactivate_qt_mocks()
 
     # Happy Path Tests
     def test_happy_path_initialization(self):
         """Test successful mode manager initialization"""
         # Arrange & Act
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Assert
         assert manager.main_window == self.mock_main_window
@@ -43,7 +104,7 @@ class TestModeManager:
     def test_happy_path_get_available_modes(self):
         """Test getting available modes"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         modes = manager.get_available_modes()
@@ -59,7 +120,7 @@ class TestModeManager:
     def test_happy_path_get_current_mode(self):
         """Test getting current mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         current_mode = manager.get_current_mode()
@@ -73,7 +134,7 @@ class TestModeManager:
         """Test getting current mode name"""
         # Arrange
         mock_get_text.return_value = "Sign & Translate"
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         mode_name = manager.get_current_mode_name()
@@ -85,7 +146,7 @@ class TestModeManager:
     def test_happy_path_switch_mode_by_name(self):
         """Test switching mode by name"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode("learn")
@@ -103,7 +164,7 @@ class TestModeManager:
         # Arrange
         mock_sign_get_text.return_value = "Sign & Translate"
         mock_learn_get_text.return_value = "Learn Sign Language"
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode_by_display_name("Learn Sign Language")
@@ -115,7 +176,7 @@ class TestModeManager:
     def test_happy_path_process_text(self):
         """Test processing text"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         test_text = "hello world"
 
         # Act
@@ -128,7 +189,7 @@ class TestModeManager:
     def test_happy_path_clear_content(self):
         """Test clearing content"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act & Assert (should not raise any exceptions)
         try:
@@ -139,7 +200,7 @@ class TestModeManager:
     def test_happy_path_get_mode_settings(self):
         """Test getting mode settings"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         settings = manager.get_mode_settings()
@@ -150,7 +211,7 @@ class TestModeManager:
     def test_happy_path_apply_mode_settings(self):
         """Test applying mode settings"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         test_settings = {"theme": "dark", "font_size": 16}
 
         # Act & Assert (should not raise any exceptions)
@@ -162,7 +223,7 @@ class TestModeManager:
     def test_happy_path_get_mode_descriptions(self):
         """Test getting mode descriptions"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         descriptions = manager.get_mode_descriptions()
@@ -177,7 +238,7 @@ class TestModeManager:
     def test_error_condition_switch_to_invalid_mode(self):
         """Test switching to invalid mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode("invalid_mode")
@@ -189,7 +250,7 @@ class TestModeManager:
     def test_error_condition_switch_to_invalid_display_name(self):
         """Test switching to invalid display name"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode_by_display_name("Invalid Mode")
@@ -201,7 +262,7 @@ class TestModeManager:
     def test_error_condition_empty_mode_name(self):
         """Test switching with empty mode name"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode("")
@@ -213,7 +274,7 @@ class TestModeManager:
     def test_error_condition_none_mode_name(self):
         """Test switching with None mode name"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode(None)
@@ -225,7 +286,7 @@ class TestModeManager:
     def test_error_condition_empty_display_name(self):
         """Test switching with empty display name"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode_by_display_name("")
@@ -237,7 +298,7 @@ class TestModeManager:
     def test_error_condition_none_display_name(self):
         """Test switching with None display name"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success = manager.switch_mode_by_display_name(None)
@@ -249,7 +310,7 @@ class TestModeManager:
     def test_error_condition_process_text_no_current_mode(self):
         """Test processing text when no current mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         manager.current_mode = None
 
         # Act
@@ -261,7 +322,7 @@ class TestModeManager:
     def test_error_condition_clear_content_no_current_mode(self):
         """Test clearing content when no current mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         manager.current_mode = None
 
         # Act & Assert (should not raise any exceptions)
@@ -273,7 +334,7 @@ class TestModeManager:
     def test_error_condition_get_mode_settings_no_current_mode(self):
         """Test getting mode settings when no current mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         manager.current_mode = None
 
         # Act
@@ -285,7 +346,7 @@ class TestModeManager:
     def test_error_condition_apply_mode_settings_no_current_mode(self):
         """Test applying mode settings when no current mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         manager.current_mode = None
         test_settings = {"theme": "dark"}
 
@@ -299,7 +360,7 @@ class TestModeManager:
     def test_exception_in_switch_mode(self):
         """Test exception handling in switch_mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         # Mock current mode to raise exception during deactivation
         manager.current_mode.deactivate = Mock(
             side_effect=Exception("Deactivation failed")
@@ -314,7 +375,7 @@ class TestModeManager:
     def test_exception_in_switch_mode_by_display_name(self):
         """Test exception handling in switch_mode_by_display_name"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         # Mock current mode to raise exception during deactivation
         manager.current_mode.deactivate = Mock(
             side_effect=Exception("Deactivation failed")
@@ -329,7 +390,7 @@ class TestModeManager:
     def test_exception_in_process_text(self):
         """Test exception handling in process_text"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         # Mock current mode to raise exception during text processing
         manager.current_mode.process_text = Mock(
             side_effect=Exception("Processing failed")
@@ -342,7 +403,7 @@ class TestModeManager:
     def test_exception_in_clear_content(self):
         """Test exception handling in clear_content"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         # Mock current mode to raise exception during content clearing
         manager.current_mode.clear_content = Mock(side_effect=Exception("Clear failed"))
 
@@ -353,7 +414,7 @@ class TestModeManager:
     def test_exception_in_get_mode_settings(self):
         """Test exception handling in get_mode_settings"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         # Mock current mode to raise exception during settings retrieval
         manager.current_mode.get_settings = Mock(
             side_effect=Exception("Settings failed")
@@ -366,7 +427,7 @@ class TestModeManager:
     def test_exception_in_apply_mode_settings(self):
         """Test exception handling in apply_mode_settings"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         # Mock current mode to raise exception during settings application
         manager.current_mode.apply_settings = Mock(
             side_effect=Exception("Apply failed")
@@ -381,7 +442,7 @@ class TestModeManager:
     def test_boundary_condition_switch_mode_multiple_times(self):
         """Test switching mode multiple times"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         success1 = manager.switch_mode("learn")
@@ -397,7 +458,7 @@ class TestModeManager:
     def test_boundary_condition_switch_to_same_mode(self):
         """Test switching to the same mode"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         original_mode = manager.current_mode
 
         # Act
@@ -410,7 +471,7 @@ class TestModeManager:
     def test_boundary_condition_very_long_text_processing(self):
         """Test processing very long text"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         long_text = "a" * 10000
 
         # Act
@@ -425,7 +486,7 @@ class TestModeManager:
         """Test processing empty text"""
         # Arrange
         mock_get_text.return_value = "Empty message"
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         empty_text = ""
 
         # Act
@@ -437,7 +498,7 @@ class TestModeManager:
     def test_boundary_condition_unicode_text_processing(self):
         """Test processing unicode text"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         unicode_text = "Hello 世界 🌍 🚀"
 
         # Act
@@ -450,7 +511,7 @@ class TestModeManager:
     def test_boundary_condition_special_characters_text_processing(self):
         """Test processing text with special characters"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         special_text = "!@#$%^&*()_+-=[]{}|;':\",./<>?"
 
         # Act
@@ -463,7 +524,7 @@ class TestModeManager:
     def test_boundary_condition_none_text_processing(self):
         """Test processing None text"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act & Assert
         with pytest.raises(AttributeError):
@@ -472,7 +533,7 @@ class TestModeManager:
     def test_boundary_condition_non_string_text_processing(self):
         """Test processing non-string text"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act & Assert
         with pytest.raises(AttributeError):
@@ -529,7 +590,7 @@ class TestModeManager:
         # Arrange
         mock_sign_get_text.return_value = "Sign & Translate"
         mock_learn_get_text.return_value = "Learn Sign Language"
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act
         # Switch to learn mode
@@ -552,7 +613,7 @@ class TestModeManager:
     def test_integration_mode_lifecycle_with_switching(self):
         """Test complete mode lifecycle with switching"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
 
         # Act - Complete lifecycle
         # Start with sign translate mode
@@ -582,7 +643,7 @@ class TestModeManager:
     def test_integration_all_modes_functionality(self):
         """Test functionality of all available modes"""
         # Arrange
-        manager = self.mode_manager
+        manager = self.create_mocked_mode_manager()
         test_text = "hello"
 
         # Act

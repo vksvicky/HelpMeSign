@@ -69,6 +69,14 @@ class MockQObject:
                 if callable(slot):
                     slot(*args)
 
+    def setProperty(self, name: str, value):
+        """Set a dynamic property."""
+        self._properties[name] = value
+
+    def property(self, name: str):
+        """Get a dynamic property."""
+        return self._properties.get(name)
+
 
 class MockQWidget(MockQObject):
     """Mock implementation of QWidget."""
@@ -89,6 +97,8 @@ class MockQWidget(MockQObject):
         self._updates_enabled = True
         self._context_menu_policy = 0  # DefaultContextMenu
         self._style_sheet = ""
+        self._minimum_size = MockQSize(0, 0)
+        self._maximum_size = MockQSize(16777215, 16777215)  # QWIDGETSIZE_MAX
 
         # Register with registry
         qt_mock_registry.register_mock(
@@ -98,7 +108,19 @@ class MockQWidget(MockQObject):
                 "visible": self._visible,
                 "enabled": self._enabled,
                 "geometry": self._geometry,
+                "size_policy": self._size_policy,
                 "layout": self._layout,
+                "window_title": self._window_title,
+                "tool_tip": self._tool_tip,
+                "status_tip": self._status_tip,
+                "whats_this": self._whats_this,
+                "focus_policy": self._focus_policy,
+                "mouse_tracking": self._mouse_tracking,
+                "updates_enabled": self._updates_enabled,
+                "context_menu_policy": self._context_menu_policy,
+                "style_sheet": self._style_sheet,
+                "minimum_size": self._minimum_size,
+                "maximum_size": self._maximum_size,
             },
         )
 
@@ -235,7 +257,7 @@ class MockQWidget(MockQObject):
 
     def minimumSizeHint(self) -> "MockQSize":
         """Get the minimum size hint."""
-        return MockQSize(50, 50)
+        return self._minimum_size
 
     # Add missing methods for tests
     def paintEvent(self, event):
@@ -261,6 +283,65 @@ class MockQWidget(MockQObject):
     def styleSheet(self) -> str:
         """Get the style sheet."""
         return self._style_sheet
+
+    def setMinimumSize(self, width: int, height: int):
+        """Set the minimum size."""
+        self._minimum_size = MockQSize(width, height)
+
+    def minimumSize(self) -> "MockQSize":
+        """Get the minimum size."""
+        return self._minimum_size
+
+    def setMaximumSize(self, width: int, height: int):
+        """Set the maximum size."""
+        self._maximum_size = MockQSize(width, height)
+
+    def maximumSize(self) -> "MockQSize":
+        """Get the maximum size."""
+        return self._maximum_size
+
+    def width(self) -> int:
+        """Get the width."""
+        return self._geometry.width()
+
+    def height(self) -> int:
+        """Get the height."""
+        return self._geometry.height()
+
+    def setMinimumHeight(self, height: int):
+        """Set the minimum height."""
+        self._minimum_size.setHeight(height)
+
+    def setMaximumHeight(self, height: int):
+        """Set the maximum height."""
+        self._maximum_size.setHeight(height)
+
+    def setMinimumWidth(self, width: int):
+        """Set the minimum width."""
+        self._minimum_size.setWidth(width)
+
+    def setMaximumWidth(self, width: int):
+        """Set the maximum width."""
+        self._maximum_size.setWidth(width)
+
+    def setFixedWidth(self, width: int):
+        """Set the fixed width."""
+        self._minimum_size.setWidth(width)
+        self._maximum_size.setWidth(width)
+
+    def setFixedHeight(self, height: int):
+        """Set the fixed height."""
+        self._minimum_size.setHeight(height)
+        self._maximum_size.setHeight(height)
+
+    def setFixedSize(self, width: int, height: int):
+        """Set the fixed size."""
+        self._minimum_size = MockQSize(width, height)
+        self._maximum_size = MockQSize(width, height)
+
+    def style(self):
+        """Get the style object."""
+        return MockQStyle()
 
 
 class MockQDialog(MockQWidget):
@@ -339,6 +420,7 @@ class MockQLabel(MockQWidget):
         self._alignment = 0  # AlignLeft | AlignVCenter
         self._word_wrap = False
         self._text_format = 0  # PlainText
+        self._font = None
 
     def setText(self, text: str):
         """Set the text."""
@@ -372,6 +454,22 @@ class MockQLabel(MockQWidget):
         """Check if word wrap is enabled."""
         return self._word_wrap
 
+    def setTextFormat(self, format_type: int):
+        """Set the text format."""
+        self._text_format = format_type
+
+    def textFormat(self) -> int:
+        """Get the text format."""
+        return self._text_format
+
+    def setFont(self, font):
+        """Set the font."""
+        self._font = font
+
+    def font(self):
+        """Get the font."""
+        return self._font
+
 
 class MockQPushButton(MockQWidget):
     """Mock implementation of QPushButton."""
@@ -386,6 +484,8 @@ class MockQPushButton(MockQWidget):
         self._auto_repeat_delay = 300
         self._auto_repeat_interval = 100
         self._clicked_signal = MockSignal()
+        self.clicked = self._clicked_signal  # Add clicked signal for compatibility
+        self._font = None
 
     def setText(self, text: str):
         """Set the text."""
@@ -425,10 +525,61 @@ class MockQPushButton(MockQWidget):
             self._checked = not self._checked
         self._clicked_signal.emit(self._checked)
 
+    def setFont(self, font):
+        """Set the font."""
+        self._font = font
+
+    def font(self):
+        """Get the font."""
+        return self._font
+
     @property
     def clicked_signal(self):
         """Get the clicked signal."""
         return self._clicked_signal
+
+
+class MockQScrollArea(MockQWidget):
+    """Mock implementation of QScrollArea."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._widget = None
+        self._horizontal_scroll_bar_policy = 0  # ScrollBarAsNeeded
+        self._vertical_scroll_bar_policy = 0  # ScrollBarAsNeeded
+        self._widget_resizable = False
+
+    def setWidget(self, widget):
+        """Set the widget."""
+        self._widget = widget
+
+    def widget(self):
+        """Get the widget."""
+        return self._widget
+
+    def setHorizontalScrollBarPolicy(self, policy: int):
+        """Set the horizontal scroll bar policy."""
+        self._horizontal_scroll_bar_policy = policy
+
+    def horizontalScrollBarPolicy(self) -> int:
+        """Get the horizontal scroll bar policy."""
+        return self._horizontal_scroll_bar_policy
+
+    def setVerticalScrollBarPolicy(self, policy: int):
+        """Set the vertical scroll bar policy."""
+        self._vertical_scroll_bar_policy = policy
+
+    def verticalScrollBarPolicy(self) -> int:
+        """Get the vertical scroll bar policy."""
+        return self._vertical_scroll_bar_policy
+
+    def setWidgetResizable(self, resizable: bool):
+        """Set if the widget is resizable."""
+        self._widget_resizable = resizable
+
+    def widgetResizable(self) -> bool:
+        """Check if the widget is resizable."""
+        return self._widget_resizable
 
 
 class MockQComboBox(MockQWidget):
@@ -723,6 +874,21 @@ class MockQApplication(MockQObject):
     def activeWindow(self):
         """Get the active window."""
         return self._active_window
+
+
+class MockQStyle:
+    """Mock implementation of QStyle."""
+
+    def __init__(self):
+        pass
+
+    def unpolish(self, widget):
+        """Unpolish a widget."""
+        pass
+
+    def polish(self, widget):
+        """Polish a widget."""
+        pass
 
 
 # Global framework instance

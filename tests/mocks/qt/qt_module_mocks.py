@@ -18,6 +18,7 @@ from .qt_mock_framework import (
     MockQObject,
     MockQPushButton,
     MockQRect,
+    MockQScrollArea,
     MockQSize,
     MockQSizePolicy,
     MockQWidget,
@@ -44,7 +45,7 @@ class MockQtWidgets:
 
         # Container classes
         self.QGroupBox = MagicMock()
-        self.QScrollArea = MagicMock()
+        self.QScrollArea = MockQScrollArea
         self.QTabWidget = MagicMock()
         self.QTabBar = MagicMock()
 
@@ -55,6 +56,9 @@ class MockQtWidgets:
         self.QRadioButton = MagicMock()
         self.QButtonGroup = MagicMock()
         self.QSlider = MagicMock()
+        self.QListWidget = MagicMock()
+        self.QListWidgetItem = MagicMock()
+        self.QMenu = MagicMock()
 
         # Application
         self.QApplication = MockQApplication
@@ -83,7 +87,7 @@ class MockQtWidgets:
         self.Qt.CustomContextMenu = 2
         self.Qt.PreventContextMenu = 3
 
-        # Frame styles
+        # Frame styles - support both old and new syntax
         self.QFrame.NoFrame = 0
         self.QFrame.Box = 1
         self.QFrame.Panel = 2
@@ -91,6 +95,16 @@ class MockQtWidgets:
         self.QFrame.HLine = 4
         self.QFrame.VLine = 5
         self.QFrame.WinPanel = 6
+
+        # Add Shape enum for newer PySide6 syntax
+        self.QFrame.Shape = MagicMock()
+        self.QFrame.Shape.NoFrame = 0
+        self.QFrame.Shape.Box = 1
+        self.QFrame.Shape.Panel = 2
+        self.QFrame.Shape.StyledPanel = 3
+        self.QFrame.Shape.HLine = 4
+        self.QFrame.Shape.VLine = 5
+        self.QFrame.Shape.WinPanel = 6
 
 
 class MockQtCore:
