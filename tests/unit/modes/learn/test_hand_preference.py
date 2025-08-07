@@ -254,3 +254,29 @@ class TestHandPreference:
         else:
             assert self.learn_mode.right_hand_btn.property("selected") is True
             assert self.learn_mode.left_hand_btn.property("selected") is not True
+
+    def test_hand_preference_visual_selection_working(self):
+        """Test that visual selection state is properly applied when clicking buttons"""
+        # Test clicking left hand button
+        self.learn_mode.left_hand_btn.click()
+
+        # Verify left hand is selected
+        assert self.learn_mode.current_hand_preference == "left"
+        assert self.learn_mode.left_hand_btn.property("selected") is True
+        assert self.learn_mode.right_hand_btn.property("selected") is False
+
+        # Test clicking right hand button
+        self.learn_mode.right_hand_btn.click()
+
+        # Verify right hand is selected
+        assert self.learn_mode.current_hand_preference == "right"
+        assert self.learn_mode.right_hand_btn.property("selected") is True
+        assert self.learn_mode.left_hand_btn.property("selected") is False
+
+        # Test clicking left hand button again
+        self.learn_mode.left_hand_btn.click()
+
+        # Verify left hand is selected again
+        assert self.learn_mode.current_hand_preference == "left"
+        assert self.learn_mode.left_hand_btn.property("selected") is True
+        assert self.learn_mode.right_hand_btn.property("selected") is False
