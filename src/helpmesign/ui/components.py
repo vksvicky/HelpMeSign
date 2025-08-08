@@ -290,8 +290,8 @@ class StatusBar(QFrame):
         # Set up the system monitor
         self.setup_system_monitor()
 
-        # Set up timer for status updates
-        self.status_update_timer = QTimer()
+        # Set up timer for status updates (parented to the status bar for safe cleanup)
+        self.status_update_timer = QTimer(self)
         self.status_update_timer.timeout.connect(self._update_status_display)
         self.status_update_timer.start(5000)  # Update every 5 seconds
 
@@ -906,8 +906,8 @@ class SystemMonitorPanel(QWidget):
         self.setup_ui()
         self.setup_system_monitor()
 
-        # Set up timer for updates
-        self.update_timer = QTimer()
+        # Set up timer for updates (parented to the panel for safe cleanup)
+        self.update_timer = QTimer(self)
         self.update_timer.timeout.connect(self._update_display)
         self.update_timer.start(3000)  # Update every 3 seconds
 

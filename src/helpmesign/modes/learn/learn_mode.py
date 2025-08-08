@@ -415,7 +415,7 @@ class LearnMode(BaseMode):
                     )
                     self.number_buttons[char] = btn
 
-                self.character_layout.addWidget(btn, row, col)
+                    self.character_layout.addWidget(btn, row, col)
 
                 col += 1
                 if col >= max_columns:
@@ -707,7 +707,8 @@ class LearnMode(BaseMode):
             if not hasattr(self, "_resize_timer"):
                 from PySide6.QtCore import QTimer
 
-                self._resize_timer = QTimer()
+                # Parent the timer to this widget for safe destruction on shutdown
+                self._resize_timer = QTimer(self)
                 self._resize_timer.setSingleShot(True)
                 self._resize_timer.timeout.connect(self._recalculate_grid_layout)
 
@@ -1172,24 +1173,24 @@ class LearnMode(BaseMode):
             except Exception as e:
                 self.logger.warning(f"Could not save hand preference: {e}")
 
-            # If a character is currently selected, keep it selected and refresh display
-            if previously_selected_char and previously_selected_type:
-                if previously_selected_type == "letter":
-                    self.update_button_selection(
-                        previously_selected_char, self.alphabet_buttons
+                # If a character is currently selected, keep it selected and refresh display
+                if previously_selected_char and previously_selected_type:
+                    if previously_selected_type == "letter":
+                        self.update_button_selection(
+                            previously_selected_char, self.alphabet_buttons
+                        )
+                    else:
+                        self.update_button_selection(
+                            previously_selected_char, self.number_buttons
+                        )
+
+                    # Refresh the sign for the new hand preference
+                    self.update_sign_display(
+                        previously_selected_char, previously_selected_type
                     )
                 else:
-                    self.update_button_selection(
-                        previously_selected_char, self.number_buttons
-                    )
-
-                # Refresh the sign for the new hand preference
-                self.update_sign_display(
-                    previously_selected_char, previously_selected_type
-                )
-            else:
-                # No selection to refresh; just notify handler
-                self._on_hand_preference_changed(hand_preference)
+                    # No selection to refresh; just notify handler
+                    self._on_hand_preference_changed(hand_preference)
 
         except Exception as e:
             self.logger.error(f"Error setting hand preference: {e}")
@@ -1407,7 +1408,7 @@ class LearnMode(BaseMode):
 
                     # Add the learning widget to the content area
                     self.main_window.content_area.addWidget(self.learning_widget)
-                    self.main_window.content_area.setCurrentWidget(self.learning_widget)
+            self.main_window.content_area.setCurrentWidget(self.learning_widget)
 
             # Load saved language selection and update character buttons (only once)
             if not hasattr(self, "_activated"):
