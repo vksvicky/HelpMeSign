@@ -920,6 +920,25 @@ class SystemMonitorPanel(QWidget):
 
     def setup_ui(self):
         """Set up the innovative panel UI"""
+        # Apply theme-based style from theme manager for consistent look (light/dark)
+        from PySide6.QtCore import Qt
+
+        from ..utils.theme_manager import get_theme_manager, get_theme_style
+
+        self.setObjectName("SystemMonitorPanel")
+        self.setStyleSheet(get_theme_style("system_monitor_panel"))
+        # Ensure the stylesheet background actually paints (no translucency)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAutoFillBackground(True)
+
+        # Resolve theme-aware text colors from theme manager (no hard-coded branch)
+        theme = get_theme_manager()
+        self._title_color = theme.get_theme_color("text_primary")
+        self._metric_title_color = theme.get_theme_color("text_muted")
+        self._metric_value_color = theme.get_theme_color("text_primary")
+        # Fallback for separator using border_secondary
+        self._separator_color = theme.get_theme_color("border_secondary")
+
         # Main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -939,11 +958,12 @@ class SystemMonitorPanel(QWidget):
         title_label.setStyleSheet(
             """
             QLabel {
-                color: #2c3e50;
+                color: %s;
                 font-weight: bold;
                 font-size: 12px;
             }
         """
+            % self._title_color
         )
         header_layout.addWidget(title_label)
 
@@ -957,16 +977,16 @@ class SystemMonitorPanel(QWidget):
         self.close_button.setStyleSheet(
             """
             QPushButton {
-                background-color: #f8f9fa;
-                color: #6c757d;
-                border: 1px solid #dee2e6;
+                background-color: #2c2c2e;
+                color: #ebebf5;
+                border: 1px solid #48484a;
                 border-radius: 10px;
                 font-weight: bold;
                 font-size: 12px;
             }
             QPushButton:hover {
-                background-color: #e9ecef;
-                border-color: #adb5bd;
+                background-color: #3a3a3c;
+                border-color: #5a5a5c;
             }
         """
         )
@@ -1017,12 +1037,13 @@ class SystemMonitorPanel(QWidget):
         title_label.setStyleSheet(
             """
             QLabel {
-                color: #6c757d;
+                color: %s;
                 font-weight: 500;
                 font-size: 11px;
                 min-width: 80px;
             }
         """
+            % self._metric_title_color
         )
         row_layout.addWidget(title_label)
 
@@ -1031,11 +1052,12 @@ class SystemMonitorPanel(QWidget):
         value_label.setStyleSheet(
             """
             QLabel {
-                color: #212529;
+                color: %s;
                 font-weight: 600;
                 font-size: 11px;
             }
         """
+            % self._metric_value_color
         )
         row_layout.addWidget(value_label)
         row_layout.addStretch()
@@ -1057,7 +1079,9 @@ class SystemMonitorPanel(QWidget):
         # Add a separator
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("QFrame { background-color: #e9ecef; }")
+        separator.setStyleSheet(
+            "QFrame { background-color: %s; }" % self._separator_color
+        )
         separator.setFixedHeight(1)
         self.main_layout.addWidget(separator)
 
@@ -1114,6 +1138,16 @@ class SystemMonitorPanel(QWidget):
     def _update_display(self):
         """Update the system monitor display"""
         try:
+            # Re-apply theme on every update to reflect runtime theme changes
+            from ..utils.theme_manager import get_theme_manager, get_theme_style
+
+            self.setStyleSheet(get_theme_style("system_monitor_panel"))
+            theme = get_theme_manager()
+            self._title_color = theme.get_theme_color("text_primary")
+            self._metric_title_color = theme.get_theme_color("text_muted")
+            self._metric_value_color = theme.get_theme_color("text_primary")
+            self._separator_color = theme.get_theme_color("border_secondary")
+
             # Check if the widget is still valid and visible
             if not self.isVisible() or self.isHidden():
                 return

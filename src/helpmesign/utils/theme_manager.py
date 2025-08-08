@@ -409,6 +409,16 @@ class ThemeManager:
                         padding: 12px;                 /* compact padding */
                     }
                 """,
+                "system_monitor_panel": """
+                    QWidget#SystemMonitorPanel {
+                        background-color: #ffffff; /* opaque */
+                        border: 1px solid #e0e0e0;
+                        border-radius: 12px;
+                    }
+                    QWidget#SystemMonitorPanel QLabel {
+                        color: #2c3e50;
+                    }
+                """,
                 "learn_mode_title": """
                     QLabel {
                         font-weight: bold;
@@ -754,6 +764,16 @@ class ThemeManager:
                         padding: 12px;                 /* compact padding */
                     }
                 """,
+                "system_monitor_panel": """
+                    QWidget#SystemMonitorPanel {
+                        background-color: #2c2c2e; /* opaque */
+                        border: 1px solid #48484a;
+                        border-radius: 12px;
+                    }
+                    QWidget#SystemMonitorPanel QLabel {
+                        color: #ebebf5;
+                    }
+                """,
                 "learn_mode_title": """
                     QLabel {
                         font-weight: bold;
@@ -926,7 +946,6 @@ class ThemeManager:
                         max-height: 28px;
                         min-width: 60px;
                         max-width: 100px;
-                        box-shadow: none;
                     }
                     QPushButton:hover {
                         background-color: #48484a;

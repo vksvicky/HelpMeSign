@@ -120,9 +120,7 @@ class HelpMeSignApp:
         """STEP 3: Create UI components with the correct configuration settings"""
         try:
             # Create main window with correct title
-            self.main_window = MainWindow(
-                title=f"HelpMeSign ({self.environment.upper()})"
-            )
+            self.main_window = MainWindow(title=f"HelpMeSign")
             self.logger.debug("Main window created")
 
             # Initialize mode manager
@@ -443,9 +441,7 @@ class HelpMeSignApp:
 
             # Update main window title
             if hasattr(self, "main_window"):
-                self.main_window.setWindowTitle(
-                    f"HelpMeSign - {mode} ({self.environment.upper()})"
-                )
+                self.main_window.setWindowTitle(f"HelpMeSign")
 
             self._settings_save_in_progress = False
 

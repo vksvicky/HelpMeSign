@@ -1429,6 +1429,37 @@ class LearnMode(BaseMode):
                 if hasattr(self.main_window, "content_area"):
                     self.main_window.content_area.removeWidget(self.learning_widget)
 
+            # Stop any timers and disconnect signals to avoid late callbacks on shutdown
+            if hasattr(self, "_resize_timer") and self._resize_timer:
+                try:
+                    self._resize_timer.stop()
+                except Exception:
+                    pass
+                self._resize_timer = None
+
+            # Disconnect main_window signals we attached in setup_behavior
+            try:
+                if hasattr(self.main_window, "clear_requested"):
+                    self.main_window.clear_requested.disconnect(
+                        self._on_clear_requested
+                    )
+            except Exception:
+                pass
+            try:
+                if hasattr(self.main_window, "process_requested"):
+                    self.main_window.process_requested.disconnect(
+                        self._on_learn_requested
+                    )
+            except Exception:
+                pass
+            try:
+                if hasattr(self.main_window, "update_hand_preference"):
+                    self.main_window.update_hand_preference.disconnect(
+                        self._on_hand_preference_changed
+                    )
+            except Exception:
+                pass
+
         except Exception as e:
             self.logger.error(f"Error deactivating learn mode: {e}")
 

@@ -6,184 +6,184 @@
   "alphabet": {
     "A": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter A - Fist with thumb on the side (left hand)",
+      "description": "ASL letter A - Fist with thumb on the side",
       "instructions": "Make a fist with your left hand, keeping your thumb to the side of your fingers"
     },
     "B": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M50 50 L50 150 M50 50 L150 50 L150 100 L50 100 L50 150 L150 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter B - Flat hand with fingers together (left hand)",
+      "description": "ASL letter B - Flat hand with fingers together",
       "instructions": "Hold your left hand flat with all fingers together and extended"
     },
     "C": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M50 50 Q100 50 150 100 Q100 150 50 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter C - Curved hand (left hand)",
+      "description": "ASL letter C - Curved hand",
       "instructions": "Curve your left hand fingers and thumb to form a C shape"
     },
     "D": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter D - Index finger pointing up with other fingers closed (left hand)",
+      "description": "ASL letter D - Index finger pointing up with other fingers closed",
       "instructions": "Point your index finger up with your left hand, keeping other fingers closed"
     },
     "E": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 50 L120 150 L80 150 Z\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter E - Fingers curled down (left hand)",
+      "description": "ASL letter E - Fingers curled down",
       "instructions": "Curl all fingers of your left hand down toward your palm"
     },
     "F": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter F - Index and thumb touching, other fingers up (left hand)",
+      "description": "ASL letter F - Index and thumb touching, other fingers up",
       "instructions": "Touch your index finger and thumb of your left hand, keep other fingers up"
     },
     "G": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter G - Index finger pointing to the side (left hand)",
+      "description": "ASL letter G - Index finger pointing to the side",
       "instructions": "Point your index finger to the side with your left hand"
     },
     "H": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M120 50 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter H - Index and middle fingers pointing to the side (left hand)",
+      "description": "ASL letter H - Index and middle fingers pointing to the side",
       "instructions": "Point your index and middle fingers to the side with your left hand"
     },
     "I": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter I - Pinky finger pointing up (left hand)",
+      "description": "ASL letter I - Pinky finger pointing up",
       "instructions": "Point your pinky finger up with your left hand, keeping other fingers closed"
     },
     "J": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter J - Pinky finger pointing up, then draw a J (left hand)",
+      "description": "ASL letter J - Pinky finger pointing up, then draw a J",
       "instructions": "Point your pinky finger up, then move your left hand in a J shape"
     },
     "K": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M120 50 L120 150 M80 100 L120 100\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter K - Index and middle fingers pointing up, thumb between them (left hand)",
+      "description": "ASL letter K - Index and middle fingers pointing up, thumb between them",
       "instructions": "Point your index and middle fingers up with your left hand, thumb between them"
     },
     "L": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M80 50 L120 50\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter L - Index finger and thumb forming L shape (left hand)",
+      "description": "ASL letter L - Index finger and thumb forming L shape",
       "instructions": "Form an L shape with your index finger and thumb of your left hand"
     },
     "M": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M100 50 L100 150 M120 50 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter M - Three fingers pointing down (left hand)",
+      "description": "ASL letter M - Three fingers pointing down",
       "instructions": "Point your index, middle, and ring fingers down with your left hand"
     },
     "N": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M100 50 L100 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter N - Index and middle fingers pointing down (left hand)",
+      "description": "ASL letter N - Index and middle fingers pointing down",
       "instructions": "Point your index and middle fingers down with your left hand"
     },
     "O": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><circle cx=\"100\" cy=\"100\" r=\"30\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter O - Fingers curled to form a circle (left hand)",
+      "description": "ASL letter O - Fingers curled to form a circle",
       "instructions": "Curl all fingers of your left hand to form a circle"
     },
     "P": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M80 50 L120 50 L120 100 L80 100\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter P - Index finger pointing down, thumb out (left hand)",
+      "description": "ASL letter P - Index finger pointing down, thumb out",
       "instructions": "Point your index finger down with your left hand, thumb pointing out"
     },
     "Q": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter Q - Index finger pointing down, thumb pointing to the side (left hand)",
+      "description": "ASL letter Q - Index finger pointing down, thumb pointing to the side",
       "instructions": "Point your index finger down with your left hand, thumb pointing to the side"
     },
     "R": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M120 50 L120 150 M80 50 L120 100 M80 100 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter R - Index and middle fingers crossed (left hand)",
+      "description": "ASL letter R - Index and middle fingers crossed",
       "instructions": "Cross your index and middle fingers of your left hand"
     },
     "S": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 50 L120 150 L80 150 Z\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter S - Fist with thumb over fingers (left hand)",
+      "description": "ASL letter S - Fist with thumb over fingers",
       "instructions": "Make a fist with your left hand, thumb over your fingers"
     },
     "T": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 50 M100 50 L100 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter T - Index finger pointing up, thumb out (left hand)",
+      "description": "ASL letter T - Index finger pointing up, thumb out",
       "instructions": "Point your index finger up with your left hand, thumb pointing out"
     },
     "U": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M120 50 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter U - Index and middle fingers pointing up (left hand)",
+      "description": "ASL letter U - Index and middle fingers pointing up",
       "instructions": "Point your index and middle fingers up with your left hand"
     },
     "V": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L100 150 M120 50 L100 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter V - Index and middle fingers in V shape (left hand)",
+      "description": "ASL letter V - Index and middle fingers in V shape",
       "instructions": "Form a V shape with your index and middle fingers of your left hand"
     },
     "W": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M70 50 L90 150 M100 50 L100 150 M130 50 L110 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter W - Three fingers pointing up (left hand)",
+      "description": "ASL letter W - Three fingers pointing up",
       "instructions": "Point your index, middle, and ring fingers up with your left hand"
     },
     "X": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 150 M120 50 L80 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter X - Index finger bent (left hand)",
+      "description": "ASL letter X - Index finger bent",
       "instructions": "Bend your index finger of your left hand"
     },
     "Y": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter Y - Thumb and pinky pointing out (left hand)",
+      "description": "ASL letter Y - Thumb and pinky pointing out",
       "instructions": "Point your thumb and pinky out with your left hand"
     },
     "Z": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 50 L80 150 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL letter Z - Index finger drawing a Z (left hand)",
+      "description": "ASL letter Z - Index finger drawing a Z",
       "instructions": "Use your index finger to draw a Z shape in the air with your left hand"
     }
   },
   "numbers": {
     "0": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><circle cx=\"100\" cy=\"100\" r=\"40\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL number 0 - Closed fist (left hand)",
+      "description": "ASL number 0 - Closed fist",
       "instructions": "Make a fist with your left hand"
     },
     "1": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><line x1=\"100\" y1=\"50\" x2=\"100\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/></svg>",
-      "description": "ASL number 1 - Index finger extended (left hand)",
+      "description": "ASL number 1 - Index finger extended",
       "instructions": "Extend only your index finger on your left hand"
     },
     "2": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><line x1=\"80\" y1=\"50\" x2=\"80\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"120\" y1=\"50\" x2=\"120\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/></svg>",
-      "description": "ASL number 2 - Index and middle fingers extended (left hand)",
+      "description": "ASL number 2 - Index and middle fingers extended",
       "instructions": "Extend your index and middle fingers on your left hand"
     },
     "3": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><line x1=\"70\" y1=\"50\" x2=\"70\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"100\" y1=\"50\" x2=\"100\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"130\" y1=\"50\" x2=\"130\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/></svg>",
-      "description": "ASL number 3 - Index, middle, and ring fingers extended (left hand)",
+      "description": "ASL number 3 - Index, middle, and ring fingers extended",
       "instructions": "Extend your index, middle, and ring fingers on your left hand"
     },
     "4": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><line x1=\"60\" y1=\"50\" x2=\"60\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"85\" y1=\"50\" x2=\"85\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"110\" y1=\"50\" x2=\"110\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"135\" y1=\"50\" x2=\"135\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/></svg>",
-      "description": "ASL number 4 - All fingers extended except thumb (left hand)",
+      "description": "ASL number 4 - All fingers extended except thumb",
       "instructions": "Extend all fingers except your thumb on your left hand"
     },
     "5": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><line x1=\"50\" y1=\"50\" x2=\"50\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"75\" y1=\"50\" x2=\"75\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"100\" y1=\"50\" x2=\"100\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"125\" y1=\"50\" x2=\"125\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/><line x1=\"150\" y1=\"50\" x2=\"150\" y2=\"150\" stroke=\"black\" stroke-width=\"3\"/></svg>",
-      "description": "ASL number 5 - All fingers extended (left hand)",
+      "description": "ASL number 5 - All fingers extended",
       "instructions": "Extend all fingers on your left hand"
     },
     "6": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL number 6 - Thumb and pinky extended (left hand)",
+      "description": "ASL number 6 - Thumb and pinky extended",
       "instructions": "Extend your thumb and pinky on your left hand"
     },
     "7": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL number 7 - Thumb, index, and middle fingers extended (left hand)",
+      "description": "ASL number 7 - Thumb, index, and middle fingers extended",
       "instructions": "Extend your thumb, index, and middle fingers on your left hand"
     },
     "8": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL number 8 - Thumb and index finger extended (left hand)",
+      "description": "ASL number 8 - Thumb and index finger extended",
       "instructions": "Extend your thumb and index finger on your left hand"
     },
     "9": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
-      "description": "ASL number 9 - Index finger bent (left hand)",
+      "description": "ASL number 9 - Index finger bent",
       "instructions": "Bend your index finger on your left hand"
     }
   },
