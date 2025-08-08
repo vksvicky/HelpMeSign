@@ -548,6 +548,7 @@ class MockQScrollArea(MockQWidget):
         self._horizontal_scroll_bar_policy = 0  # ScrollBarAsNeeded
         self._vertical_scroll_bar_policy = 0  # ScrollBarAsNeeded
         self._widget_resizable = False
+        self._frame_shape = 0  # NoFrame by default
 
     def setWidget(self, widget):
         """Set the widget."""
@@ -580,6 +581,15 @@ class MockQScrollArea(MockQWidget):
     def widgetResizable(self) -> bool:
         """Check if the widget is resizable."""
         return self._widget_resizable
+
+    # Frame API used by production code
+    def setFrameShape(self, shape: int):  # type: ignore[override]
+        """Set the frame shape (no-op for mock)."""
+        self._frame_shape = shape
+
+    def frameShape(self) -> int:
+        """Return current frame shape (mock value)."""
+        return self._frame_shape
 
 
 class MockQComboBox(MockQWidget):

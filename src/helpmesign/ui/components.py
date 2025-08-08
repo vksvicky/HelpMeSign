@@ -528,7 +528,6 @@ class StatusBar(QFrame):
                 except:
                     pass  # Signal might already be disconnected
                 self.status_update_timer.stop()
-                self.status_update_timer.deleteLater()
                 self.status_update_timer = None
 
             # Stop system monitor
@@ -548,7 +547,8 @@ class StatusBar(QFrame):
             ):
                 try:
                     main_window.system_monitor_panel.cleanup()
-                    main_window.system_monitor_panel.deleteLater()
+                    # Avoid deleteLater during shutdown to prevent double-free
+                    main_window.system_monitor_panel.hide()
                     main_window.system_monitor_panel = None
                 except:
                     pass  # Panel might already be cleaned up
@@ -1231,8 +1231,13 @@ class SystemMonitorPanel(QWidget):
 
     def cleanup(self):
         """Clean up resources"""
-        if hasattr(self, "update_timer"):
+        if hasattr(self, "update_timer") and self.update_timer:
+            try:
+                self.update_timer.timeout.disconnect()
+            except Exception:
+                pass
             self.update_timer.stop()
-            self.update_timer.deleteLater()
+            # Avoid deleteLater during app shutdown to prevent allocator issues
+            self.update_timer = None
         if hasattr(self, "system_monitor") and self.system_monitor:
             self.system_monitor.stop_monitoring()

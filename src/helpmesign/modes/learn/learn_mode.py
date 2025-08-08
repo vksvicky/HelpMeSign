@@ -143,10 +143,10 @@ class LearnMode(BaseMode):
         # Create main learning widget
         self.learning_widget = QWidget()
 
-        # Main horizontal layout
+        # Main horizontal layout (remove outer padding/borders)
         main_layout = QHBoxLayout(self.learning_widget)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(12)
 
         # Left panel - Sign display with language selector
         left_panel = self.create_sign_display_panel()
@@ -182,7 +182,7 @@ class LearnMode(BaseMode):
         self.alphabet_buttons = {}
         self.number_buttons = {}
 
-        # Create panel frame
+        # Create panel with visible border (card-like)
         panel = QFrame()
         panel.setFrameStyle(QFrame.Shape.Box)
 
@@ -337,7 +337,7 @@ class LearnMode(BaseMode):
             if not alphabet_signs and not number_signs:
                 # No sign data available - show error message
                 error_label = QLabel(
-                    f"Sign language data for {selected_language} ({hand_preference} hand) is not available.\nPlease contact support@cycleruncode.club for assistance."
+                    f"Sign language data for {selected_language} is not available.\nPlease contact support@cycleruncode.club for assistance."
                 )
                 error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 error_label.setStyleSheet(
@@ -366,7 +366,7 @@ class LearnMode(BaseMode):
             if not all_characters:
                 # No characters available - show error message
                 error_label = QLabel(
-                    f"No characters available for {selected_language} ({hand_preference} hand).\nPlease contact support@cycleruncode.club for assistance."
+                    f"No characters available for {selected_language}.\nPlease contact support@cycleruncode.club for assistance."
                 )
                 error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 error_label.setStyleSheet(
@@ -425,7 +425,7 @@ class LearnMode(BaseMode):
         except Exception as e:
             # Error loading sign data - show error message
             error_label = QLabel(
-                f"Error loading sign language data for {selected_language} ({hand_preference} hand).\nPlease contact support@cycleruncode.club for assistance.\nError: {str(e)}"
+                f"Error loading sign language data for {selected_language}.\nPlease contact support@cycleruncode.club for assistance.\nError: {str(e)}"
             )
             error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             error_label.setStyleSheet(
@@ -449,6 +449,8 @@ class LearnMode(BaseMode):
         """Create a clean, modern language selection component"""
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QFont
+
+        # Create a framed container JUST around the language selection area
         from PySide6.QtWidgets import (
             QComboBox,
             QFrame,
@@ -468,31 +470,16 @@ class LearnMode(BaseMode):
         from ...utils.language_loader import get_all_languages, get_language_categories
         from ...utils.theme_manager import get_theme_manager
 
-        # Create a simple container widget (no group box)
-        container = QWidget()
-        container.setStyleSheet(
-            """
-            QWidget {
-                background-color: transparent;
-                border: none;
-            }
-        """
-        )
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.Box)
+        container.setStyleSheet(get_theme_style("learn_mode_panel"))
 
         layout = QVBoxLayout(container)
         layout.setSpacing(12)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Title label
-        title_label = QLabel(get_text("ui.language_selection.title"))
-
-        # Use theme manager's complete style with dynamic font size
+        # Theme manager will be used for component styles below
         theme_manager = get_theme_manager()
-        title_style = theme_manager.get_complete_style(
-            "learn_mode_title", include_font_size=True
-        )
-        title_label.setStyleSheet(title_style)
-        layout.addWidget(title_label)
 
         # Search and filter row
         filter_layout = QHBoxLayout()
@@ -577,26 +564,44 @@ class LearnMode(BaseMode):
 
         layout.addLayout(filter_layout)
 
-        # Language grid area - clean and simple
+        # Language grid area - clean and simple (keep content borderless)
         self.language_list_area = QScrollArea()
         self.language_list_area.setWidgetResizable(True)
-        self.language_list_area.setMaximumHeight(180)
+        self.language_list_area.setMaximumHeight(220)
+        # Keep default frame on the outer panel; the scroll area itself remains minimal
+        self.language_list_area.setFrameShape(QFrame.Shape.NoFrame)
+        # Never show horizontal scrollbar and ensure transparent viewport
+        self.language_list_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        try:
+            from PySide6.QtGui import QColor, QPalette
+
+            palette = self.language_list_area.viewport().palette()
+            palette.setColor(QPalette.ColorRole.Base, QColor(0, 0, 0, 0))
+            self.language_list_area.viewport().setPalette(palette)
+            self.language_list_area.viewport().setAutoFillBackground(False)
+        except Exception:
+            pass
 
         # Connect resize event to recalculate grid layout
         self.language_list_area.resizeEvent = self._on_language_area_resize
 
         # Get theme-aware scroll area styling from theme manager
         scroll_area_style = get_theme_style("learn_mode_scroll_area")
-
         self.language_list_area.setStyleSheet(scroll_area_style)
 
-        # Language grid widget
+        # Language grid widget (transparent background)
         self.language_list_widget = QWidget()
+        self.language_list_widget.setObjectName("languageListWidget")
+        self.language_list_widget.setStyleSheet("background: transparent;")
+        if hasattr(self.language_list_widget, "setAutoFillBackground"):
+            self.language_list_widget.setAutoFillBackground(False)
         self.language_list_layout = QGridLayout(self.language_list_widget)
         self.language_list_layout.setSpacing(
             8
         )  # Increased spacing for better visual separation
-        self.language_list_layout.setContentsMargins(4, 4, 4, 4)  # Increased margins
+        self.language_list_layout.setContentsMargins(
+            0, 0, 0, 0
+        )  # Remove inner margins to avoid horizontal scroll
 
         self.language_list_area.setWidget(self.language_list_widget)
         layout.addWidget(self.language_list_area)
@@ -672,6 +677,15 @@ class LearnMode(BaseMode):
         # Create language buttons in a grid layout with optimal columns
         for i, language in enumerate(languages):
             btn = self.create_language_button(language)
+
+            # Preserve checked state for the currently selected language when the grid is rebuilt
+            try:
+                selected = getattr(self, "selected_language", None)
+                if selected and language.get("code") == selected.get("code"):
+                    btn.setChecked(True)
+            except Exception:
+                pass
+
             row = i // optimal_columns
             col = i % optimal_columns
             self.language_list_layout.addWidget(btn, row, col)
@@ -847,7 +861,8 @@ class LearnMode(BaseMode):
                     btn = item.widget()
                     if btn.property("language_code") == language_code:
                         # Simulate clicking the button
-                        btn.click()
+                        btn.setChecked(True)
+                        self.on_language_selected(btn.property("language_data"))
                         return
 
             # If not found in current list, try to find it in all languages
@@ -973,13 +988,12 @@ class LearnMode(BaseMode):
 
         from ...utils.theme_manager import get_theme_manager
 
-        # Create panel frame
+        # Create panel with visible border (card-like)
         panel = QFrame()
         panel.setFrameStyle(QFrame.Shape.Box)
 
         # Get theme-aware panel styling from theme manager
         panel_style = get_theme_style("learn_mode_panel")
-
         panel.setStyleSheet(panel_style)
 
         layout = QVBoxLayout(panel)
@@ -1129,6 +1143,10 @@ class LearnMode(BaseMode):
     def _set_hand_preference(self, hand_preference: str) -> None:
         """Set the hand preference and update the UI"""
         try:
+            # Preserve current selection so we can re-apply it after changing hand
+            previously_selected_char = getattr(self, "current_character", None)
+            previously_selected_type = getattr(self, "current_char_type", None)
+
             # Update internal state
             self.current_hand_preference = hand_preference
 
@@ -1154,11 +1172,24 @@ class LearnMode(BaseMode):
             except Exception as e:
                 self.logger.warning(f"Could not save hand preference: {e}")
 
-            # Update character buttons with new hand preference
-            self.update_character_buttons()
+            # If a character is currently selected, keep it selected and refresh display
+            if previously_selected_char and previously_selected_type:
+                if previously_selected_type == "letter":
+                    self.update_button_selection(
+                        previously_selected_char, self.alphabet_buttons
+                    )
+                else:
+                    self.update_button_selection(
+                        previously_selected_char, self.number_buttons
+                    )
 
-            # Notify main window of preference change
-            self._on_hand_preference_changed(hand_preference)
+                # Refresh the sign for the new hand preference
+                self.update_sign_display(
+                    previously_selected_char, previously_selected_type
+                )
+            else:
+                # No selection to refresh; just notify handler
+                self._on_hand_preference_changed(hand_preference)
 
         except Exception as e:
             self.logger.error(f"Error setting hand preference: {e}")

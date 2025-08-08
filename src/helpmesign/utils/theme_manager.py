@@ -403,10 +403,10 @@ class ThemeManager:
                 # LearnMode specific styles
                 "learn_mode_panel": """
                     QFrame {
-                        background-color: white;
-                        border: 2px solid #e0e0e0;
+                        background-color: transparent; /* no fill */
+                        border: 1px solid #e0e0e0;     /* subtle border */
                         border-radius: 10px;
-                        padding: 15px;
+                        padding: 12px;                 /* compact padding */
                     }
                 """,
                 "learn_mode_title": """
@@ -550,7 +550,7 @@ class ThemeManager:
                     }
                 """,
                 "learn_mode_scroll_area": """
-                    QScrollArea {
+                    QScrollArea, QAbstractScrollArea, QScrollArea > QWidget#qt_scrollarea_viewport {
                         border: none;
                         background-color: transparent;
                     }
@@ -569,8 +569,8 @@ class ThemeManager:
                 """,
                 "learn_mode_language_button": """
                     QPushButton {
-                        background-color: #ffffff;
-                        border: 1px solid #e9ecef;
+                        background-color: transparent;
+                        border: none;
                         border-radius: 6px;
                         padding: 6px 4px;
                         text-align: center;
@@ -584,12 +584,10 @@ class ThemeManager:
                     }
                     QPushButton:hover {
                         background-color: #f8f9fa;
-                        border-color: #007bff;
                     }
                     QPushButton:checked {
                         background-color: #007bff;
                         color: white;
-                        border-color: #0056b3;
                         font-weight: 600;
                     }
                     QPushButton:pressed {
@@ -750,10 +748,10 @@ class ThemeManager:
                 # LearnMode specific styles for dark theme
                 "learn_mode_panel": """
                     QFrame {
-                        background-color: #2c2c2e;
-                        border: 2px solid #48484a;
+                        background-color: transparent; /* no fill */
+                        border: 1px solid #48484a;     /* subtle border */
                         border-radius: 10px;
-                        padding: 15px;
+                        padding: 12px;                 /* compact padding */
                     }
                 """,
                 "learn_mode_title": """
@@ -897,7 +895,7 @@ class ThemeManager:
                     }
                 """,
                 "learn_mode_scroll_area": """
-                    QScrollArea {
+                    QScrollArea, QAbstractScrollArea, QScrollArea > QWidget#qt_scrollarea_viewport {
                         border: none;
                         background-color: transparent;
                     }
@@ -917,7 +915,7 @@ class ThemeManager:
                 "learn_mode_language_button": """
                     QPushButton {
                         background-color: #3a3a3c;
-                        border: 1px solid #48484a;
+                        border: none;
                         border-radius: 6px;
                         padding: 6px 4px;
                         text-align: center;
@@ -928,15 +926,14 @@ class ThemeManager:
                         max-height: 28px;
                         min-width: 60px;
                         max-width: 100px;
+                        box-shadow: none;
                     }
                     QPushButton:hover {
                         background-color: #48484a;
-                        border-color: #0a84ff;
                     }
                     QPushButton:checked {
                         background-color: #0a84ff;
                         color: white;
-                        border-color: #0056d6;
                         font-weight: 600;
                     }
                     QPushButton:pressed {
