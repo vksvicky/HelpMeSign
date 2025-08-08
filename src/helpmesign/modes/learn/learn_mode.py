@@ -243,6 +243,9 @@ class LearnMode(BaseMode):
         self.right_hand_btn.update()
         self.left_hand_btn.update()
 
+        # Hide or show hand icons based on saved preference ("both" hides icons)
+        self._update_hand_icon_visibility_from_pref()
+
         # Connect hand preference buttons
         self.right_hand_btn.clicked.connect(lambda: self._set_hand_preference("right"))
         self.left_hand_btn.clicked.connect(lambda: self._set_hand_preference("left"))
@@ -359,6 +362,24 @@ class LearnMode(BaseMode):
             # Extract characters from the sign data
             alphabet_chars = list(alphabet_signs.keys())
             number_chars = list(number_signs.keys())
+            # If no alphabet loaded (e.g., two-hand language with single dataset),
+            # attempt to load without hand distinction
+            if (
+                not alphabet_chars
+                and getattr(self, "current_hand_preference", "right") == "both"
+            ):
+                fallback_alphabet = self.sign_loader.get_alphabet_signs(
+                    selected_language, "both"
+                )
+                alphabet_chars = (
+                    list(fallback_alphabet.keys()) if fallback_alphabet else []
+                )
+                fallback_numbers = self.sign_loader.get_number_signs(
+                    selected_language, "both"
+                )
+                number_chars = (
+                    list(fallback_numbers.keys()) if fallback_numbers else number_chars
+                )
 
             # Combine all characters
             all_characters = alphabet_chars + number_chars
@@ -415,7 +436,8 @@ class LearnMode(BaseMode):
                     )
                     self.number_buttons[char] = btn
 
-                    self.character_layout.addWidget(btn, row, col)
+                # Add the button to the grid for both letters and numbers
+                self.character_layout.addWidget(btn, row, col)
 
                 col += 1
                 if col >= max_columns:
@@ -707,8 +729,8 @@ class LearnMode(BaseMode):
             if not hasattr(self, "_resize_timer"):
                 from PySide6.QtCore import QTimer
 
-                # Parent the timer to this widget for safe destruction on shutdown
-                self._resize_timer = QTimer(self)
+                # Parent to the scroll area (QObject) for safe destruction on shutdown
+                self._resize_timer = QTimer(self.language_list_area)
                 self._resize_timer.setSingleShot(True)
                 self._resize_timer.timeout.connect(self._recalculate_grid_layout)
 
@@ -799,11 +821,81 @@ class LearnMode(BaseMode):
         language_code = language.get("code", "ASL")
         self.change_sign_language(language_code)
 
+        # Language-aware hand control: if selected language has left/right variants,
+        # ensure icons are visible and a concrete hand (right/left) is selected.
+        # If no variants, persist 'both' and hide icons.
+        try:
+            hands = []
+            if hasattr(self, "sign_loader") and self.sign_loader:
+                hands = self.sign_loader.get_available_hands(language_code)
+            has_one_hand = any(h in ("left", "right") for h in hands)
+
+            if has_one_hand:
+                # Show icons
+                if hasattr(self, "right_hand_btn"):
+                    self.right_hand_btn.setVisible(True)
+                if hasattr(self, "left_hand_btn"):
+                    self.left_hand_btn.setVisible(True)
+
+                # If previous language set preference to 'both', switch to a concrete hand
+                if getattr(self, "current_hand_preference", "right") == "both":
+                    # Default to right hand
+                    self._set_hand_preference("right")
+            else:
+                # Hide icons and persist 'both'
+                if hasattr(self, "right_hand_btn"):
+                    self.right_hand_btn.setVisible(False)
+                if hasattr(self, "left_hand_btn"):
+                    self.left_hand_btn.setVisible(False)
+                self.current_hand_preference = "both"
+                try:
+                    from src.helpmesign.core.startup import set_hand_preference
+
+                    set_hand_preference("both")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Update hand icon visibility strictly from saved preference (no heuristics)
+        try:
+            from src.helpmesign.core.startup import get_hand_preference
+
+            self.current_hand_preference = get_hand_preference()
+        except Exception:
+            pass
+        self._update_hand_icon_visibility_from_pref()
+
         # Save language selection to configuration
         self.save_language_selection(language_code)
 
         # Update character buttons based on new language
         self.update_character_buttons()
+
+        # Re-evaluate hand icon visibility based on current saved preference
+        try:
+            from src.helpmesign.core.startup import get_hand_preference
+
+            self.current_hand_preference = get_hand_preference()
+        except Exception:
+            pass
+        self._update_hand_icon_visibility_from_pref()
+
+    def _update_hand_icon_visibility_from_pref(self) -> None:
+        """Show/hide hand icons solely based on saved hand preference.
+
+        If the preference is "both", hide the left/right icons. Otherwise, show them.
+        """
+        try:
+            visible = getattr(self, "current_hand_preference", "right") != "both"
+            if hasattr(self, "right_hand_btn"):
+                self.right_hand_btn.setVisible(visible)
+            if hasattr(self, "left_hand_btn"):
+                self.left_hand_btn.setVisible(visible)
+        except Exception:
+            pass
+
+    # Heuristic language capability toggling removed; visibility is driven by saved pref
 
     def save_language_selection(self, language_code: str) -> None:
         """Save the selected language to user configuration"""
@@ -1165,7 +1257,7 @@ class LearnMode(BaseMode):
             self.left_hand_btn.style().unpolish(self.left_hand_btn)
             self.left_hand_btn.style().polish(self.left_hand_btn)
 
-            # Save to configuration
+            # Save to configuration (non-blocking if it fails)
             try:
                 from src.helpmesign.core.startup import set_hand_preference
 
@@ -1173,24 +1265,24 @@ class LearnMode(BaseMode):
             except Exception as e:
                 self.logger.warning(f"Could not save hand preference: {e}")
 
-                # If a character is currently selected, keep it selected and refresh display
-                if previously_selected_char and previously_selected_type:
-                    if previously_selected_type == "letter":
-                        self.update_button_selection(
-                            previously_selected_char, self.alphabet_buttons
-                        )
-                    else:
-                        self.update_button_selection(
-                            previously_selected_char, self.number_buttons
-                        )
-
-                    # Refresh the sign for the new hand preference
-                    self.update_sign_display(
-                        previously_selected_char, previously_selected_type
+            # If a character is currently selected, keep it selected and refresh display
+            if previously_selected_char and previously_selected_type:
+                if previously_selected_type == "letter":
+                    self.update_button_selection(
+                        previously_selected_char, self.alphabet_buttons
                     )
                 else:
-                    # No selection to refresh; just notify handler
-                    self._on_hand_preference_changed(hand_preference)
+                    self.update_button_selection(
+                        previously_selected_char, self.number_buttons
+                    )
+
+                # Refresh the sign for the new hand preference
+                self.update_sign_display(
+                    previously_selected_char, previously_selected_type
+                )
+            else:
+                # No selection to refresh; just notify handler
+                self._on_hand_preference_changed(hand_preference)
 
         except Exception as e:
             self.logger.error(f"Error setting hand preference: {e}")
@@ -1199,9 +1291,16 @@ class LearnMode(BaseMode):
         """Handle hand preference change"""
         try:
             # Update sign display if there's a current selection
-            if hasattr(self, "sign_display_label") and self.sign_display_label:
+            if (
+                hasattr(self, "sign_display_label")
+                and self.sign_display_label
+                and getattr(self, "current_character", None)
+                and getattr(self, "current_char_type", None)
+            ):
                 # Refresh the current sign display with new hand preference
-                pass  # This will be handled by the character selection methods
+                self.update_sign_display(
+                    str(self.current_character), str(self.current_char_type)
+                )
 
         except Exception as e:
             self.logger.error(f"Error handling hand preference change: {e}")
@@ -1408,7 +1507,7 @@ class LearnMode(BaseMode):
 
                     # Add the learning widget to the content area
                     self.main_window.content_area.addWidget(self.learning_widget)
-            self.main_window.content_area.setCurrentWidget(self.learning_widget)
+                    self.main_window.content_area.setCurrentWidget(self.learning_widget)
 
             # Load saved language selection and update character buttons (only once)
             if not hasattr(self, "_activated"):

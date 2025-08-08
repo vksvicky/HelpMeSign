@@ -105,8 +105,14 @@ class SignLanguageLoader:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        # Try different filename patterns
+        # Try different filename patterns. If hand == 'both' or file not found, fall back gracefully.
         possible_files = [f"{language.lower()}_{hand}_hand.json"]
+        if hand == "both":
+            possible_files = [
+                f"{language.lower()}_right_hand.json",
+                f"{language.lower()}_left_hand.json",
+                f"{language.lower()}.json",
+            ]
 
         lang_dir = self.data_dir / language.lower()
         data = None
@@ -124,6 +130,29 @@ class SignLanguageLoader:
                         f"Error loading sign language data from {file_path}: {e}"
                     )
                     continue
+
+        # If not found and a specific hand was requested, try the other common fallbacks
+        if data is None and hand != "both":
+            fallback_files = [
+                f"{language.lower()}_right_hand.json",
+                f"{language.lower()}_left_hand.json",
+                f"{language.lower()}.json",
+            ]
+            for filename in fallback_files:
+                file_path = lang_dir / filename
+                if file_path.exists():
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        logger.info(
+                            f"Loaded sign language data (fallback): {file_path}"
+                        )
+                        break
+                    except (json.JSONDecodeError, IOError) as e:
+                        logger.error(
+                            f"Error loading sign language data from {file_path}: {e}"
+                        )
+                        continue
 
         if data is None:
             logger.warning(f"No sign language data found for {language} ({hand} hand)")
