@@ -130,7 +130,7 @@ def main():
         logger.error(f"Could not set application icon: {e}")
     
     # Create and run the application
-    logger.info(f"Creating application in {args.env} environment")
+    logger.info("Creating application")
     
     # Get the app class safely
     from src.helpmesign import get_app
@@ -140,7 +140,7 @@ def main():
         logger.error("PySide6 is not available. Cannot create application.")
         sys.exit(1)
     
-    helpmesign_app = HelpMeSignApp(args.env)
+    helpmesign_app = HelpMeSignApp()
     helpmesign_app.run()
     
     logger.info("Application started successfully")

@@ -113,6 +113,8 @@
       "hand_preference_title": "Hand Preference",
       "right_hand": "Right Hand",
       "left_hand": "Left Hand",
+      "right_hand_tooltip": "Right Hand Signs",
+      "left_hand_tooltip": "Left Hand Signs",
       "sign_description": "Choose a letter or number from the left panel to see its sign language representation.",
       "language_selected": "Language selected: {language_name}",
       "switch_language": "Switch Language",

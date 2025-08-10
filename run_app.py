@@ -128,7 +128,7 @@ def main():
     
     try:
         # Create and run the application
-        logger.info(f"Creating application in {args.env} environment")
+        logger.info("Creating application")
         
         # Check if there's already an application instance
         existing_app = QApplication.instance()
@@ -144,7 +144,7 @@ def main():
             sys.exit(1)
         
         # Create only one application instance
-        helpmesign_app = HelpMeSignApp(args.env)
+        helpmesign_app = HelpMeSignApp()
         helpmesign_app.run()
         
         logger.info("Application started successfully")

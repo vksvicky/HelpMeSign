@@ -1351,7 +1351,6 @@ class SystemMonitorPanel(QWidget):
         # Close button
         self.close_button = QPushButton("×")
         self.close_button.setFixedSize(20, 20)
-        self.close_button.setToolTip(get_text("ui.system_monitor.close_tooltip"))
         self.close_button.clicked.connect(self._close_panel)
         self.close_button.setStyleSheet(
             """

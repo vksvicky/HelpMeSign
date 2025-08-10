@@ -94,7 +94,7 @@ class LearnMode(BaseMode):
 
                 settings = get_all_settings()
                 self.current_theme = settings.get("theme", "Light")
-                self.current_font_size = settings.get("font_size", 12)
+                self.current_font_size = settings.get("font_size", 16)
                 self.logger.debug(
                     f"Using theme and font from config: {self.current_theme}, {self.current_font_size}"
                 )
@@ -114,7 +114,7 @@ class LearnMode(BaseMode):
             # Fallback to defaults
             self.current_theme = "Light"
             self.effective_theme = "Light"
-            self.current_font_size = 12
+            self.current_font_size = 16
             self.current_font_family = "Roboto"
 
     def _get_effective_theme_from_theme(self, theme: str) -> str:
@@ -259,9 +259,16 @@ class LearnMode(BaseMode):
         self.right_hand_btn.setStyleSheet(hand_button_style)
         self.left_hand_btn.setStyleSheet(hand_button_style)
 
-        # Set tooltips
-        self.right_hand_btn.setToolTip("Right Hand Signs")
-        self.left_hand_btn.setToolTip("Left Hand Signs")
+        # Set tooltips from language files
+        try:
+            self.right_hand_btn.setToolTip(
+                get_text("ui.language_selection.right_hand_tooltip")
+            )
+            self.left_hand_btn.setToolTip(
+                get_text("ui.language_selection.left_hand_tooltip")
+            )
+        except Exception:
+            pass
 
         # Load hand preference from config (allow 'both' for two-hand languages)
         try:
@@ -365,11 +372,17 @@ class LearnMode(BaseMode):
             self.alphabet_buttons.clear()
             self.number_buttons.clear()
 
-            # Safely clear the layout without deleteLater()
+            # Safely clear the layout and delete widgets to avoid leaks/corruption
             while self.character_layout.count():
                 child = self.character_layout.takeAt(0)
-                if child.widget():
-                    child.widget().setParent(None)
+                w = child.widget()
+                if w:
+                    try:
+                        w.setParent(None)
+                        if hasattr(w, "deleteLater"):
+                            w.deleteLater()
+                    except Exception:
+                        pass
 
             # Get the selected language and hand preference
             selected_language = "ASL"  # Default fallback
@@ -1281,14 +1294,17 @@ class LearnMode(BaseMode):
         self.sign_instructions_label = QLabel()
         self.sign_instructions_label.setWordWrap(True)
         self.sign_instructions_label.setTextFormat(Qt.TextFormat.RichText)
-        self.sign_instructions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Left alignment allows justified paragraphs to take full width
+        self.sign_instructions_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
         self.sign_instructions_label.setMinimumWidth(300)
-        # Constrain instruction area to avoid growing the overall container
-        self.sign_instructions_label.setMinimumHeight(75)
-        self.sign_instructions_label.setMaximumHeight(75)
-        # Let height follow content to avoid clipping
+        # Increase instruction area height for multi-line guidance
+        self.sign_instructions_label.setMinimumHeight(120)
+        self.sign_instructions_label.setMaximumHeight(180)
+        # Allow the label to expand vertically up to the max
         self.sign_instructions_label.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
 
         self.instructions_box = QFrame()
@@ -1315,7 +1331,11 @@ class LearnMode(BaseMode):
         # Floating clear button (does not affect layout). Hidden by default; shown when a character is selected
         self.clear_sign_btn = QPushButton("✕", self.sign_display_container)
         self.clear_sign_btn.setVisible(False)
-        self.clear_sign_btn.setToolTip("Clear sign")
+        # No tooltip for the X button per UX decision
+        try:
+            self.clear_sign_btn.setToolTip("")
+        except Exception:
+            pass
 
         self.clear_sign_btn.setFixedSize(24, 24)
         # Set pointing hand cursor with robust fallbacks
@@ -1373,17 +1393,38 @@ class LearnMode(BaseMode):
         # Add larger stretch BELOW the SVG to bias it upward
         self.svg_layout.addStretch(1)
 
-        # Add to layout without extra top spacing, give container stretch to take more space
-        # so the internal bottom stretch can push the SVG higher
-        self.sign_display_layout.addSpacing(0)
+        # Place SVG first, then push instructions toward the bottom area to
+        # free more upper space for future use
         self.sign_display_layout.addWidget(self.svg_container, 1)
-        # Extra padding below the hand sign
-        self.sign_display_layout.addSpacing(2)
+        # Large stretch before instructions moves the dotted box lower
+        self.sign_display_layout.addStretch(12)
         self.sign_display_layout.addWidget(
-            self.instructions_box, 0, Qt.AlignmentFlag.AlignHCenter
+            self.instructions_box,
+            0,
+            Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter,
         )
-        # Stretch at the bottom keeps overall content slightly upward
-        self.sign_display_layout.addStretch(6)
+        # Small spacing below the instructions
+        self.sign_display_layout.addSpacing(6)
+        # Reserve a 400px block above the sign area for future content (animate gesture panel)
+        self.animate_gesture_panel = QWidget()
+        self.animate_gesture_panel.setObjectName("animateGesturePanel")
+        self.animate_gesture_panel.setFixedHeight(400)
+        # Full width, fixed height placeholder
+        try:
+            self.animate_gesture_panel.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+        except Exception:
+            pass
+        # Themed dotted border for both Light and Dark themes
+        try:
+            border_color = "#c8d1dc" if self.effective_theme == "Light" else "#5a6a7a"
+            self.animate_gesture_panel.setStyleSheet(
+                f"#animateGesturePanel {{ border: 2px dotted {border_color}; border-radius: 16px; background: transparent; }}"
+            )
+        except Exception:
+            pass
+        layout.addWidget(self.animate_gesture_panel)
         layout.addWidget(self.sign_display_container)
         # Show placeholder until a character is selected
         self._show_placeholder_message()
@@ -1572,18 +1613,53 @@ class LearnMode(BaseMode):
 
         # Update instructions text
         if instructions:
-            from ...utils.theme_manager import get_font_family, get_font_size
+            from ...utils.theme_manager import get_font_family
 
-            current_size = get_font_size()
+            # Prefer mode's size but enforce a minimum of 16 for readability
+            configured_size = getattr(self, "current_font_size", 16)
+            try:
+                numeric_size = (
+                    int(configured_size) if configured_size is not None else 16
+                )
+            except Exception:
+                numeric_size = 16
+            current_size = max(numeric_size, 16)
             current_family = get_font_family()
+            # Theme-aware text colors for readability
+            text_color = (
+                "#2c3e50"
+                if getattr(self, "effective_theme", "Light") == "Light"
+                else "#e0e6ed"
+            )
+            meta_color = (
+                "#6b7b8c"
+                if getattr(self, "effective_theme", "Light") == "Light"
+                else "#a8b2bd"
+            )
+
             if (
                 hasattr(self, "sign_instructions_label")
                 and self.sign_instructions_label is not None
             ):
+                # Apply explicit font on the QLabel to ensure QSS doesn't override size
+                try:
+                    from PySide6.QtGui import QFont
+
+                    safe_family = str(current_family) if current_family else "Roboto"
+                    self.sign_instructions_label.setFont(
+                        QFont(safe_family, int(current_size))
+                    )
+                    # Also apply a direct styleSheet so QSS cannot downscale the font
+                    self.sign_instructions_label.setStyleSheet(
+                        f"font-family: {safe_family}; font-size: {current_size}px; color: {text_color};"
+                    )
+                except Exception:
+                    pass
+
                 self.sign_instructions_label.setText(
-                    f'<div style="font-family: {current_family}; font-size: {current_size}px; text-align: center;">'
-                    f'<div style="margin: 6px 0;">{instructions}</div>'
-                    f"<div style=\"margin: 4px 0; font-size: 0.9em; color: #95a5a6;\">Character: '{character}'</div>"
+                    f'<div style="font-family: {current_family}; font-size: {current_size}px; color: {text_color};">'
+                    f'<p style="margin: 6px 0; text-align: justify; text-justify: inter-word;">{instructions}</p>'
+                    f"<div style=\"margin: 4px 0; font-size: 0.9em; color: {meta_color}; text-align: center;\">Character: '{character}'</div>"
                     f"</div>"
                 )
         else:
