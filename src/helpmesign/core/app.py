@@ -299,10 +299,8 @@ class HelpMeSignApp:
                 # Set icon on the QApplication for menubar and dock
                 app = QApplication.instance()
                 if app and hasattr(app, "windowIcon") and app.windowIcon().isNull():
-                    # Q(Core)Application in PySide exposes setWindowIcon via QApplication
-                    from PySide6.QtWidgets import QApplication as _QApp
-
-                    if isinstance(app, _QApp):
+                    # If setWindowIcon is available on the app object, call it
+                    if hasattr(app, "setWindowIcon"):
                         app.setWindowIcon(QIcon(icon_path))
 
                 self.logger.info("App icon loaded successfully")
