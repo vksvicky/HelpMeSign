@@ -88,7 +88,7 @@ class FontManager:
         self,
         family: Optional[str] = None,
         size: int = 10,
-        weight: int = QFont.Normal,  # type: ignore
+        weight: QFont.Weight = QFont.Weight.Normal,
         italic: bool = False,
     ) -> QFont:
         """Get a QFont object for Qt widgets"""
@@ -104,7 +104,7 @@ class FontManager:
                 family = "Arial" if platform.system() == "Windows" else "Helvetica"
 
         font = QFont(family, size)
-        font.setWeight(weight)  # type: ignore
+        font.setWeight(weight)
         font.setItalic(italic)
         return font
 
@@ -113,14 +113,14 @@ class FontManager:
         # Use current font size from theme manager with title adjustment
         current_size = self._get_current_font_size()
         title_size = min(24, current_size + 4)  # Title is larger than base
-        return self.get_font("Roboto", title_size, QFont.Bold)  # type: ignore
+        return self.get_font("Roboto", title_size, QFont.Weight.Bold)
 
     def get_heading_font(self) -> QFont:
         """Get font for headings"""
         # Use current font size from theme manager with heading adjustment
         current_size = self._get_current_font_size()
         heading_size = min(20, current_size + 2)  # Heading is larger than base
-        return self.get_font("Roboto", heading_size, QFont.Bold)  # type: ignore
+        return self.get_font("Roboto", heading_size, QFont.Weight.Bold)
 
     def get_subheading_font(self) -> QFont:
         """Get font for subheadings"""
@@ -129,44 +129,44 @@ class FontManager:
         subheading_size = min(
             18, current_size + 1
         )  # Subheading is slightly larger than base
-        return self.get_font("Roboto", subheading_size, QFont.Bold)  # type: ignore
+        return self.get_font("Roboto", subheading_size, QFont.Weight.Bold)
 
     def get_body_font(self) -> QFont:
         """Get font for body text"""
         # Use current font size from theme manager
         current_size = self._get_current_font_size()
-        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
+        return self.get_font("Roboto", current_size, QFont.Weight.Normal)
 
     def get_small_font(self) -> QFont:
         """Get font for small text"""
         # Use current font size from theme manager with small adjustment
         current_size = self._get_current_font_size()
         small_size = max(8, current_size - 2)  # Small is smaller than base
-        return self.get_font("Roboto", small_size, QFont.Normal)  # type: ignore
+        return self.get_font("Roboto", small_size, QFont.Weight.Normal)
 
     def get_button_font(self) -> QFont:
         """Get font for buttons"""
         # Use current font size from theme manager
         current_size = self._get_current_font_size()
-        return self.get_font("Roboto", current_size, QFont.Bold)  # type: ignore
+        return self.get_font("Roboto", current_size, QFont.Weight.Bold)
 
     def get_label_font(self) -> QFont:
         """Get font for labels"""
         # Use current font size from theme manager
         current_size = self._get_current_font_size()
-        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
+        return self.get_font("Roboto", current_size, QFont.Weight.Normal)
 
     def get_input_font(self) -> QFont:
         """Get font for input fields"""
         # Use current font size from theme manager
         current_size = self._get_current_font_size()
-        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
+        return self.get_font("Roboto", current_size, QFont.Weight.Normal)
 
     def get_menu_font(self) -> QFont:
         """Get font for menu items"""
         # Use current font size from theme manager
         current_size = self._get_current_font_size()
-        return self.get_font("Roboto", current_size, QFont.Normal)  # type: ignore
+        return self.get_font("Roboto", current_size, QFont.Weight.Normal)
 
     def _get_current_font_size(self) -> int:
         """Get the current font size from the theme manager"""
@@ -217,7 +217,7 @@ def get_font_manager() -> FontManager:
 def get_font(
     family: str = "Roboto",
     size: int = 10,
-    weight: int = QFont.Normal,  # type: ignore
+    weight: QFont.Weight = QFont.Weight.Normal,
     italic: bool = False,
 ) -> QFont:
     """Get a QFont object for Qt widgets"""
