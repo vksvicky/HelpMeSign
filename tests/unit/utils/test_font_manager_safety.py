@@ -302,7 +302,7 @@ class TestLearnModeFontSafety:
             from src.helpmesign.modes.learn.learn_mode import LearnMode
 
             # Should initialize safely
-            learn_mode = LearnMode(mock_main_window, "dev")
+            learn_mode = LearnMode(mock_main_window)
 
             # Should have font attributes set
             assert hasattr(learn_mode, "current_font_size")
@@ -334,7 +334,7 @@ class TestLearnModeFontSafety:
 
             from src.helpmesign.modes.learn.learn_mode import LearnMode
 
-            learn_mode = LearnMode(mock_main_window, "dev")
+            learn_mode = LearnMode(mock_main_window)
 
             # Should use theme manager for font family
             assert learn_mode.current_font_family == "Arial"

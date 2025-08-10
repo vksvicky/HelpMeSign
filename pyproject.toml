@@ -23,3 +23,16 @@ line_length = 88
 known_first_party = ["helpmesign"]
 known_third_party = ["PySide6", "coverage", "requests", "psutil"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"] 
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+
+# Scope mypy to application code only (exclude tests)
+files = ["src/helpmesign"]

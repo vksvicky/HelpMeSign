@@ -254,7 +254,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_all_settings
 
-            result = get_all_settings("dev")
+            result = get_all_settings()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_all_settings.assert_called_once()
@@ -275,7 +275,7 @@ class TestStartupRealFunctions:
 
             settings = {"user_mode": "learn", "theme": "dark", "font_size": 14}
 
-            result = save_all_settings(settings, "dev")
+            result = save_all_settings(settings)
 
             mock_manager_class.assert_called_once()
             mock_manager.save_all_settings.assert_called_once_with(settings)
@@ -294,7 +294,7 @@ class TestStartupRealFunctions:
 
             settings = {"user_mode": "learn", "theme": "dark", "font_size": 14}
 
-            result = save_all_settings(settings, "dev")
+            result = save_all_settings(settings)
 
             mock_manager_class.assert_called_once()
             mock_manager.save_all_settings.assert_called_once_with(settings)
@@ -311,7 +311,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_user_mode
 
-            result = get_user_mode("dev")
+            result = get_user_mode()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_user_mode.assert_called_once()
@@ -328,7 +328,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_user_mode
 
-            result = get_user_mode("dev")
+            result = get_user_mode()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_user_mode.assert_called_once()
@@ -345,7 +345,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import set_user_mode
 
-            result = set_user_mode("learn", "dev")
+            result = set_user_mode("learn")
 
             mock_manager_class.assert_called_once()
             mock_manager.set_user_mode.assert_called_once_with("learn")
@@ -362,7 +362,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import set_user_mode
 
-            result = set_user_mode("learn", "dev")
+            result = set_user_mode("learn")
 
             mock_manager_class.assert_called_once()
             mock_manager.set_user_mode.assert_called_once_with("learn")
@@ -379,7 +379,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_font_size
 
-            result = get_font_size("dev")
+            result = get_font_size()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_font_size.assert_called_once()
@@ -396,7 +396,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_font_size
 
-            result = get_font_size("dev")
+            result = get_font_size()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_font_size.assert_called_once()
@@ -413,7 +413,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import set_font_size
 
-            result = set_font_size(18, "dev")
+            result = set_font_size(18)
 
             mock_manager_class.assert_called_once()
             mock_manager.set_font_size.assert_called_once_with(18)
@@ -430,7 +430,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_theme
 
-            result = get_theme("dev")
+            result = get_theme()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_theme.assert_called_once()
@@ -447,7 +447,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_theme
 
-            result = get_theme("dev")
+            result = get_theme()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_theme.assert_called_once()
@@ -464,7 +464,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import set_theme
 
-            result = set_theme("dark", "dev")
+            result = set_theme("dark")
 
             mock_manager_class.assert_called_once()
             mock_manager.set_theme.assert_called_once_with("dark")
@@ -481,7 +481,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_hand_preference
 
-            result = get_hand_preference("dev")
+            result = get_hand_preference()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_hand_preference.assert_called_once()
@@ -498,7 +498,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import get_hand_preference
 
-            result = get_hand_preference("dev")
+            result = get_hand_preference()
 
             mock_manager_class.assert_called_once()
             mock_manager.get_hand_preference.assert_called_once()
@@ -515,7 +515,7 @@ class TestStartupRealFunctions:
 
             from src.helpmesign.core.startup import set_hand_preference
 
-            result = set_hand_preference("left", "dev")
+            result = set_hand_preference("left")
 
             mock_manager_class.assert_called_once()
             mock_manager.set_hand_preference.assert_called_once_with("left")
@@ -540,9 +540,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
-
-        assert manager.environment == "dev"
+        manager = SecureConfigManager()
         assert manager.config_file is not None
         # mkdir is called in __init__ to ensure config directory exists
         mock_config_dir.mkdir.assert_called_once_with(mode=0o700, exist_ok=True)
@@ -563,7 +561,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         # Mock the file content with proper format (JSON + signature)
         mock_content = b'{"user_mode": "sign"}\n---SIGNATURE---\n' + b"fake_signature"
@@ -592,7 +590,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         result = manager.load_config()
 
@@ -613,7 +611,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("builtins.open", mock_open()):
             with patch("src.helpmesign.core.startup.json.dumps") as mock_json_dumps:
@@ -642,7 +640,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("builtins.open", side_effect=Exception("Write error")):
             config_data = {"user_mode": "sign"}
@@ -664,7 +662,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("src.helpmesign.core.startup.platform") as mock_platform:
             with patch("src.helpmesign.core.startup.getpass") as mock_getpass:
@@ -693,7 +691,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("src.helpmesign.core.startup.uuid") as mock_uuid:
             mock_uuid.getnode.return_value = 0x123456789ABC
@@ -717,7 +715,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("src.helpmesign.core.startup.uuid") as mock_uuid:
             mock_uuid.getnode.side_effect = Exception("MAC error")
@@ -739,7 +737,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager,
@@ -764,7 +762,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "_create_hmac", return_value=b"fake_signature"):
             # Test valid signature
@@ -789,7 +787,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         # Mock invalid file content (no signature separator)
         mock_content = b'{"user_mode": "sign"}'
@@ -812,7 +810,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         # Mock file content with signature separator but invalid JSON
         mock_content = b"invalid_json\n---SIGNATURE---\n" + b"fake_signature"
@@ -839,7 +837,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         # Mock file content with proper format
         mock_content = b'{"user_mode": "sign"}\n---SIGNATURE---\n' + b"fake_signature"
@@ -866,7 +864,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={"user_mode": "learn"}):
             result = manager.get_user_mode()
@@ -885,7 +883,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             result = manager.get_user_mode()
@@ -904,7 +902,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
@@ -924,7 +922,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=False):
@@ -944,7 +942,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={"theme": "dark"}):
             result = manager.get_theme()
@@ -963,7 +961,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             result = manager.get_theme()
@@ -982,7 +980,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
@@ -1002,7 +1000,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={"font_size": 16}):
             result = manager.get_font_size()
@@ -1021,7 +1019,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             result = manager.get_font_size()
@@ -1040,7 +1038,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
@@ -1060,7 +1058,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", return_value={"hand_preference": "left"}
@@ -1081,7 +1079,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             result = manager.get_hand_preference()
@@ -1100,7 +1098,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
@@ -1120,7 +1118,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager,
@@ -1154,7 +1152,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch(
@@ -1179,7 +1177,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
@@ -1200,7 +1198,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=False):
@@ -1221,7 +1219,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         timestamp = manager.get_timestamp()
         assert isinstance(timestamp, str)
@@ -1241,7 +1239,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("builtins.open", side_effect=Exception("General error")):
             result = manager.load_config()
@@ -1260,7 +1258,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1281,7 +1279,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1302,7 +1300,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1323,7 +1321,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1344,7 +1342,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1365,7 +1363,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1386,7 +1384,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1407,7 +1405,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1428,7 +1426,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1455,7 +1453,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1477,7 +1475,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
         manager._saving_settings = True  # Simulate recursive call
 
         with patch.object(manager, "load_config", return_value={}):
@@ -1498,7 +1496,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager, "load_config", side_effect=Exception("Config error")
@@ -1523,7 +1521,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
         manager._saving_settings = True  # Simulate recursive call
 
         result = manager.set_user_mode("learn")
@@ -1542,7 +1540,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
         manager._saving_settings = True  # Simulate recursive call
 
         result = manager.set_theme("dark")
@@ -1561,7 +1559,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
         manager._saving_settings = True  # Simulate recursive call
 
         result = manager.set_font_size(16)
@@ -1580,7 +1578,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
         manager._saving_settings = True  # Simulate recursive call
 
         result = manager.set_hand_preference("left")
@@ -1600,7 +1598,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         # Mock file content with different environment
         mock_content = (
@@ -1632,7 +1630,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("builtins.open", mock_open()):
             with patch("src.helpmesign.core.startup.json.dumps") as mock_json_dumps:
@@ -1662,7 +1660,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("src.helpmesign.core.startup.platform") as mock_platform:
             with patch("src.helpmesign.core.startup.getpass") as mock_getpass:
@@ -1695,7 +1693,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch.object(
             manager,
@@ -1721,7 +1719,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         test_data = '{"user_mode": "sign", "timestamp": "2023-01-01T12:00:00"}'
 
@@ -1747,7 +1745,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("src.helpmesign.core.startup.uuid") as mock_uuid:
             # Test with a realistic MAC address value
@@ -1774,7 +1772,7 @@ class TestSecureConfigManager:
 
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("dev")
+        manager = SecureConfigManager()
 
         with patch("src.helpmesign.core.startup.uuid") as mock_uuid:
             mock_uuid.getnode.return_value = 0
@@ -1797,12 +1795,12 @@ class TestSecureConfigManager:
 
                 StartupScreen()
 
-    def test_secure_config_manager_with_invalid_environment(self):
-        """Test SecureConfigManager with invalid environment"""
+    def test_secure_config_manager_simple_init(self):
+        """SecureConfigManager initializes without environment parameter"""
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("invalid_env")
-        assert manager.environment == "invalid_env"
+        manager = SecureConfigManager()
+        assert manager is not None
 
     def test_secure_config_manager_derive_secret_key_with_error(self):
         """Test _derive_secret_key with error handling"""
@@ -2077,7 +2075,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import get_user_mode
 
-            result = get_user_mode("dev")
+            result = get_user_mode()
             assert result == "test_mode"
 
         # Test set_user_mode
@@ -2090,7 +2088,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import set_user_mode
 
-            result = set_user_mode("test_mode", "dev")
+            result = set_user_mode("test_mode")
             assert result is True
 
         # Test get_theme
@@ -2103,7 +2101,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import get_theme
 
-            result = get_theme("dev")
+            result = get_theme()
             assert result == "dark"
 
         # Test set_theme
@@ -2116,7 +2114,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import set_theme
 
-            result = set_theme("dark", "dev")
+            result = set_theme("dark")
             assert result is True
 
         # Test get_font_size
@@ -2129,7 +2127,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import get_font_size
 
-            result = get_font_size("dev")
+            result = get_font_size()
             assert result == 14
 
         # Test set_font_size
@@ -2142,7 +2140,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import set_font_size
 
-            result = set_font_size(14, "dev")
+            result = set_font_size(14)
             assert result is True
 
         # Test get_hand_preference
@@ -2155,7 +2153,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import get_hand_preference
 
-            result = get_hand_preference("dev")
+            result = get_hand_preference()
             assert result == "left"
 
         # Test set_hand_preference
@@ -2168,7 +2166,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import set_hand_preference
 
-            result = set_hand_preference("left", "dev")
+            result = set_hand_preference("left")
             assert result is True
 
         # Test get_all_settings
@@ -2181,7 +2179,7 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import get_all_settings
 
-            result = get_all_settings("dev")
+            result = get_all_settings()
             assert result == {"test": "data"}
 
         # Test save_all_settings
@@ -2194,24 +2192,21 @@ class TestSecureConfigManager:
 
             from src.helpmesign.core.startup import save_all_settings
 
-            result = save_all_settings({"test": "data"}, "dev")
+            result = save_all_settings({"test": "data"})
             assert result is True
 
-    def test_secure_config_manager_with_different_environments(self):
-        """Test SecureConfigManager with different environment values"""
+    def test_secure_config_manager_no_environment_variants(self):
+        """SecureConfigManager ignores environment variants"""
         from src.helpmesign.core.startup import SecureConfigManager
 
-        # Test with production environment
-        manager_prod = SecureConfigManager("prod")
-        assert manager_prod.environment == "prod"
-
-        # Test with test environment
-        manager_test = SecureConfigManager("test")
-        assert manager_test.environment == "test"
-
-        # Test with custom environment
-        manager_custom = SecureConfigManager("custom")
-        assert manager_custom.environment == "custom"
+        manager_prod = SecureConfigManager()
+        manager_test = SecureConfigManager()
+        manager_custom = SecureConfigManager()
+        assert (
+            manager_prod is not None
+            and manager_test is not None
+            and manager_custom is not None
+        )
 
     def test_secure_config_manager_derive_secret_key_with_all_components(self):
         """Test _derive_secret_key with all components available"""
@@ -2297,18 +2292,18 @@ class TestSecureConfigManager:
             result = manager.save_config(config_with_metadata)
             assert result is True
 
-    def test_secure_config_manager_load_config_environment_mismatch(self):
-        """Test load_config with environment mismatch"""
+    def test_secure_config_manager_load_config_ignores_environment_field(self):
+        """Environment field in config is ignored and does not prevent loading defaults"""
         from src.helpmesign.core.startup import SecureConfigManager
 
-        manager = SecureConfigManager("prod")
+        manager = SecureConfigManager()
 
-        # Create config for different environment
+        # Create config payload with environment field
         config_data = {
             "data": json.dumps(
                 {
                     "user_mode": "test_mode",
-                    "environment": "dev",  # Different from manager's environment
+                    "environment": "dev",
                 }
             ),
             "signature": "valid_signature",
@@ -2318,7 +2313,7 @@ class TestSecureConfigManager:
             with patch("builtins.open", mock_open(read_data=json.dumps(config_data))):
                 with patch.object(manager, "_verify_hmac", return_value=True):
                     result = manager.load_config()
-                    # Should return default config due to environment mismatch
+                    # Should return config (environment ignored) or defaults
                     assert "user_mode" in result
                     assert "theme" in result
                     assert "font_size" in result
@@ -2528,7 +2523,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_user_mode
 
-            result = get_user_mode("dev")
+            result = get_user_mode()
             assert result is None
 
         # Test set_user_mode with exception
@@ -2538,7 +2533,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_user_mode
 
-            result = set_user_mode("test_mode", "dev")
+            result = set_user_mode("test_mode")
             assert result is False
 
         # Test get_theme with exception
@@ -2548,7 +2543,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_theme
 
-            result = get_theme("dev")
+            result = get_theme()
             assert result == "Light"  # Should return default
 
         # Test set_theme with exception
@@ -2558,7 +2553,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_theme
 
-            result = set_theme("dark", "dev")
+            result = set_theme("dark")
             assert result is False
 
         # Test get_font_size with exception
@@ -2568,7 +2563,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_font_size
 
-            result = get_font_size("dev")
+            result = get_font_size()
             assert result == 12  # Should return default
 
         # Test set_font_size with exception
@@ -2578,7 +2573,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_font_size
 
-            result = set_font_size(14, "dev")
+            result = set_font_size(14)
             assert result is False
 
         # Test get_hand_preference with exception
@@ -2588,7 +2583,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_hand_preference
 
-            result = get_hand_preference("dev")
+            result = get_hand_preference()
             assert result == "right"  # Should return default
 
         # Test set_hand_preference with exception
@@ -2598,7 +2593,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_hand_preference
 
-            result = set_hand_preference("left", "dev")
+            result = set_hand_preference("left")
             assert result is False
 
         # Test get_all_settings with exception
@@ -2608,7 +2603,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_all_settings
 
-            result = get_all_settings("dev")
+            result = get_all_settings()
             # The method returns default settings even with exception
             assert isinstance(result, dict)
             assert "user_mode" in result
@@ -2620,7 +2615,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import save_all_settings
 
-            result = save_all_settings({"test": "data"}, "dev")
+            result = save_all_settings({"test": "data"})
             assert result is False
 
     def test_secure_config_manager_get_user_mode_with_exception(self):
@@ -2759,7 +2754,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_user_mode
 
-            result = get_user_mode("dev")
+            result = get_user_mode()
             assert result is None
 
         # Test set_user_mode with exception
@@ -2769,7 +2764,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_user_mode
 
-            result = set_user_mode("test_mode", "dev")
+            result = set_user_mode("test_mode")
             assert result is False
 
         # Test get_theme with exception
@@ -2779,7 +2774,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_theme
 
-            result = get_theme("dev")
+            result = get_theme()
             assert result == "Light"  # Should return default
 
         # Test set_theme with exception
@@ -2789,7 +2784,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_theme
 
-            result = set_theme("dark", "dev")
+            result = set_theme("dark")
             assert result is False
 
         # Test get_font_size with exception
@@ -2799,7 +2794,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_font_size
 
-            result = get_font_size("dev")
+            result = get_font_size()
             assert result == 12  # Should return default
 
         # Test set_font_size with exception
@@ -2809,7 +2804,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_font_size
 
-            result = set_font_size(14, "dev")
+            result = set_font_size(14)
             assert result is False
 
         # Test get_hand_preference with exception
@@ -2819,7 +2814,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_hand_preference
 
-            result = get_hand_preference("dev")
+            result = get_hand_preference()
             assert result == "right"  # Should return default
 
         # Test set_hand_preference with exception
@@ -2829,7 +2824,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import set_hand_preference
 
-            result = set_hand_preference("left", "dev")
+            result = set_hand_preference("left")
             assert result is False
 
         # Test get_all_settings with exception
@@ -2839,7 +2834,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import get_all_settings
 
-            result = get_all_settings("dev")
+            result = get_all_settings()
             # The method returns default settings even with exception
             assert isinstance(result, dict)
             assert "user_mode" in result
@@ -2851,7 +2846,7 @@ class TestSecureConfigManager:
         ):
             from src.helpmesign.core.startup import save_all_settings
 
-            result = save_all_settings({"test": "data"}, "dev")
+            result = save_all_settings({"test": "data"})
             assert result is False
 
     def test_secure_config_manager_with_different_environments_and_exceptions(self):
@@ -2859,7 +2854,7 @@ class TestSecureConfigManager:
         from src.helpmesign.core.startup import SecureConfigManager
 
         # Test with production environment and exception handling
-        manager_prod = SecureConfigManager("prod")
+        manager_prod = SecureConfigManager()
         with patch.object(
             manager_prod, "load_config", side_effect=Exception("Test exception")
         ):
@@ -2867,7 +2862,7 @@ class TestSecureConfigManager:
             assert result is None
 
         # Test with test environment and exception handling
-        manager_test = SecureConfigManager("test")
+        manager_test = SecureConfigManager()
         with patch.object(
             manager_test, "save_config", side_effect=Exception("Test exception")
         ):

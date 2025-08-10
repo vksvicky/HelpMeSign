@@ -69,7 +69,7 @@ class TestModeManager(QtTestCase):
             mock_learn_mode_class.return_value = mock_learn_mode
 
             # Create the mode manager instance with mocked modes
-            return ModeManager(self.mock_main_window, "dev")
+            return ModeManager(self.mock_main_window)
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -95,7 +95,6 @@ class TestModeManager(QtTestCase):
 
         # Assert
         assert manager.main_window == self.mock_main_window
-        assert manager.environment == "dev"
         assert isinstance(manager.modes, dict)
         assert manager.current_mode is not None
         assert "sign_translate" in manager.modes
@@ -548,22 +547,22 @@ class TestModeManager(QtTestCase):
     def test_boundary_condition_environment_values(self):
         """Test different environment values"""
         # Arrange & Act
-        manager_dev = ModeManager(self.mock_main_window, "dev")
-        manager_prod = ModeManager(self.mock_main_window, "prod")
-        manager_test = ModeManager(self.mock_main_window, "test")
+        manager_dev = ModeManager(self.mock_main_window)
+        manager_prod = ModeManager(self.mock_main_window)
+        manager_test = ModeManager(self.mock_main_window)
 
         # Assert
-        assert manager_dev.environment == "dev"
-        assert manager_prod.environment == "prod"
-        assert manager_test.environment == "test"
+        assert not hasattr(manager_dev, "environment")
+        assert not hasattr(manager_prod, "environment")
+        assert not hasattr(manager_test, "environment")
 
     def test_boundary_condition_empty_environment(self):
         """Test empty environment string"""
         # Arrange & Act
-        manager = ModeManager(self.mock_main_window, "")
+        manager = ModeManager(self.mock_main_window)
 
         # Assert
-        assert manager.environment == ""
+        assert not hasattr(manager, "environment")
 
     # Mock Tests
     def test_mock_main_window_interaction(self):
@@ -574,7 +573,7 @@ class TestModeManager(QtTestCase):
         mock_window.set_status = Mock()
 
         # Act
-        manager = ModeManager(mock_window, "dev")
+        manager = ModeManager(mock_window)
 
         # Assert
         assert manager.main_window == mock_window

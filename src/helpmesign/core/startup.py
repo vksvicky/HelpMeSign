@@ -303,10 +303,9 @@ class StartupScreen(QDialog):
 class SecureConfigManager:
     """Secure configuration manager with system-derived key protection"""
 
-    def __init__(self, environment: str = "dev"):
+    def __init__(self):
         self.config_dir = Path.home() / ".helpmesign"
         self.config_file = self.config_dir / "user_config.secure"
-        self.environment = environment.lower()
         self.logger = get_logger("helpmesign.config")
         self._saving_settings: bool = False
 
@@ -325,7 +324,6 @@ class SecureConfigManager:
             platform.node(),  # Hostname
             getpass.getuser(),  # Username
             str(Path.home()),  # Home directory path
-            self.environment,  # Environment (dev/prod)
             get_text("app.name"),  # Application identifier
             self._get_mac_address(),  # MAC address for machine uniqueness
         ]
@@ -383,7 +381,6 @@ class SecureConfigManager:
 
             # Add metadata
             config["timestamp"] = self.get_timestamp()
-            config["environment"] = self.environment
             config["version"] = "1.0"
 
             # Convert to JSON with consistent ordering
@@ -435,12 +432,7 @@ class SecureConfigManager:
             # Parse JSON
             config = json.loads(json_data)
 
-            # Verify environment compatibility
-            if config.get("environment") != self.environment:
-                self.logger.warning(
-                    f"Environment mismatch: expected {self.environment}, got {config.get('environment')}"
-                )
-                # Still return config but log warning
+            # Environment field is deprecated; ignore if present
 
             self.logger.info("Configuration loaded and verified successfully")
             return config
@@ -471,7 +463,6 @@ class SecureConfigManager:
                 "font_size": 12,
                 "hand_preference": "right",
                 "selected_language": "ASL",
-                "environment": self.environment,
                 "version": "1.0",
                 "timestamp": self.get_timestamp(),
             }
@@ -698,10 +689,10 @@ def show_startup_screen(parent=None) -> Optional[str]:
         return None
 
 
-def get_user_mode(environment: str = "dev") -> Optional[str]:
+def get_user_mode() -> Optional[str]:
     """Get user's preferred mode"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.get_user_mode()
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -709,10 +700,10 @@ def get_user_mode(environment: str = "dev") -> Optional[str]:
         return None
 
 
-def set_user_mode(mode: str, environment: str = "dev") -> bool:
+def set_user_mode(mode: str) -> bool:
     """Set user's preferred mode"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.set_user_mode(mode)
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -720,10 +711,10 @@ def set_user_mode(mode: str, environment: str = "dev") -> bool:
         return False
 
 
-def get_theme(environment: str = "dev") -> str:
+def get_theme() -> str:
     """Get user's preferred theme"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.get_theme()
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -731,10 +722,10 @@ def get_theme(environment: str = "dev") -> str:
         return "Light"
 
 
-def set_theme(theme: str, environment: str = "dev") -> bool:
+def set_theme(theme: str) -> bool:
     """Set user's preferred theme"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.set_theme(theme)
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -742,10 +733,10 @@ def set_theme(theme: str, environment: str = "dev") -> bool:
         return False
 
 
-def get_font_size(environment: str = "dev") -> int:
+def get_font_size() -> int:
     """Get user's preferred font size"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.get_font_size()
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -753,10 +744,10 @@ def get_font_size(environment: str = "dev") -> int:
         return 12
 
 
-def set_font_size(font_size: int, environment: str = "dev") -> bool:
+def set_font_size(font_size: int) -> bool:
     """Set user's preferred font size"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.set_font_size(font_size)
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -764,10 +755,10 @@ def set_font_size(font_size: int, environment: str = "dev") -> bool:
         return False
 
 
-def get_hand_preference(environment: str = "dev") -> str:
+def get_hand_preference() -> str:
     """Get user's preferred hand"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.get_hand_preference()
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -775,10 +766,10 @@ def get_hand_preference(environment: str = "dev") -> str:
         return "right"
 
 
-def set_hand_preference(hand_preference: str, environment: str = "dev") -> bool:
+def set_hand_preference(hand_preference: str) -> bool:
     """Set user's preferred hand"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.set_hand_preference(hand_preference)
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -786,10 +777,10 @@ def set_hand_preference(hand_preference: str, environment: str = "dev") -> bool:
         return False
 
 
-def get_all_settings(environment: str = "dev") -> Dict[str, Any]:
+def get_all_settings() -> Dict[str, Any]:
     """Get all user settings"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.get_all_settings()
     except Exception as e:
         logger = get_logger("helpmesign.startup")
@@ -802,10 +793,10 @@ def get_all_settings(environment: str = "dev") -> Dict[str, Any]:
         }
 
 
-def save_all_settings(settings: Dict[str, Any], environment: str = "dev") -> bool:
+def save_all_settings(settings: Dict[str, Any]) -> bool:
     """Save all user settings"""
     try:
-        config_manager = SecureConfigManager(environment)
+        config_manager = SecureConfigManager()
         return config_manager.save_all_settings(settings)
     except Exception as e:
         logger = get_logger("helpmesign.startup")

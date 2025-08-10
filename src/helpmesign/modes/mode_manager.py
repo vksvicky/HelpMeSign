@@ -14,16 +14,14 @@ from .sign_translate.sign_translate_mode import SignTranslateMode
 class ModeManager:
     """Manages different application modes and handles mode switching"""
 
-    def __init__(self, main_window, environment: str = "dev"):
+    def __init__(self, main_window):
         """
         Initialize the mode manager
 
         Args:
             main_window: Reference to the main application window
-            environment: Application environment (dev, prod, etc.)
         """
         self.main_window = main_window
-        self.environment = environment
         self.modes: Dict[str, BaseMode] = {}
         self.current_mode: Optional[BaseMode] = None
 
@@ -32,10 +30,8 @@ class ModeManager:
     def _initialize_modes(self) -> None:
         """Initialize all available modes"""
         # Create mode instances
-        self.modes["sign_translate"] = SignTranslateMode(
-            self.main_window, self.environment
-        )
-        self.modes["learn"] = LearnMode(self.main_window, self.environment)
+        self.modes["sign_translate"] = SignTranslateMode(self.main_window)
+        self.modes["learn"] = LearnMode(self.main_window)
 
         # Set default mode
         self.current_mode = self.modes["sign_translate"]

@@ -13,16 +13,14 @@ if TYPE_CHECKING:
 class BaseMode(ABC):
     """Abstract base class for all application modes"""
 
-    def __init__(self, main_window, environment: str = "dev"):
+    def __init__(self, main_window):
         """
         Initialize the mode
 
         Args:
             main_window: Reference to the main application window
-            environment: Application environment (dev, prod, etc.)
         """
         self.main_window = main_window
-        self.environment = environment
         self.mode_name = self.get_mode_name()
         self.setup_ui()
         self.setup_behavior()

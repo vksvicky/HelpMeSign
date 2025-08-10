@@ -40,7 +40,7 @@ class TestLanguageSelectionPersistence:
 
             # Create LearnMode instance with minimal UI setup
             with patch.object(LearnMode, "setup_ui"):
-                learn_mode = LearnMode(mock_main_window, "dev")
+                learn_mode = LearnMode(mock_main_window)
 
                 # Test saving FSL selection
                 learn_mode.save_language_selection("FSL")
@@ -84,7 +84,7 @@ class TestLanguageSelectionPersistence:
 
             # Create LearnMode instance with minimal UI setup
             with patch.object(LearnMode, "setup_ui"):
-                learn_mode = LearnMode(mock_main_window, "dev")
+                learn_mode = LearnMode(mock_main_window)
 
                 # Test loading saved FSL selection
                 learn_mode.load_saved_language_selection()
@@ -130,7 +130,7 @@ class TestLanguageSelectionPersistence:
 
             # Create LearnMode instance with minimal UI setup
             with patch.object(LearnMode, "setup_ui"):
-                learn_mode = LearnMode(mock_main_window, "dev")
+                learn_mode = LearnMode(mock_main_window)
 
                 # Mock the UI components needed for on_language_selected
                 learn_mode.language_list_layout = MagicMock()
@@ -182,7 +182,7 @@ class TestLanguageSelectionPersistence:
 
             # Create LearnMode instance with minimal UI setup
             with patch.object(LearnMode, "setup_ui"):
-                learn_mode = LearnMode(mock_main_window, "dev")
+                learn_mode = LearnMode(mock_main_window)
 
                 # Test loading saved selection (should fallback to ASL)
                 learn_mode.load_saved_language_selection()
@@ -210,7 +210,7 @@ class TestLanguageSelectionPersistence:
             }
 
             # Call get_all_settings
-            settings = get_all_settings("dev")
+            settings = get_all_settings()
 
             # Verify that selected_language is included
             assert "selected_language" in settings
@@ -238,7 +238,7 @@ class TestLanguageSelectionPersistence:
             }
 
             # Call save_all_settings
-            result = save_all_settings(test_settings, "dev")
+            result = save_all_settings(test_settings)
 
             # Verify that save_all_settings was called with the correct settings
             mock_instance.save_all_settings.assert_called_once_with(test_settings)

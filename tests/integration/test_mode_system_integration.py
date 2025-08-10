@@ -66,7 +66,7 @@ class TestModeSystemIntegration(QtTestCase):
             mock_learn_mode_class.return_value = mock_learn_mode
 
             # Create the mode manager instance with mocked modes
-            return ModeManager(self.mock_main_window, "dev")
+            return ModeManager(self.mock_main_window)
 
     @pytest.fixture(autouse=True)
     def setup(self):

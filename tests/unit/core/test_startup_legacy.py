@@ -229,7 +229,7 @@ class TestSecureConfigManagerMethods:
         # Import after mocking
         from src.helpmesign.core.startup import SecureConfigManager
 
-        self.config_manager = SecureConfigManager("test")
+        self.config_manager = SecureConfigManager()
 
     def teardown_method(self):
         """Clean up after each test"""
@@ -500,10 +500,10 @@ class TestStartupFunctions:
         mock_config_manager.get_user_mode.return_value = "sign"
         mock_secure_config_manager.return_value = mock_config_manager
 
-        result = get_user_mode("prod")
+        result = get_user_mode()
 
         assert result == "sign"
-        mock_secure_config_manager.assert_called_once_with("prod")
+        mock_secure_config_manager.assert_called_once()
 
     @patch("src.helpmesign.core.startup.SecureConfigManager")
     def test_set_user_mode_function(self, mock_secure_config_manager):
@@ -516,10 +516,10 @@ class TestStartupFunctions:
         mock_config_manager.set_user_mode.return_value = True
         mock_secure_config_manager.return_value = mock_config_manager
 
-        result = set_user_mode("learn", "dev")
+        result = set_user_mode("learn")
 
         assert result
-        mock_secure_config_manager.assert_called_once_with("dev")
+        mock_secure_config_manager.assert_called_once()
 
     @patch("src.helpmesign.core.startup.SecureConfigManager")
     def test_get_theme_function(self, mock_secure_config_manager):
@@ -532,7 +532,7 @@ class TestStartupFunctions:
         mock_config_manager.get_theme.return_value = "Dark"
         mock_secure_config_manager.return_value = mock_config_manager
 
-        result = get_theme("prod")
+        result = get_theme()
 
         assert result == "Dark"
 
@@ -547,7 +547,7 @@ class TestStartupFunctions:
         mock_config_manager.set_theme.return_value = True
         mock_secure_config_manager.return_value = mock_config_manager
 
-        result = set_theme("Light", "dev")
+        result = set_theme("Light")
 
         assert result
 
@@ -562,7 +562,7 @@ class TestStartupFunctions:
         mock_config_manager.get_font_size.return_value = 16
         mock_secure_config_manager.return_value = mock_config_manager
 
-        result = get_font_size("prod")
+        result = get_font_size()
 
         assert result == 16
 
@@ -577,7 +577,7 @@ class TestStartupFunctions:
         mock_config_manager.set_font_size.return_value = True
         mock_secure_config_manager.return_value = mock_config_manager
 
-        result = set_font_size(14, "dev")
+        result = set_font_size(14)
 
         assert result
 
@@ -595,7 +595,7 @@ class TestStartupFunctions:
         }
         mock_secure_config_manager.return_value = mock_config_manager
 
-        result = get_all_settings("prod")
+        result = get_all_settings()
 
         assert "user_mode" in result
         assert "theme" in result
@@ -612,7 +612,7 @@ class TestStartupFunctions:
         mock_secure_config_manager.return_value = mock_config_manager
 
         test_settings = {"user_mode": "learn"}
-        result = save_all_settings(test_settings, "dev")
+        result = save_all_settings(test_settings)
 
         assert result
 

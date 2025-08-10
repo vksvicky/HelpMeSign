@@ -18,11 +18,9 @@ class HelpMeSignLogger:
         self,
         name: str = "HelpMeSign",
         config: Optional[Dict[str, Any]] = None,
-        environment: str = "dev",
     ):
         self.name = name
         self.config = config or {}
-        self.environment = environment.lower()
         self.logger: logging.Logger
         self._setup_logger()
 
@@ -31,15 +29,10 @@ class HelpMeSignLogger:
         # Create logger
         self.logger = logging.getLogger(self.name)
 
-        # Get log level based on environment
-        if self.environment == "prod":
-            # Production: Use config or default to INFO
-            log_level_str = self.config.get("logging", {}).get("level", "INFO").upper()
-        else:
-            # Development: Use config or default to DEBUG
-            log_level_str = (
-                self.config.get("logging", {}).get("dev_level", "DEBUG").upper()
-            )
+        # Get log level from config. Prefer 'level', then 'dev_level', default to INFO
+        logging_cfg = self.config.get("logging", {})
+        level_value = logging_cfg.get("level") or logging_cfg.get("dev_level") or "INFO"
+        log_level_str = str(level_value).upper()
 
         log_level = getattr(logging, log_level_str, logging.INFO)
         self.logger.setLevel(log_level)
@@ -47,23 +40,13 @@ class HelpMeSignLogger:
         # Clear any existing handlers
         self.logger.handlers.clear()
 
-        # Create formatters based on environment
-        if self.environment == "prod":
-            # Production: Simple formatter
-            detailed_formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
-            simple_formatter = logging.Formatter(
-                "%(asctime)s - %(levelname)s - %(message)s"
-            )
-        else:
-            # Development: Detailed formatter with file and line info
-            detailed_formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"
-            )
-            simple_formatter = logging.Formatter(
-                "%(asctime)s - %(levelname)s - %(message)s"
-            )
+        # Create formatters (always use detailed to aid debugging)
+        detailed_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"
+        )
+        simple_formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s"
+        )
 
         # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
@@ -93,7 +76,7 @@ class HelpMeSignLogger:
 
         # Log startup information
         self.logger.info(
-            f"Logger initialized for '{self.name}' with level: {log_level_str} in {self.environment} environment"
+            f"Logger initialized for '{self.name}' with level: {log_level_str}"
         )
 
     def _get_log_file_path(self) -> Optional[Path]:
@@ -103,10 +86,10 @@ class HelpMeSignLogger:
         if config_log_path:
             return Path(config_log_path)
 
-        # Default to user's home directory with environment suffix
+        # Default to user's home directory
         try:
             log_dir = Path.home() / ".helpmesign" / "logs"
-            log_filename = f"{self.name}_{self.environment}.log"
+            log_filename = f"{self.name}.log"
             return log_dir / log_filename
         except Exception:
             return None
@@ -131,14 +114,9 @@ class HelpMeSignLogger:
             file_handler.setLevel(self.logger.level)
 
             # Use detailed formatter for file logging
-            if self.environment == "prod":
-                formatter = logging.Formatter(
-                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-                )
-            else:
-                formatter = logging.Formatter(
-                    "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"
-                )
+            formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"
+            )
 
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
@@ -154,19 +132,18 @@ _logger_instance = None
 def get_logger(
     name: str = "helpmesign",
     config: Optional[Dict[str, Any]] = None,
-    environment: str = "dev",
 ) -> logging.Logger:
     """Get a logger instance"""
     global _logger_instance
     if _logger_instance is None:
-        _logger_instance = HelpMeSignLogger(name, config, environment)
+        _logger_instance = HelpMeSignLogger(name, config)
     return _logger_instance.get_logger()
 
 
-def setup_logging(config: Dict[str, Any], environment: str = "dev") -> logging.Logger:
+def setup_logging(config: Dict[str, Any]) -> logging.Logger:
     """Set up logging with configuration"""
     global _logger_instance
-    _logger_instance = HelpMeSignLogger("helpmesign", config, environment)
+    _logger_instance = HelpMeSignLogger("helpmesign", config)
     return _logger_instance.get_logger()
 
 

@@ -210,10 +210,10 @@ class TestHelpMeSignAppMethods:
         mock_get_user_mode.return_value = "sign"
 
         user_mode = None
-        user_mode = mock_get_user_mode("dev")
+        user_mode = mock_get_user_mode()
 
         assert user_mode == "sign"
-        mock_get_user_mode.assert_called_once_with("dev")
+        mock_get_user_mode.assert_called_once_with()
 
     def test_check_user_mode_without_existing_mode(self):
         """Test check_user_mode without existing mode logic"""
@@ -223,7 +223,7 @@ class TestHelpMeSignAppMethods:
         mock_get_user_mode.return_value = None
 
         user_mode = None
-        user_mode = mock_get_user_mode("dev")
+        user_mode = mock_get_user_mode()
 
         assert user_mode is None
         # In real implementation, show_startup_screen would be called
@@ -233,10 +233,8 @@ class TestHelpMeSignAppMethods:
         # Test that show_startup_screen should be called with correct parameters
         mock_show_startup_screen = MagicMock()
         mock_main_window = MagicMock()
-        environment = "dev"
-
-        mock_show_startup_screen(mock_main_window, environment)
-        mock_show_startup_screen.assert_called_once_with(mock_main_window, environment)
+        mock_show_startup_screen(mock_main_window)
+        mock_show_startup_screen.assert_called_once_with(mock_main_window)
 
     def test_show_settings_method(self):
         """Test show_settings method logic"""
@@ -254,11 +252,11 @@ class TestHelpMeSignAppMethods:
         settings_save_in_progress = False
         if not settings_save_in_progress:
             user_mode = "learn"
-            result = mock_set_user_mode("learn", "dev")
+            result = mock_set_user_mode("learn")
 
         assert user_mode == "learn"
         assert result is True
-        mock_set_user_mode.assert_called_once_with("learn", "dev")
+        mock_set_user_mode.assert_called_once_with("learn")
 
     def test_get_user_mode(self):
         """Test get_user_mode method logic"""
@@ -313,9 +311,9 @@ class TestHelpMeSignAppMethods:
         mock_app = MagicMock()
         mock_app_class.return_value = mock_app
 
-        result = mock_app_class("dev")
+        result = mock_app_class()
         assert result == mock_app
-        mock_app_class.assert_called_once_with("dev")
+        mock_app_class.assert_called_once_with()
 
     def test_delayed_font_application(self):
         """Test _delayed_font_application method logic"""
@@ -323,9 +321,9 @@ class TestHelpMeSignAppMethods:
         mock_get_font_size = MagicMock()
         mock_get_font_size.return_value = 14
 
-        font_size = mock_get_font_size("dev")
+        font_size = mock_get_font_size()
         assert font_size == 14
-        mock_get_font_size.assert_called_once_with("dev")
+        mock_get_font_size.assert_called_once_with()
 
     def test_setup_shutdown_handling(self):
         """Test _setup_shutdown_handling method logic"""
@@ -477,7 +475,7 @@ class TestHelpMeSignAppErrorHandling:
         settings_save_in_progress = True
 
         if not settings_save_in_progress:
-            mock_set_user_mode("learn", "dev")
+            mock_set_user_mode("learn")
 
         # Should not be called when save is in progress
         mock_set_user_mode.assert_not_called()
@@ -489,7 +487,7 @@ class TestHelpMeSignAppErrorHandling:
         mock_get_font_size.side_effect = Exception("Font error")
 
         try:
-            mock_get_font_size("dev")
+            mock_get_font_size()
         except Exception:
             # Exception should be caught and handled gracefully
             pass
@@ -531,22 +529,10 @@ class TestHelpMeSignAppBoundaryConditions:
         font_size = -1
         assert font_size < 0
 
-    def test_environment_case_sensitivity(self):
-        """Test environment case sensitivity"""
-        # Test that environment should be converted to lowercase
-        environment = "DEV"
-        environment = environment.lower()
-        assert environment == "dev"
-
-        # Test mixed case environment
-        environment = "Dev"
-        environment = environment.lower()
-        assert environment == "dev"
-
-        # Test lowercase environment
-        environment = "dev"
-        environment = environment.lower()
-        assert environment == "dev"
+    def test_placeholder_case_sensitivity(self):
+        """No environment normalization needed; keep a simple string check"""
+        sample = "DEV"
+        assert sample.lower() == "dev"
 
 
 if __name__ == "__main__":

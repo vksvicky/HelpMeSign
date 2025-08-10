@@ -404,12 +404,11 @@ class TestShowSettingsDialogFunction:
             parent=None,
             current_mode="Sign & Translate",
             callback=None,
-            environment="dev",
             main_window=None,
         ):
             # Test function parameters
             assert current_mode in ["Sign & Translate", "Learn", "Settings"]
-            assert environment in ["dev", "prod"]
+
             return "Sign & Translate"
 
         result = test_function()
@@ -484,7 +483,6 @@ class TestSettingsDialogRealImplementation:
             parent=mock_parent,
             current_mode="Learn",
             callback=lambda x: None,
-            environment="prod",
             main_window=mock_main_window,
         )
         # The function returns None immediately since it's non-modal
@@ -643,7 +641,6 @@ class TestSettingsDialogRealImplementation:
             "parent",
             "current_mode",
             "callback",
-            "environment",
             "main_window",
         ]
         actual_params = list(sig.parameters.keys())
@@ -661,7 +658,7 @@ class TestSettingsDialogRealImplementation:
 
         # Check default values
         assert sig.parameters["current_mode"].default == "Sign & Translate"
-        assert sig.parameters["environment"].default == "dev"
+
         assert sig.parameters["parent"].default is None
         assert sig.parameters["callback"].default is None
         assert sig.parameters["main_window"].default is None
@@ -1353,7 +1350,6 @@ class TestSettingsDialogModuleStructure:
             "parent",
             "current_mode",
             "callback",
-            "environment",
             "main_window",
         ]
         for param in expected_params:
@@ -1648,7 +1644,6 @@ class TestSettingsDialogRealCoverage:
                 parent=None,
                 current_mode="Learn",
                 callback=lambda x: None,
-                environment="prod",
                 main_window=None,
             )
             assert result is None
@@ -1974,7 +1969,7 @@ class TestSettingsDialogRealCoverage:
                                                     sd.SettingsDialog
                                                 )
                                                 dialog.current_mode = "Sign & Translate"
-                                                dialog.environment = "dev"
+
                                                 dialog._settings_save_in_progress = (
                                                     False
                                                 )
@@ -2091,7 +2086,6 @@ class TestSettingsDialogRealInstantiation:
                 parent=None,
                 current_mode="Learn",
                 callback=lambda x: None,
-                environment="prod",
                 main_window=None,
             )
             assert result == "Sign & Translate"
@@ -2234,7 +2228,6 @@ class TestSettingsDialogRealInstantiation:
             "parent",
             "current_mode",
             "callback",
-            "environment",
             "main_window",
         ]
         for param in expected_params:
@@ -2984,7 +2977,7 @@ class TestSettingsDialogRealModuleCoverage:
 
             # Test dialog with different environments (simplified to avoid crashes)
             # Skip dialog creation to avoid crashes
-            # dialog1 = sd.SettingsDialog(environment="dev")
+            # dialog1 = sd.SettingsDialog()
             # Skip setup_ui() call to avoid crashes
             # dialog1.setup_ui()
 
@@ -3281,7 +3274,7 @@ class TestSettingsDialogWithQt(QtTestCase):
 
     @pytest.fixture(autouse=True)
     def setup_qt_settings_tests(self):
-        """Set up Qt-specific settings test environment."""
+        """Set up Qt-specific settings test setup."""
         # Mock the settings and language manager functions
         self.mock_settings = {
             "theme": "Light",
@@ -4389,7 +4382,6 @@ class TestSettingsDialogWithQt(QtTestCase):
             parent=None,
             current_mode="Sign & Translate",
             callback=None,
-            environment="dev",
             main_window=None,
         ):
             return None
@@ -4448,7 +4440,7 @@ class TestSettingsDialogWithQt(QtTestCase):
             result = sd.show_settings_dialog(callback=lambda x: None)
             assert result is None
 
-            result = sd.show_settings_dialog(environment="test")
+            result = sd.show_settings_dialog()
             assert result is None
 
             result = sd.show_settings_dialog(main_window=None)
@@ -4477,7 +4469,7 @@ class TestSettingsDialogWithQt(QtTestCase):
             assert "parent" in sig.parameters
             assert "current_mode" in sig.parameters
             assert "callback" in sig.parameters
-            assert "environment" in sig.parameters
+
             assert "main_window" in sig.parameters
 
             # Test module docstring
@@ -4538,7 +4530,7 @@ class TestSettingsDialogRealCoverageStandalone:
             assert "parent" in sig.parameters
             assert "current_mode" in sig.parameters
             assert "callback" in sig.parameters
-            assert "environment" in sig.parameters
+
             assert "main_window" in sig.parameters
 
             # Test module docstring

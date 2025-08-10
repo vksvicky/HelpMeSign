@@ -96,7 +96,7 @@ class TestModeSystemMocks(QtTestCase):
             mock_learn_mode_class.return_value = mock_learn_mode
 
             # Create the mode manager instance with mocked modes
-            return ModeManager(self.mock_main_window, "dev")
+            return ModeManager(self.mock_main_window)
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -143,11 +143,11 @@ class TestModeSystemMocks(QtTestCase):
                 return "Mocked description"
 
         # Act
-        mode = MockMode(self.mock_main_window, "dev")
+        mode = MockMode(self.mock_main_window)
 
         # Assert
         assert mode.main_window == self.mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
         assert mode.mode_name == "Mocked Mode Name"
 
     def test_mock_base_mode_activate(self):
@@ -170,7 +170,7 @@ class TestModeSystemMocks(QtTestCase):
             def get_mode_description(self) -> str:
                 return "Mock description"
 
-        mode = MockMode(self.mock_main_window, "dev")
+        mode = MockMode(self.mock_main_window)
 
         # Act
         mode.activate()
@@ -199,7 +199,7 @@ class TestModeSystemMocks(QtTestCase):
             def get_mode_description(self) -> str:
                 return "Mock description"
 
-        mode = MockMode(self.mock_main_window, "dev")
+        mode = MockMode(self.mock_main_window)
 
         # Act
         mode.deactivate()
@@ -213,17 +213,17 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_sign_translate_mode_initialization(self):
         """Test SignTranslateMode initialization with mocked dependencies"""
         # Arrange & Act
-        mode = SignTranslateMode(self.mock_main_window, "dev")
+        mode = SignTranslateMode(self.mock_main_window)
 
         # Assert
         assert mode.main_window == self.mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
         assert mode.mode_name == "Sign & Translate"
 
     def test_mock_sign_translate_mode_process_text(self):
         """Test SignTranslateMode process_text with mocked dependencies"""
         # Arrange
-        mode = SignTranslateMode(self.mock_main_window, "dev")
+        mode = SignTranslateMode(self.mock_main_window)
 
         # Act
         result = mode.process_text("hello")
@@ -235,7 +235,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_sign_translate_mode_on_process_requested(self):
         """Test SignTranslateMode _on_process_requested with mocked dependencies"""
         # Arrange
-        mode = SignTranslateMode(self.mock_main_window, "dev")
+        mode = SignTranslateMode(self.mock_main_window)
 
         # Act
         mode._on_process_requested()
@@ -248,7 +248,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_sign_translate_mode_on_clear_requested(self):
         """Test SignTranslateMode _on_clear_requested with mocked dependencies"""
         # Arrange
-        mode = SignTranslateMode(self.mock_main_window, "dev")
+        mode = SignTranslateMode(self.mock_main_window)
 
         # Act
         mode._on_clear_requested()
@@ -261,7 +261,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_sign_translate_mode_clear_content(self):
         """Test SignTranslateMode clear_content with mocked dependencies"""
         # Arrange
-        mode = SignTranslateMode(self.mock_main_window, "dev")
+        mode = SignTranslateMode(self.mock_main_window)
 
         # Act
         mode.clear_content()
@@ -274,7 +274,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_sign_translate_mode_get_settings(self):
         """Test SignTranslateMode get_settings with mocked dependencies"""
         # Arrange
-        mode = SignTranslateMode(self.mock_main_window, "dev")
+        mode = SignTranslateMode(self.mock_main_window)
 
         # Act
         settings = mode.get_settings()
@@ -287,18 +287,18 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_learn_mode_initialization(self, mock_setup_ui):
         """Test LearnMode initialization with mocked dependencies"""
         # Arrange & Act
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Assert
         assert mode.main_window == self.mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
         assert mode.mode_name == "Learn Sign Language"
 
     @patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui")
     def test_mock_learn_mode_process_text(self, mock_setup_ui):
         """Test LearnMode process_text with mocked dependencies"""
         # Arrange
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Act
         result = mode.process_text("hello")
@@ -311,7 +311,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_learn_mode_on_learn_requested(self, mock_setup_ui):
         """Test LearnMode _on_learn_requested with mocked dependencies"""
         # Arrange
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Act
         mode._on_learn_requested()
@@ -325,7 +325,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_learn_mode_on_clear_requested(self, mock_setup_ui):
         """Test LearnMode _on_clear_requested with mocked dependencies"""
         # Arrange
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Act
         mode._on_clear_requested()
@@ -339,7 +339,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_learn_mode_clear_content(self, mock_setup_ui):
         """Test LearnMode clear_content with mocked dependencies"""
         # Arrange
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Act
         mode.clear_content()
@@ -353,7 +353,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_learn_mode_get_settings(self, mock_setup_ui):
         """Test LearnMode get_settings with mocked dependencies"""
         # Arrange
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Act
         settings = mode.get_settings()
@@ -365,7 +365,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_learn_mode_get_learning_progress(self, mock_setup_ui):
         """Test LearnMode get_learning_progress with mocked dependencies"""
         # Arrange
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Act
         progress = mode.get_learning_progress()
@@ -377,7 +377,7 @@ class TestModeSystemMocks(QtTestCase):
     def test_mock_learn_mode_get_lesson_suggestions(self, mock_setup_ui):
         """Test LearnMode get_lesson_suggestions with mocked dependencies"""
         # Arrange
-        mode = LearnMode(self.mock_main_window, "dev")
+        mode = LearnMode(self.mock_main_window)
 
         # Act
         suggestions = mode.get_lesson_suggestions()
@@ -393,7 +393,7 @@ class TestModeSystemMocks(QtTestCase):
 
         # Assert
         assert manager.main_window == self.mock_main_window
-        assert manager.environment == "dev"
+        assert not hasattr(manager, "environment")
         assert manager.current_mode is not None
 
     def test_mock_mode_manager_get_available_modes(self):

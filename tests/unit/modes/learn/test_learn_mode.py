@@ -30,7 +30,7 @@ class TestLearnMode:
         # Mock the UI creation to prevent PySide6 crashes
         with patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"):
             # Create the mode instance
-            self.mode = LearnMode(self.mock_main_window, "dev")
+            self.mode = LearnMode(self.mock_main_window)
 
     # Happy Path Tests
     def test_happy_path_initialization(self):
@@ -40,7 +40,7 @@ class TestLearnMode:
 
         # Assert
         assert mode.main_window == self.mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
         assert isinstance(mode.learning_progress, dict)
         assert isinstance(mode.lesson_history, list)
         assert mode.current_lesson is None
@@ -494,7 +494,7 @@ class TestLearnMode:
 
         # Act - Mock setup_ui to prevent PySide6 crashes
         with patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"):
-            mode = LearnMode(mock_window, "dev")
+            mode = LearnMode(mock_window)
 
         # Assert
         # The mode should connect to signals during setup_behavior
@@ -578,11 +578,11 @@ class TestLearnMode:
 
         # Act - Mock setup_ui to prevent PySide6 crashes
         with patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"):
-            mode = LearnMode(mock_main_window, "dev")
+            mode = LearnMode(mock_main_window)
 
         # Assert
         assert mode.main_window == mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
 
     def test_setup_ui_without_content_area(self):
         """Test setup_ui without content_area"""
@@ -593,11 +593,11 @@ class TestLearnMode:
 
         # Act - Mock setup_ui to prevent PySide6 crashes
         with patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"):
-            mode = LearnMode(mock_main_window, "dev")
+            mode = LearnMode(mock_main_window)
 
         # Assert
         assert mode.main_window == mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
 
     def test_setup_ui_with_content_area_and_no_mock(self):
         """Test setup_ui with content_area and no mock flag"""
@@ -608,11 +608,11 @@ class TestLearnMode:
 
         # Act - Mock setup_ui to prevent PySide6 crashes
         with patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"):
-            mode = LearnMode(mock_main_window, "dev")
+            mode = LearnMode(mock_main_window)
 
         # Assert
         assert mode.main_window == mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
 
     # Character Selection Tests
     def test_on_alphabet_selected(self):
@@ -988,7 +988,7 @@ class TestLearnMode:
 
         # Act - Create a new mode instance with mocked setup_ui
         with patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"):
-            mode = LearnMode(self.mock_main_window, "dev")
+            mode = LearnMode(self.mock_main_window)
 
         # Assert
         # The font size is now initialized from the mock main window or config
@@ -1431,7 +1431,7 @@ class TestLearnModeWithQt:
 
         # Create the mode instance with mocked setup_ui
         with patch("src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"):
-            self.mode = LearnMode(self.mock_main_window, "dev")
+            self.mode = LearnMode(self.mock_main_window)
 
         # Set up Qt environment
         self._setup_qt_environment()

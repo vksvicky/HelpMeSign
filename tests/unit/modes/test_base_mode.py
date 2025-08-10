@@ -44,7 +44,7 @@ class TestBaseMode:
                 return "Test mode description"
 
         self.ConcreteMode = ConcreteMode
-        self.concrete_mode = ConcreteMode(self.mock_main_window, "dev")
+        self.concrete_mode = ConcreteMode(self.mock_main_window)
 
     # Happy Path Tests
     def test_happy_path_initialization(self):
@@ -54,7 +54,7 @@ class TestBaseMode:
 
         # Assert
         assert mode.main_window == self.mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
         assert mode.mode_name == "Test Mode"
 
     def test_happy_path_activate(self):
@@ -143,7 +143,7 @@ class TestBaseMode:
         """Test initialization with None main window"""
         # Arrange & Act & Assert
         with pytest.raises(AttributeError):
-            mode = self.ConcreteMode(None, "dev")
+            mode = self.ConcreteMode(None)
             mode.activate()
 
     def test_error_condition_main_window_missing_methods(self):
@@ -156,7 +156,7 @@ class TestBaseMode:
 
         # Act & Assert
         with pytest.raises(AttributeError):
-            mode = self.ConcreteMode(incomplete_window, "dev")
+            mode = self.ConcreteMode(incomplete_window)
             mode.activate()
 
     def test_error_condition_empty_text_processing(self):
@@ -206,7 +206,7 @@ class TestBaseMode:
 
         # Act & Assert
         with pytest.raises(Exception):
-            ExceptionMode(self.mock_main_window, "dev")
+            ExceptionMode(self.mock_main_window)
 
     def test_exception_in_setup_behavior(self):
         """Test exception handling in setup_behavior"""
@@ -230,7 +230,7 @@ class TestBaseMode:
 
         # Act & Assert
         with pytest.raises(Exception):
-            ExceptionMode(self.mock_main_window, "dev")
+            ExceptionMode(self.mock_main_window)
 
     def test_exception_in_process_text(self):
         """Test exception handling in process_text"""
@@ -252,7 +252,7 @@ class TestBaseMode:
             def get_mode_description(self) -> str:
                 return "Exception mode"
 
-        mode = ExceptionMode(self.mock_main_window, "dev")
+        mode = ExceptionMode(self.mock_main_window)
 
         # Act & Assert
         with pytest.raises(Exception):
@@ -278,7 +278,7 @@ class TestBaseMode:
             def get_mode_description(self) -> str:
                 return "Exception mode"
 
-        mode = ExceptionMode(self.mock_main_window, "dev")
+        mode = ExceptionMode(self.mock_main_window)
         # Mock main window to raise exception
         self.mock_main_window.set_mode.side_effect = Exception("Activation failed")
 
@@ -350,22 +350,22 @@ class TestBaseMode:
     def test_boundary_condition_environment_values(self):
         """Test different environment values"""
         # Arrange & Act
-        mode_dev = self.ConcreteMode(self.mock_main_window, "dev")
-        mode_prod = self.ConcreteMode(self.mock_main_window, "prod")
-        mode_test = self.ConcreteMode(self.mock_main_window, "test")
+        mode_dev = self.ConcreteMode(self.mock_main_window)
+        mode_prod = self.ConcreteMode(self.mock_main_window)
+        mode_test = self.ConcreteMode(self.mock_main_window)
 
         # Assert
-        assert mode_dev.environment == "dev"
-        assert mode_prod.environment == "prod"
-        assert mode_test.environment == "test"
+        assert not hasattr(mode_dev, "environment")
+        assert not hasattr(mode_prod, "environment")
+        assert not hasattr(mode_test, "environment")
 
     def test_boundary_condition_empty_environment(self):
         """Test empty environment string"""
         # Arrange & Act
-        mode = self.ConcreteMode(self.mock_main_window, "")
+        mode = self.ConcreteMode(self.mock_main_window)
 
         # Assert
-        assert mode.environment == ""
+        assert not hasattr(mode, "environment")
 
     # Mock Tests
     def test_mock_main_window_interaction(self):

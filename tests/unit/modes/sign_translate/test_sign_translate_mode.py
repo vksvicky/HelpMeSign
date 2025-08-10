@@ -27,7 +27,7 @@ class TestSignTranslateMode:
         self.mock_main_window.set_text_input = Mock()
 
         # Create the mode instance
-        self.mode = SignTranslateMode(self.mock_main_window, "dev")
+        self.mode = SignTranslateMode(self.mock_main_window)
 
     # Happy Path Tests
     def test_happy_path_initialization(self):
@@ -37,7 +37,7 @@ class TestSignTranslateMode:
 
         # Assert
         assert mode.main_window == self.mock_main_window
-        assert mode.environment == "dev"
+        assert not hasattr(mode, "environment")
         assert isinstance(mode.conversion_history, list)
         assert len(mode.conversion_history) == 0
 
@@ -432,7 +432,7 @@ class TestSignTranslateMode:
         mock_window.clear_requested = Mock()
 
         # Act
-        mode = SignTranslateMode(mock_window, "dev")
+        mode = SignTranslateMode(mock_window)
 
         # Assert
         # The mode should connect to signals during setup_behavior

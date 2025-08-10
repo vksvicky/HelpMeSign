@@ -475,7 +475,6 @@ class SettingsDialog(QDialog):
         self,
         parent=None,
         current_mode: str = "Sign & Translate",
-        environment: str = "dev",
         main_window=None,
     ):
         if not PYSIDE6_AVAILABLE:
@@ -483,7 +482,6 @@ class SettingsDialog(QDialog):
 
         super().__init__(parent)
         self.logger = get_logger("helpmesign.settings")
-        self.environment = environment
         self.main_window = main_window
         self.current_mode = current_mode
 
@@ -1142,7 +1140,7 @@ class SettingsDialog(QDialog):
     def load_current_settings(self):
         """Load current settings from config"""
         try:
-            self.current_settings = get_all_settings(self.environment)
+            self.current_settings = get_all_settings()
             self.original_settings = self.current_settings.copy()
 
             # Reset loop detection when loading settings
@@ -1291,7 +1289,7 @@ class SettingsDialog(QDialog):
             )
 
             # Save settings
-            if save_all_settings(new_settings, self.environment):
+            if save_all_settings(new_settings):
                 # Update original settings to current state
                 self.original_settings = new_settings.copy()
 
@@ -1307,10 +1305,7 @@ class SettingsDialog(QDialog):
                 # Only show error dialog if not in test environment
                 import sys
 
-                if (
-                    "pytest" not in sys.modules
-                    and "test" not in self.environment.lower()
-                ):
+                if "pytest" not in sys.modules:
                     from PySide6.QtWidgets import QMessageBox
 
                     QMessageBox.critical(
@@ -1325,7 +1320,7 @@ class SettingsDialog(QDialog):
             # Only show error dialog if not in test environment
             import sys
 
-            if "pytest" not in sys.modules and "test" not in self.environment.lower():
+            if "pytest" not in sys.modules:
                 from PySide6.QtWidgets import QMessageBox
 
                 QMessageBox.critical(
@@ -2125,7 +2120,6 @@ def show_settings_dialog(
     parent=None,
     current_mode: str = "Sign & Translate",
     callback: Optional[Callable[[str], None]] = None,
-    environment: str = "dev",
     main_window=None,
 ) -> Optional[str]:
     """Show the settings dialog and return the selected mode"""
@@ -2135,7 +2129,7 @@ def show_settings_dialog(
             logger.error("PySide6 is not available, cannot show settings dialog")
             return None
 
-        dialog = SettingsDialog(parent, current_mode, environment, main_window)
+        dialog = SettingsDialog(parent, current_mode, main_window)
 
         # Connect the callback if provided
         if callback:

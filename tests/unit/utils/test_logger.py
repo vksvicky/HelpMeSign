@@ -387,7 +387,7 @@ class TestLoggerIntegrationLogic:
             "logging": {"file_enabled": True, "file_path": "/invalid/path/log.txt"}
         }
 
-        logger = HelpMeSignLogger("TestLogger", config, "dev")
+        logger = HelpMeSignLogger("TestLogger", config)
         # Should not raise exception, should log warning
         assert logger.logger is not None
 
@@ -395,7 +395,7 @@ class TestLoggerIntegrationLogic:
         """Test logger when file logging is disabled"""
         config = {"logging": {"file_enabled": False}}
 
-        logger = HelpMeSignLogger("TestLogger", config, "dev")
+        logger = HelpMeSignLogger("TestLogger", config)
         # Should only have console handler
         handlers = logger.logger.handlers
         assert len(handlers) == 1
@@ -405,7 +405,7 @@ class TestLoggerIntegrationLogic:
         """Test logger with custom file path in config"""
         config = {"logging": {"file_enabled": True, "file_path": "/tmp/custom_log.txt"}}
 
-        logger = HelpMeSignLogger("TestLogger", config, "dev")
+        logger = HelpMeSignLogger("TestLogger", config)
         # Should use custom path
         log_path = logger._get_log_file_path()
         assert log_path == Path("/tmp/custom_log.txt")
@@ -413,13 +413,13 @@ class TestLoggerIntegrationLogic:
     def test_logger_with_home_directory_error(self):
         """Test logger when home directory access fails"""
         with patch("pathlib.Path.home", side_effect=Exception("Home directory error")):
-            logger = HelpMeSignLogger("TestLogger", {}, "dev")
+            logger = HelpMeSignLogger("TestLogger", {})
             log_path = logger._get_log_file_path()
             assert log_path is None
 
     def test_set_level_with_invalid_level(self):
         """Test set_level with invalid log level"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
         original_level = logger.logger.level
 
         # Set invalid level
@@ -429,7 +429,7 @@ class TestLoggerIntegrationLogic:
 
     def test_add_file_handler_success(self):
         """Test add_file_handler with valid file path"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
 
         with patch("builtins.open", mock_open()):
             logger.add_file_handler("/tmp/test.log")
@@ -439,7 +439,7 @@ class TestLoggerIntegrationLogic:
 
     def test_add_file_handler_with_error(self):
         """Test add_file_handler with invalid file path"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
         original_handlers_count = len(logger.logger.handlers)
 
         # Try to add handler to invalid path
@@ -449,7 +449,7 @@ class TestLoggerIntegrationLogic:
 
     def test_add_file_handler_production_environment(self):
         """Test add_file_handler in production environment"""
-        logger = HelpMeSignLogger("TestLogger", {}, "prod")
+        logger = HelpMeSignLogger("TestLogger", {})
 
         with patch("builtins.open", mock_open()):
             logger.add_file_handler("/tmp/test.log")
@@ -472,7 +472,7 @@ class TestLoggerIntegrationLogic:
         """Test setup_logging function"""
         config = {"logging": {"level": "DEBUG"}}
 
-        logger = setup_logging(config, "dev")
+        logger = setup_logging(config)
         assert logger is not None
         assert logger.name == "helpmesign"
 
@@ -488,7 +488,7 @@ class TestLoggerIntegrationLogic:
 
     def test_log_function_entry_with_debug_disabled(self):
         """Test log_function_entry when debug is disabled"""
-        logger = HelpMeSignLogger("TestLogger", {}, "prod")
+        logger = HelpMeSignLogger("TestLogger", {})
         logger.set_level("INFO")
 
         # Should not log when debug is disabled
@@ -496,7 +496,7 @@ class TestLoggerIntegrationLogic:
 
     def test_log_function_entry_with_debug_enabled(self):
         """Test log_function_entry when debug is enabled"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
         logger.set_level("DEBUG")
 
         # Should log when debug is enabled
@@ -504,7 +504,7 @@ class TestLoggerIntegrationLogic:
 
     def test_log_function_exit_with_debug_disabled(self):
         """Test log_function_exit when debug is disabled"""
-        logger = HelpMeSignLogger("TestLogger", {}, "prod")
+        logger = HelpMeSignLogger("TestLogger", {})
         logger.set_level("INFO")
 
         # Should not log when debug is disabled
@@ -512,7 +512,7 @@ class TestLoggerIntegrationLogic:
 
     def test_log_function_exit_with_debug_enabled(self):
         """Test log_function_exit when debug is enabled"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
         logger.set_level("DEBUG")
 
         # Should log when debug is enabled
@@ -520,7 +520,7 @@ class TestLoggerIntegrationLogic:
 
     def test_log_exception_with_exc_info_true(self):
         """Test log_exception with exc_info=True"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
 
         try:
             raise ValueError("Test exception")
@@ -529,7 +529,7 @@ class TestLoggerIntegrationLogic:
 
     def test_log_exception_with_exc_info_false(self):
         """Test log_exception with exc_info=False"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
 
         try:
             raise ValueError("Test exception")
@@ -540,21 +540,21 @@ class TestLoggerIntegrationLogic:
         """Test logger with production configuration"""
         config = {"logging": {"level": "WARNING", "file_enabled": True}}
 
-        logger = HelpMeSignLogger("TestLogger", config, "prod")
+        logger = HelpMeSignLogger("TestLogger", config)
         assert logger.logger.level == logging.WARNING
 
     def test_logger_with_development_config(self):
         """Test logger with development configuration"""
         config = {"logging": {"dev_level": "DEBUG", "file_enabled": True}}
 
-        logger = HelpMeSignLogger("TestLogger", config, "dev")
+        logger = HelpMeSignLogger("TestLogger", config)
         assert logger.logger.level == logging.DEBUG
 
     def test_logger_with_invalid_level_in_config(self):
         """Test logger with invalid level in config"""
         config = {"logging": {"level": "INVALID_LEVEL"}}
 
-        logger = HelpMeSignLogger("TestLogger", config, "prod")
+        logger = HelpMeSignLogger("TestLogger", config)
         # Should default to INFO
         assert logger.logger.level == logging.INFO
 
@@ -562,33 +562,34 @@ class TestLoggerIntegrationLogic:
         """Test logger with invalid dev_level in config"""
         config = {"logging": {"dev_level": "INVALID_LEVEL"}}
 
-        logger = HelpMeSignLogger("TestLogger", config, "dev")
+        logger = HelpMeSignLogger("TestLogger", config)
         # Should default to INFO
         assert logger.logger.level == logging.INFO
 
     def test_logger_with_no_config(self):
         """Test logger with no config provided"""
-        logger = HelpMeSignLogger("TestLogger", None, "dev")
+        logger = HelpMeSignLogger("TestLogger", None)
         # Should use default config
         assert logger.logger is not None
 
     def test_logger_with_empty_config(self):
         """Test logger with empty config"""
-        logger = HelpMeSignLogger("TestLogger", {}, "dev")
+        logger = HelpMeSignLogger("TestLogger", {})
         # Should use default config
         assert logger.logger is not None
 
     def test_logger_with_custom_name(self):
         """Test logger with custom name"""
-        logger = HelpMeSignLogger("CustomLogger", {}, "dev")
+        logger = HelpMeSignLogger("CustomLogger", {})
         assert logger.name == "CustomLogger"
 
-    def test_logger_with_custom_environment(self):
-        """Test logger with custom environment"""
-        logger = HelpMeSignLogger("TestLogger", {}, "test")
-        assert logger.environment == "test"
+    def test_logger_initialization_basic(self):
+        """Test logger basic initialization (no environment concept)"""
+        logger = HelpMeSignLogger("TestLogger", {})
+        assert logger.logger is not None
 
-    def test_logger_with_uppercase_environment(self):
-        """Test logger with uppercase environment"""
-        logger = HelpMeSignLogger("TestLogger", {}, "PROD")
-        assert logger.environment == "prod"  # Should be converted to lowercase
+    def test_logger_set_level_changes(self):
+        """Test logger set_level updates level"""
+        logger = HelpMeSignLogger("TestLogger", {})
+        logger.set_level("INFO")
+        assert logger.logger.level == logging.INFO

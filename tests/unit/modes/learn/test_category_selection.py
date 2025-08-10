@@ -31,7 +31,7 @@ class TestCategorySelection(QtTestCase):
         self.mock_main_window.set_text_input = Mock()
 
         # Create the mode instance
-        self.mode = LearnMode(self.mock_main_window, "dev")
+        self.mode = LearnMode(self.mock_main_window)
 
         yield
 
@@ -299,7 +299,7 @@ class TestCategorySelectionWithQt(QtTestCase):
         self.mock_main_window.set_text_output = Mock()
         self.mock_main_window.set_text_input = Mock()
 
-        self.mode = LearnMode(self.mock_main_window, "dev")
+        self.mode = LearnMode(self.mock_main_window)
 
         yield
 

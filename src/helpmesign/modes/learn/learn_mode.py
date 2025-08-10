@@ -28,7 +28,7 @@ class _CornerButtonPositioner(QObject):
         self._widget = widget
         self._anchor = anchor
 
-    def eventFilter(self, obj, event):  # type: ignore[override]
+    def eventFilter(self, obj, event):
         if obj is self._parent and event.type() == QEvent.Resize:
             margin = 8
             if self._anchor == "top-right":
@@ -49,14 +49,17 @@ class _CornerButtonPositioner(QObject):
 class LearnMode(BaseMode):
     """Learn Sign Language mode - character selection and sign display"""
 
-    def __init__(self, main_window, environment: str = "dev"):
+    def __init__(self, main_window):
         # Initialize logger
         import logging
 
         self.logger = logging.getLogger(__name__)
 
+        # Optional legacy title label retained for type-safety (may be unused)
+        self.sign_title: Optional["QLabel"] = None
+
         # Get theme and font information from main window or config
-        self._initialize_theme_and_font_info(main_window, environment)
+        self._initialize_theme_and_font_info(main_window)
 
         # Initialize character tracking variables
         self.current_character: Optional[str] = None
@@ -73,9 +76,9 @@ class LearnMode(BaseMode):
         self.current_category = "all"  # Track current category
 
         # Now call parent __init__ which will call setup_ui()
-        super().__init__(main_window, environment)
+        super().__init__(main_window)
 
-    def _initialize_theme_and_font_info(self, main_window, environment: str) -> None:
+    def _initialize_theme_and_font_info(self, main_window) -> None:
         """Initialize theme and font information from main window or config"""
         try:
             # Try to get theme and font info from main window first
@@ -89,7 +92,7 @@ class LearnMode(BaseMode):
                 # Fallback to config
                 from src.helpmesign.core.startup import get_all_settings
 
-                settings = get_all_settings(environment)
+                settings = get_all_settings()
                 self.current_theme = settings.get("theme", "Light")
                 self.current_font_size = settings.get("font_size", 12)
                 self.logger.debug(
@@ -243,6 +246,14 @@ class LearnMode(BaseMode):
         theme_manager = get_theme_manager()
         hand_button_style = theme_manager.get_complete_style(
             "learn_mode_hand_button", include_font_size=True
+        )
+        # Ensure enhanced selected-state styling exists for tests/UX expectations
+        hand_button_style += (
+            '\nQPushButton[selected="true"] {\n'
+            "    background-color: #28a745;\n"
+            "    border-width: 4px;\n"
+            "    font-weight: bold;\n"
+            "}\n"
         )
 
         self.right_hand_btn.setStyleSheet(hand_button_style)
@@ -852,25 +863,33 @@ class LearnMode(BaseMode):
         """Handle language selection"""
         self.selected_language = language
 
-        # Update button states
-        for i in range(self.language_list_layout.count()):
-            item = self.language_list_layout.itemAt(i)
-            if item.widget():
-                btn = item.widget()
-                if btn.property("language_code") == language.get("code"):
-                    btn.setChecked(True)
-                else:
-                    btn.setChecked(False)
-
-        # Update sign display title to show selected language flag and code
-        flag = language.get("flag", "🌐")
-        code = language.get("code", "ASL")
+        # Update button states (if legacy in-panel list exists)
         try:
-            self.sign_title.setText(f"{flag} {code}")
-            # Ensure stylesheet does not override center alignment
-            self.sign_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            if (
+                hasattr(self, "language_list_layout")
+                and self.language_list_layout is not None
+            ):
+                for i in range(self.language_list_layout.count()):
+                    item = self.language_list_layout.itemAt(i)
+                    if item and item.widget():
+                        btn = item.widget()
+                        if btn.property("language_code") == language.get("code"):
+                            btn.setChecked(True)
+                        else:
+                            btn.setChecked(False)
         except Exception:
             pass
+
+        # Update sign display title to show selected language flag and code (if present)
+        flag = language.get("flag", "🌐")
+        code = language.get("code", "ASL")
+        if self.sign_title is not None:
+            try:
+                self.sign_title.setText(f"{flag} {code}")
+                # Ensure stylesheet does not override center alignment
+                self.sign_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            except Exception:
+                pass
 
         # Change the sign language for the sign display
         language_code = language.get("code", "ASL")
@@ -997,13 +1016,13 @@ class LearnMode(BaseMode):
             from ...core.startup import get_all_settings, save_all_settings
 
             # Get current settings
-            current_settings = get_all_settings(self.environment)
+            current_settings = get_all_settings()
 
             # Update the language selection
             current_settings["selected_language"] = language_code
 
             # Save the updated settings
-            if save_all_settings(current_settings, self.environment):
+            if save_all_settings(current_settings):
                 self.logger.info(f"Language selection saved to config: {language_code}")
             else:
                 self.logger.error("Failed to save language selection to config")
@@ -1023,7 +1042,7 @@ class LearnMode(BaseMode):
             from ...core.startup import get_all_settings
 
             # Get current settings
-            current_settings = get_all_settings(self.environment)
+            current_settings = get_all_settings()
 
             saved_language = current_settings.get("selected_language", "ASL")
             self.logger.info(f"Loaded saved language selection: {saved_language}")
@@ -1041,16 +1060,19 @@ class LearnMode(BaseMode):
     def select_language_by_code(self, language_code: str) -> None:
         """Select a language by its code"""
         try:
-            # Find the language in the current list
-            for i in range(self.language_list_layout.count()):
-                item = self.language_list_layout.itemAt(i)
-                if item and item.widget():
-                    btn = item.widget()
-                    if btn.property("language_code") == language_code:
-                        # Simulate clicking the button
-                        btn.setChecked(True)
-                        self.on_language_selected(btn.property("language_data"))
-                        return
+            # If an in-panel list exists (legacy), try to use it; otherwise skip
+            if (
+                hasattr(self, "language_list_layout")
+                and self.language_list_layout is not None
+            ):
+                for i in range(self.language_list_layout.count()):
+                    item = self.language_list_layout.itemAt(i)
+                    if item and item.widget():
+                        btn = item.widget()
+                        if btn.property("language_code") == language_code:
+                            btn.setChecked(True)
+                            self.on_language_selected(btn.property("language_data"))
+                            return
 
             # If not found in current list, try to find it in all languages
             from ...utils.language_loader import get_all_languages
@@ -1059,7 +1081,15 @@ class LearnMode(BaseMode):
 
             for language in all_languages:
                 if language.get("code") == language_code:
+                    # Update selected_language and apply
+                    self.selected_language = language
                     self.on_language_selected(language)
+                    # Force refresh for character grid/hand icons
+                    try:
+                        self.update_character_buttons()
+                        self._update_hand_icon_visibility_from_pref()
+                    except Exception:
+                        pass
                     return
 
             # If still not found, default to ASL
@@ -1171,9 +1201,9 @@ class LearnMode(BaseMode):
             if testing_env:
                 # Force fallback path during tests to avoid heavy QtSvg behavior
                 raise ImportError("Skip QtSvg in tests")
-            from PySide6.QtSvgWidgets import QSvgWidget  # type: ignore
+            from PySide6.QtSvgWidgets import QSvgWidget
         except Exception:  # Fallback in environments without QtSvg or during tests
-            QSvgWidget = None  # type: ignore
+            QSvgWidget = None
         # QCursor may not exist in mocked environments; import lazily where used
         from PySide6.QtWidgets import (
             QButtonGroup,
@@ -1205,41 +1235,6 @@ class LearnMode(BaseMode):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Sign title (show selected language flag + code by default)
-        self.sign_title = QLabel("Sign Language")
-        self.sign_title.setObjectName("signTitle")
-        self.sign_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Get theme-aware title styling from theme manager with dynamic font size
-        theme_manager = get_theme_manager()
-        title_style = theme_manager.get_complete_style(
-            "learn_mode_title", include_font_size=True
-        )
-
-        self.sign_title.setStyleSheet(title_style)
-        # Initialize title with saved language (or ASL) showing flag + code
-        try:
-            from ...core.startup import get_all_settings
-            from ...utils.language_loader import get_all_languages
-
-            saved_language = get_all_settings(self.environment).get(
-                "selected_language", "ASL"
-            )
-            languages = get_all_languages()
-            flag = next(
-                (
-                    lang.get("flag", "🌐")
-                    for lang in languages
-                    if lang.get("code") == saved_language
-                ),
-                "🌐",
-            )
-            self.sign_title.setText(f"{flag} {saved_language}")
-        except Exception:
-            # Fallback to default
-            self.sign_title.setText("🌐 ASL")
-        layout.addWidget(self.sign_title)
-
         # Sign display area (SVG + instructions)
         self.sign_display_container = QWidget()
         self.sign_display_layout = QVBoxLayout(self.sign_display_container)
@@ -1268,9 +1263,9 @@ class LearnMode(BaseMode):
             )
             # Keep original SVG aspect ratio when drawing into fixed viewbox
             try:
-                renderer = self.sign_svg_widget.renderer()  # type: ignore[attr-defined]
+                renderer = self.sign_svg_widget.renderer()
                 if renderer is not None:
-                    renderer.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)  # type: ignore[attr-defined]
+                    renderer.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
             except Exception:
                 pass
         else:
@@ -1325,7 +1320,7 @@ class LearnMode(BaseMode):
         self.clear_sign_btn.setFixedSize(24, 24)
         # Set pointing hand cursor with robust fallbacks
         try:
-            from PySide6.QtGui import QCursor  # type: ignore
+            from PySide6.QtGui import QCursor
 
             self.clear_sign_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         except Exception:
@@ -1394,11 +1389,6 @@ class LearnMode(BaseMode):
         self._show_placeholder_message()
 
         # Hand preference moved to settings window
-
-        # Language selector section
-        language_group = self.create_language_selector()
-        layout.addWidget(language_group)
-
         return panel
 
     def _show_placeholder_message(self) -> None:
@@ -1420,7 +1410,7 @@ class LearnMode(BaseMode):
             ):
                 from PySide6.QtCore import QByteArray
 
-                self.sign_svg_widget.load(QByteArray())  # type: ignore[attr-defined]
+                self.sign_svg_widget.load(QByteArray())
         except Exception:
             pass
 
@@ -1433,7 +1423,7 @@ class LearnMode(BaseMode):
             ):
                 from PySide6.QtCore import QByteArray
 
-                self.sign_svg_widget.load(QByteArray())  # type: ignore[attr-defined]
+                self.sign_svg_widget.load(QByteArray())
             if hasattr(self, "sign_instructions_label"):
                 self._show_placeholder_message()
                 # Hide the clear button again when no selection
@@ -1459,7 +1449,7 @@ class LearnMode(BaseMode):
             self.logger.error(f"Error clearing sign display: {e}")
 
     # Position the floating clear button at top-right on resize
-    def eventFilter(self, obj, event):  # type: ignore[override]
+    def eventFilter(self, obj, event):
         try:
             from PySide6.QtCore import QEvent
 
@@ -1543,14 +1533,14 @@ class LearnMode(BaseMode):
             try:
                 # QSvgWidget supports loading from QByteArray
                 if svg_widget_available and hasattr(self.sign_svg_widget, "load"):
-                    self.sign_svg_widget.load(QByteArray(svg_data.encode("utf-8")))  # type: ignore[attr-defined]
+                    self.sign_svg_widget.load(QByteArray(svg_data.encode("utf-8")))
                 else:
                     # Fallback label shows raw SVG text
                     if (
                         hasattr(self, "sign_svg_widget")
                         and self.sign_svg_widget is not None
                     ):
-                        self.sign_svg_widget.setText(svg_data)  # type: ignore[attr-defined]
+                        self.sign_svg_widget.setText(svg_data)
                 # Show the clear button since a sign is now displayed
                 if hasattr(self, "clear_sign_btn"):
                     self.clear_sign_btn.setVisible(True)
@@ -1561,20 +1551,22 @@ class LearnMode(BaseMode):
                         hasattr(self, "sign_svg_widget")
                         and self.sign_svg_widget is not None
                     ):
-                        self.sign_svg_widget.setText(svg_data)  # type: ignore[attr-defined]
+                        self.sign_svg_widget.setText(svg_data)
                 except Exception:
                     pass
         else:
             # Clear SVG view on missing data
             try:
                 if svg_widget_available and hasattr(self.sign_svg_widget, "load"):
-                    self.sign_svg_widget.load(QByteArray())  # type: ignore[attr-defined]
+                    self.sign_svg_widget.load(QByteArray())
                 else:
                     if (
                         hasattr(self, "sign_svg_widget")
                         and self.sign_svg_widget is not None
                     ):
-                        self.sign_svg_widget.setText(get_text("ui.language_selection.sign_will_appear_here"))  # type: ignore[attr-defined]
+                        self.sign_svg_widget.setText(
+                            get_text("ui.language_selection.sign_will_appear_here")
+                        )
             except Exception:
                 pass
 
@@ -1615,7 +1607,7 @@ class LearnMode(BaseMode):
             except Exception:
                 label_text = instructions or f"Character: '{character}'"
             try:
-                self.sign_display_label.setText(label_text)  # type: ignore[attr-defined]
+                self.sign_display_label.setText(label_text)
             except Exception:
                 pass
 
@@ -1636,6 +1628,43 @@ class LearnMode(BaseMode):
             self.main_window.update_hand_preference.connect(
                 self._on_hand_preference_changed
             )
+
+        # React to language selection from the status-bar popup
+        try:
+            if hasattr(self.main_window, "language_selected"):
+                self.main_window.language_selected.connect(
+                    self._on_external_language_selected
+                )
+        except Exception:
+            pass
+
+    def _on_external_language_selected(self, code: str) -> None:
+        """Handle language selection coming from the status-bar popup.
+
+        This bypasses any in-panel UI and directly applies the selected language
+        by invoking on_language_selected with the language dict.
+        """
+        try:
+            from ...utils.language_loader import get_all_languages
+
+            for language in get_all_languages():
+                if language.get("code") == str(code):
+                    # Ensure local selected_language is set before refresh
+                    self.selected_language = language
+                    self.on_language_selected(language)
+                    # Defensive: force character grid and hand icons to refresh
+                    try:
+                        self.update_character_buttons()
+                        self._update_hand_icon_visibility_from_pref()
+                    except Exception:
+                        pass
+                    return
+        except Exception:
+            # Fallback to existing helper (will try both UI and list search)
+            try:
+                self.select_language_by_code(str(code))
+            except Exception:
+                pass
 
     def _set_hand_preference(self, hand_preference: str) -> None:
         """Set the hand preference and update the UI"""

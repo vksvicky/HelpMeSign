@@ -219,7 +219,7 @@ class StatusBar(QFrame):
             from ..core.startup import get_all_settings
             from ..utils.language_loader import get_all_languages
 
-            code = get_all_settings("dev").get("selected_language", "ASL")
+            code = get_all_settings().get("selected_language", "ASL")
             flag = "🌐"
             for lang in get_all_languages():
                 if lang.get("code") == code:
@@ -740,13 +740,31 @@ class StatusBar(QFrame):
                 try:
                     from ..core.startup import get_all_settings, save_all_settings
 
-                    settings = get_all_settings("dev")
+                    settings = get_all_settings()
                     settings["selected_language"] = code
-                    save_all_settings(settings, "dev")
+                    save_all_settings(settings)
                 except Exception:
                     pass
                 self.language_chip.setText(f"{flag} {code}")
+                # Emit selection via the MainWindow so active mode updates hand-signs
+                try:
+                    mw = self.window()
+                    if mw and hasattr(mw, "language_selected"):
+                        mw.language_selected.emit(code)
+                except Exception:
+                    pass
                 panel.hide()
+                # Ensure overlay close button is hidden when panel is closed
+                try:
+                    mw = self.window()
+                    if (
+                        mw
+                        and hasattr(mw, "language_selector_close_btn")
+                        and mw.language_selector_close_btn
+                    ):
+                        mw.language_selector_close_btn.hide()
+                except Exception:
+                    pass
 
             def on_search(text: str):
                 t = text.strip().lower()
@@ -958,6 +976,9 @@ class MainWindow(QMainWindow):
     clear_requested = Signal()
     settings_requested = Signal()
     update_hand_preference = Signal(str)  # Signal for hand preference changes
+    language_selected = Signal(
+        str
+    )  # New: emit when a language is chosen from status bar
 
     def __init__(self, title: str = get_text("app.name")):
         super().__init__()
