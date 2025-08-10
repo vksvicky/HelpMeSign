@@ -243,13 +243,27 @@ class HelpMeSignApp:
 
         # Set window size from config or default based on environment
         if self.environment == "prod":
-            window_width = self.config.get("window_size", {}).get("width", 1024)
-            window_height = self.config.get("window_size", {}).get("height", 1024)
+            window_width = self.config.get("window_size", {}).get("width", 1280)
+            window_height = self.config.get("window_size", {}).get("height", 800)
         else:  # dev environment
-            window_width = self.config.get("dev_window_size", {}).get("width", 1200)
+            window_width = self.config.get("dev_window_size", {}).get("width", 1280)
             window_height = self.config.get("dev_window_size", {}).get("height", 800)
 
-        self.main_window.resize(window_width, window_height)
+        # Enforce non-resizable fixed size from configuration
+        try:
+            self.main_window.setFixedSize(window_width, window_height)
+
+            from PySide6.QtWidgets import QApplication
+
+            screen = QApplication.primaryScreen()
+            if screen:
+                geo = screen.availableGeometry()
+                x = geo.x() + (geo.width() - window_width) // 2
+                y = geo.y() + (geo.height() - window_height) // 2
+                self.main_window.move(x, y)
+        except Exception:
+            # Fallback if fixed size is not supported for any reason
+            self.main_window.resize(window_width, window_height)
 
         # Set window title based on environment
         title = get_text("ui.main_window.title")

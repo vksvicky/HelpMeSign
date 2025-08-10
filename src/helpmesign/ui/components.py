@@ -198,8 +198,37 @@ class StatusBar(QFrame):
         self.status_label.setFont(get_small_font())
         layout.addWidget(self.status_label)
 
-        # Add stretch to push system monitor to the right
+        # Language chip (place it on the right, before resources)
+        # We first add a stretch so items after it go to the right side
         layout.addStretch()
+        self.language_chip = QPushButton()
+        self.language_chip.setObjectName("languageChip")
+        self.language_chip.setCursor(Qt.PointingHandCursor)
+        self.language_chip.setStyleSheet(
+            """
+            QPushButton#languageChip {
+                border: 1px solid #e0e6ef; border-radius: 6px; background: #ffffff;
+                padding: 2px 8px; font-weight: 600;
+            }
+            QPushButton#languageChip:hover { background: #f5f7fb; }
+            """
+        )
+        self.language_chip.clicked.connect(self._on_language_chip_click)
+        # Initialize with saved language
+        try:
+            from ..core.startup import get_all_settings
+            from ..utils.language_loader import get_all_languages
+
+            code = get_all_settings("dev").get("selected_language", "ASL")
+            flag = "🌐"
+            for lang in get_all_languages():
+                if lang.get("code") == code:
+                    flag = lang.get("flag", "🌐")
+                    break
+            self.language_chip.setText(f"{flag} {code}")
+        except Exception:
+            self.language_chip.setText("🌐 ASL")
+        layout.addWidget(self.language_chip)
 
         # System monitor button on the right side (fixed size)
         self.setup_system_monitor_button()
@@ -302,6 +331,10 @@ class StatusBar(QFrame):
         """Handle click on system monitor status display"""
         if event.button() == Qt.LeftButton:
             self._show_system_monitor_panel()
+
+    def _on_language_chip_click(self):
+        """Handle click on language chip to open selector panel"""
+        self._show_language_selector_panel()
 
     def _update_status_display(self):
         """Update the status bar display with current system metrics"""
@@ -499,6 +532,331 @@ class StatusBar(QFrame):
             if hasattr(self, "logger"):
                 self.logger.error(f"Error showing system monitor panel: {e}")
 
+    def _show_language_selector_panel(self):
+        """Show the language selector panel near the status bar"""
+        try:
+            main_window = self.window()
+            if not main_window:
+                return
+
+            # Toggle if already open
+            if (
+                hasattr(main_window, "language_selector_panel")
+                and main_window.language_selector_panel
+                and main_window.language_selector_panel.isVisible()
+            ):
+                main_window.language_selector_panel.hide()
+                # Hide overlay close button if present
+                try:
+                    if (
+                        hasattr(main_window, "language_selector_close_btn")
+                        and main_window.language_selector_close_btn
+                    ):
+                        main_window.language_selector_close_btn.hide()
+                except Exception:
+                    pass
+                return
+
+            if (
+                hasattr(main_window, "language_selector_panel")
+                and main_window.language_selector_panel
+                and not main_window.language_selector_panel.isVisible()
+            ):
+                main_window.language_selector_panel.show()
+                # Reposition/show overlay or child close button
+                try:
+                    panel = main_window.language_selector_panel
+                    close_btn = None
+                    if (
+                        hasattr(main_window, "language_selector_close_btn")
+                        and main_window.language_selector_close_btn
+                    ):
+                        close_btn = main_window.language_selector_close_btn
+                        # Sibling overlay placement
+                        g = panel.geometry()
+                        x = g.x() + g.width() - close_btn.width() - 8
+                        y_above = g.y() - close_btn.height() - 8
+                        y = y_above if y_above >= 4 else 4
+                        close_btn.move(x, y)
+                        close_btn.show()
+                        close_btn.raise_()
+                    elif hasattr(panel, "_lang_close_btn") and panel._lang_close_btn:
+                        close_btn = panel._lang_close_btn
+                        x = panel.width() - close_btn.width() - 8
+                        y_above = -close_btn.height() - 8
+                        # Child-of-panel placement
+                        close_btn.move(panel.width() - close_btn.width() - 8, 8)
+                        close_btn.show()
+                        close_btn.raise_()
+                except Exception:
+                    pass
+                return
+
+            # Create and show new simple selector panel
+            from PySide6.QtWidgets import QGridLayout, QLineEdit, QVBoxLayout, QWidget
+
+            from ..utils.language_loader import get_all_languages
+            from ..utils.theme_manager import get_theme_manager, get_theme_style
+
+            panel = QWidget(main_window)
+            # Match resource panel object name so theme style targets apply
+            panel.setObjectName("SystemMonitorPanel")
+            # Use the same background/border as resource panel for current theme
+            from ..utils.theme_manager import get_complete_style
+
+            panel.setStyleSheet(get_complete_style("system_monitor_panel"))
+            try:
+                from PySide6.QtCore import Qt as _Qt
+
+                panel.setAttribute(_Qt.WidgetAttribute.WA_StyledBackground, True)
+                panel.setAutoFillBackground(True)
+            except Exception:
+                pass
+            # Match left-side selector width/spacing more closely
+            panel.setFixedWidth(400)
+            panel.setFixedHeight(280)
+
+            lay = QVBoxLayout(panel)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(8)
+
+            # Search + Category in a single row (like the left-side selector)
+            search = QLineEdit()
+            search.setPlaceholderText(
+                get_text("ui.language_selection.search_placeholder")
+            )
+            # Apply the same search styling used in the left-side selector
+            try:
+                from ..utils.theme_manager import get_complete_style
+
+                search.setStyleSheet(get_complete_style("learn_mode_search_box"))
+            except Exception:
+                pass
+            from PySide6.QtWidgets import QHBoxLayout, QMenu, QPushButton
+
+            filter_bar = QHBoxLayout()
+            filter_bar.setContentsMargins(0, 0, 0, 0)
+            filter_bar.setSpacing(12)
+
+            category_btn = QPushButton(get_text("ui.language_selection.category_all"))
+            category_btn.setObjectName("categoryButton")
+            try:
+                from ..utils.theme_manager import get_complete_style
+
+                category_btn.setStyleSheet(
+                    get_complete_style("learn_mode_category_button")
+                )
+            except Exception:
+                pass
+            category_menu = QMenu(category_btn)
+            try:
+                from ..utils.theme_manager import get_complete_style
+
+                category_menu.setStyleSheet(
+                    get_complete_style("learn_mode_category_menu")
+                )
+            except Exception:
+                pass
+
+            categories = [
+                (get_text("ui.language_selection.category_all"), "all"),
+                (get_text("ui.language_selection.category_popular"), "popular"),
+                (get_text("ui.language_selection.category_beginner"), "beginner"),
+                (
+                    get_text("ui.language_selection.category_intermediate"),
+                    "intermediate",
+                ),
+                (get_text("ui.language_selection.category_advanced"), "advanced"),
+            ]
+
+            from ..utils.language_loader import get_language_categories
+
+            cat_map = {}
+            for label, key in categories:
+                act = category_menu.addAction(label)
+                cat_map[act] = key
+
+            def on_category_triggered(action):
+                key = cat_map.get(action, "all")
+                category_btn.setText(action.text())
+                cats = get_language_categories()
+                items = cats.get(key, cats.get("all", []))
+                populate(items)
+
+            category_menu.triggered.connect(on_category_triggered)
+            category_btn.setMenu(category_menu)
+            # Add search (takes 3/4) and category dropdown (1/4)
+            filter_bar.addWidget(search, 3)
+            filter_bar.addWidget(category_btn, 1)
+            lay.addLayout(filter_bar)
+
+            # Grid of language buttons
+            grid_host = QWidget()
+            grid = QGridLayout(grid_host)
+            grid.setContentsMargins(0, 0, 0, 0)
+            grid.setSpacing(8)
+            lay.addWidget(grid_host)
+
+            try:
+                languages = get_all_languages()
+            except Exception:
+                languages = []
+
+            def populate(items):
+                while grid.count():
+                    item = grid.takeAt(0)
+                    if item.widget():
+                        item.widget().setParent(None)
+                for i, lang in enumerate(items):
+                    btn = QPushButton(
+                        f"{lang.get('flag','🌐')} {lang.get('code','--')}"
+                    )
+                    # Apply same button style as the left-side language list
+                    try:
+                        from ..utils.theme_manager import get_complete_style
+
+                        btn.setStyleSheet(
+                            get_complete_style("learn_mode_language_button")
+                        )
+                    except Exception:
+                        pass
+                    # Single-selection behavior: ensure only one is checked
+                    btn.setCheckable(True)
+
+                    def _on_click(checked=False, L=lang, B=btn):
+                        # Uncheck all other buttons
+                        for j in range(grid.count()):
+                            w = grid.itemAt(j).widget()
+                            if w and w is not B:
+                                w.setChecked(False)
+                        on_select(L)
+
+                    btn.clicked.connect(_on_click)
+                    grid.addWidget(btn, i // 4, i % 4)
+
+            def on_select(language: dict):
+                code = language.get("code", "ASL")
+                flag = language.get("flag", "🌐")
+                try:
+                    from ..core.startup import get_all_settings, save_all_settings
+
+                    settings = get_all_settings("dev")
+                    settings["selected_language"] = code
+                    save_all_settings(settings, "dev")
+                except Exception:
+                    pass
+                self.language_chip.setText(f"{flag} {code}")
+                panel.hide()
+
+            def on_search(text: str):
+                t = text.strip().lower()
+                if not t:
+                    populate(languages)
+                else:
+                    filtered = [
+                        l
+                        for l in languages
+                        if t in l.get("name", "").lower()
+                        or t in l.get("code", "").lower()
+                    ]
+                    populate(filtered)
+
+            search.textChanged.connect(on_search)
+            populate(languages)
+
+            # Position near bottom-right similar to system monitor panel
+            window_rect = main_window.rect()
+            panel_x = window_rect.width() - panel.width() - 20
+            panel_y = window_rect.height() - panel.height() - 80
+            panel.move(panel_x, panel_y)
+            panel.show()
+
+            from PySide6.QtCore import Qt
+
+            # Floating X (sibling overlay on the main window, not inside the panel layout)
+            close_btn = QPushButton("×", main_window)
+            close_btn.setFixedSize(20, 20)
+            close_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            close_btn.setToolTip(get_text("ui.system_monitor.close_tooltip"))
+
+            # High-contrast, theme-aware style
+            try:
+                from ..utils.theme_manager import get_theme_manager
+
+                is_dark = (
+                    get_theme_manager().get_current_theme().lower().startswith("dark")
+                )
+                close_btn.setStyleSheet(
+                    (
+                        "QPushButton { background:#2c2c2e; color:#ebebf5; border:1px solid #48484a; border-radius:10px; }"
+                        "QPushButton:hover { background:#3a3a3c; border-color:#5a5a5c; }"
+                    )
+                    if is_dark
+                    else (
+                        "QPushButton { background:#f0f2f5; color:#1e293b; border:1px solid #e0e6ef; border-radius:10px; }"
+                        "QPushButton:hover { background:#e6e9ef; }"
+                    )
+                )
+            except Exception:
+                pass
+
+            def _place_close():
+                g = panel.geometry()  # coords relative to main_window
+                x = g.x() + g.width() - close_btn.width() - 8
+                y_above = g.y() - close_btn.height() - 8
+                # Always prefer above; clamp to top edge if needed
+                y = y_above if y_above >= 4 else 4
+                close_btn.move(x, y)
+                close_btn.raise_()
+
+            def _hide_both():
+                try:
+                    panel.hide()
+                finally:
+                    close_btn.hide()
+
+            close_btn.clicked.connect(_hide_both)
+            _place_close()
+            close_btn.show()
+
+            # Keep references so it persists
+            main_window.language_selector_close_btn = close_btn
+
+            # Reposition on panel move/resize
+            _old_resize = panel.resizeEvent
+
+            def _resize(ev):
+                if _old_resize:
+                    _old_resize(ev)
+                _place_close()
+
+            panel.resizeEvent = _resize
+
+            _old_move = panel.moveEvent
+
+            def _move(ev):
+                if _old_move:
+                    _old_move(ev)
+                _place_close()
+
+            panel.moveEvent = _move
+
+            # Hide/remove close when panel is hidden/destroyed
+            def _on_destroyed(*_):
+                try:
+                    close_btn.hide()
+                finally:
+                    # Drop reference so it can be re-created next time
+                    if hasattr(main_window, "language_selector_close_btn"):
+                        main_window.language_selector_close_btn = None
+
+            panel.destroyed.connect(_on_destroyed)
+
+            main_window.language_selector_panel = panel
+        except Exception as e:
+            if hasattr(self, "logger"):
+                self.logger.error(f"Error showing language selector panel: {e}")
+
     def setup_system_monitor(self):
         """Set up the system monitor"""
         try:
@@ -617,8 +975,8 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
         """Set up the main window UI"""
         self.setWindowTitle(self.title)
-        self.setMinimumSize(800, 600)
-        self.resize(1024, 1024)
+        # Window size is managed in app.py via configuration (fixed size).
+        # Do not set a fixed size here to avoid duplication and conflicts.
 
         # Central widget
         central_widget = QWidget()
