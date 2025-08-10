@@ -38,6 +38,11 @@ class _CornerButtonPositioner(QObject):
                 x = margin
                 y = margin
             self._widget.move(x, y)
+            try:
+                # Keep it on top, but do not force visibility
+                self._widget.raise_()
+            except Exception:
+                pass
         return False
 
 
@@ -214,10 +219,14 @@ class LearnMode(BaseMode):
 
         # Get theme-aware panel styling from theme manager
         panel_style = get_theme_style("learn_mode_panel")
-        panel.setStyleSheet(panel_style)
+        # Ensure title has no extra padding/margin that could offset centering
+        panel.setStyleSheet(
+            panel_style + "\n#signTitle { padding: 0; margin: 0; text-align: center; }"
+        )
 
         layout = QVBoxLayout(panel)
-        layout.setSpacing(15)  # Reduced spacing for better layout
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)  # Reduced spacing for better layout
 
         # Hand preference selector - innovative icon-based design
         hand_selector_layout = QHBoxLayout()
@@ -243,14 +252,13 @@ class LearnMode(BaseMode):
         self.right_hand_btn.setToolTip("Right Hand Signs")
         self.left_hand_btn.setToolTip("Left Hand Signs")
 
-        # Load hand preference from config (default to right hand). Some tests
-        # expect an initial concrete hand ('right' or 'left'), not 'both'.
+        # Load hand preference from config (allow 'both' for two-hand languages)
         try:
             from src.helpmesign.core.startup import get_hand_preference
 
             pref = get_hand_preference()
             self.current_hand_preference = (
-                pref if pref in ("right", "left") else "right"
+                pref if pref in ("right", "left", "both") else "right"
             )
         except Exception:
             self.current_hand_preference = "right"  # Default fallback
@@ -259,8 +267,11 @@ class LearnMode(BaseMode):
         if self.current_hand_preference == "left":
             self.left_hand_btn.setProperty("selected", True)
             self.right_hand_btn.setProperty("selected", False)
-        else:
+        elif self.current_hand_preference == "right":
             self.right_hand_btn.setProperty("selected", True)
+            self.left_hand_btn.setProperty("selected", False)
+        else:  # 'both'
+            self.right_hand_btn.setProperty("selected", False)
             self.left_hand_btn.setProperty("selected", False)
 
         # Force style update to ensure visual state is applied
@@ -523,19 +534,26 @@ class LearnMode(BaseMode):
         from ...utils.theme_manager import get_theme_manager
 
         container = QFrame()
-        container.setFrameStyle(QFrame.Shape.Box)
-        container.setStyleSheet(get_theme_style("learn_mode_panel"))
+        container.setObjectName("languageSelector")
+        container.setFrameShape(QFrame.Shape.NoFrame)
+        container.setStyleSheet("#languageSelector { padding: 0; border: none; }")
+
+        # container.setFrameStyle(QFrame.Shape.Box)
+        # container.setStyleSheet(get_theme_style("learn_mode_panel"))
 
         layout = QVBoxLayout(container)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Theme manager will be used for component styles below
         theme_manager = get_theme_manager()
 
         # Search and filter row
+        # filter_layout = QHBoxLayout()
+        # filter_layout.setSpacing(8)  # Increased spacing
         filter_layout = QHBoxLayout()
-        filter_layout.setSpacing(12)  # Increased spacing
+        filter_layout.setSpacing(8)  # or your preferred spacing
+        filter_layout.setContentsMargins(0, 0, 0, 0)
 
         # Search box
         self.search_box = QLineEdit()
@@ -619,7 +637,7 @@ class LearnMode(BaseMode):
         # Language grid area - clean and simple (keep content borderless)
         self.language_list_area = QScrollArea()
         self.language_list_area.setWidgetResizable(True)
-        self.language_list_area.setMaximumHeight(190)
+        self.language_list_area.setMaximumHeight(220)
         # Keep default frame on the outer panel; the scroll area itself remains minimal
         self.language_list_area.setFrameShape(QFrame.Shape.NoFrame)
         # Never show horizontal scrollbar and ensure transparent viewport
@@ -829,6 +847,8 @@ class LearnMode(BaseMode):
         return btn
 
     def on_language_selected(self, language: dict):
+        from PySide6.QtCore import Qt
+
         """Handle language selection"""
         self.selected_language = language
 
@@ -844,23 +864,30 @@ class LearnMode(BaseMode):
 
         # Update sign display title to show selected language flag and code
         flag = language.get("flag", "🌐")
-        code = language.get("code", "Unknown")
-        self.sign_title.setText(f"{flag} {code}")
+        code = language.get("code", "ASL")
+        try:
+            self.sign_title.setText(f"{flag} {code}")
+            # Ensure stylesheet does not override center alignment
+            self.sign_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
 
         # Change the sign language for the sign display
         language_code = language.get("code", "ASL")
         self.change_sign_language(language_code)
 
-        # Language-aware hand control: if selected language has left/right variants,
-        # ensure icons are visible and a concrete hand (right/left) is selected.
-        # If no variants, persist 'both' and hide icons.
+        # Language-aware hand control:
+        # - If language offers only a two-hand form (e.g., BSL), select 'both' and hide icons
+        # - If language offers left/right variants, show icons and ensure a concrete hand is selected
         try:
             hands = []
             if hasattr(self, "sign_loader") and self.sign_loader:
                 hands = self.sign_loader.get_available_hands(language_code)
-            has_one_hand = any(h in ("left", "right") for h in hands)
+            has_left_or_right = any(h in ("left", "right") for h in hands)
+            # Treat missing metadata as a two-hand language by default (e.g., BSL)
+            has_both_only = ("both" in hands) or (not hands and not has_left_or_right)
 
-            if has_one_hand:
+            if has_left_or_right:
                 # Show icons
                 if hasattr(self, "right_hand_btn"):
                     self.right_hand_btn.setVisible(True)
@@ -871,30 +898,31 @@ class LearnMode(BaseMode):
                 if getattr(self, "current_hand_preference", "right") == "both":
                     # Default to right hand
                     self._set_hand_preference("right")
-            else:
-                # Hide icons but keep a concrete hand preference for tests expecting 'right' or 'left'
-                if hasattr(self, "right_hand_btn"):
-                    self.right_hand_btn.setVisible(False)
-                if hasattr(self, "left_hand_btn"):
-                    self.left_hand_btn.setVisible(False)
-                # Default to 'right' to satisfy tests that don't expect 'both'
-                self.current_hand_preference = "right"
+            elif has_both_only:
+                # BSL-like languages: select 'both' and show a single combined button
+                self.current_hand_preference = "both"
+                try:
+                    if hasattr(self, "right_hand_btn"):
+                        self.right_hand_btn.setVisible(True)
+                        self.right_hand_btn.setText("🖐️🤚")
+                    if hasattr(self, "left_hand_btn"):
+                        self.left_hand_btn.setVisible(False)
+                except Exception:
+                    pass
                 try:
                     from src.helpmesign.core.startup import set_hand_preference
 
-                    set_hand_preference("right")
+                    set_hand_preference("both")
                 except Exception:
                     pass
+            else:
+                # Unknown capability info; do not change visibility, but avoid 'both'
+                if getattr(self, "current_hand_preference", "right") == "both":
+                    self._set_hand_preference("right")
         except Exception:
             pass
 
-        # Update hand icon visibility strictly from saved preference (no heuristics)
-        try:
-            from src.helpmesign.core.startup import get_hand_preference
-
-            self.current_hand_preference = get_hand_preference()
-        except Exception:
-            pass
+        # Update icons based on the current in-memory state
         self._update_hand_icon_visibility_from_pref()
 
         # Save language selection to configuration
@@ -903,13 +931,25 @@ class LearnMode(BaseMode):
         # Update character buttons based on new language
         self.update_character_buttons()
 
-        # Re-evaluate hand icon visibility based on current saved preference
+        # If the selected language has no available characters for the current
+        # hand preference, reset the sign area to the default placeholder and
+        # clear any prior selection state.
         try:
-            from src.helpmesign.core.startup import get_hand_preference
-
-            self.current_hand_preference = get_hand_preference()
+            hand_pref = getattr(self, "current_hand_preference", "right")
+            has_alpha = bool(
+                self.sign_loader.get_alphabet_signs(language_code, hand_pref)
+            )
+            has_nums = bool(self.sign_loader.get_number_signs(language_code, hand_pref))
+            if not has_alpha and not has_nums:
+                self.current_character = None
+                self.current_char_type = None
+                self._show_placeholder_message()
+                if hasattr(self, "clear_sign_btn"):
+                    self.clear_sign_btn.setVisible(False)
         except Exception:
             pass
+
+        # Re-evaluate hand icon visibility (no extra read; use current state)
         self._update_hand_icon_visibility_from_pref()
 
     def _update_hand_icon_visibility_from_pref(self) -> None:
@@ -918,11 +958,34 @@ class LearnMode(BaseMode):
         If the preference is "both", hide the left/right icons. Otherwise, show them.
         """
         try:
-            visible = getattr(self, "current_hand_preference", "right") != "both"
-            if hasattr(self, "right_hand_btn"):
-                self.right_hand_btn.setVisible(visible)
-            if hasattr(self, "left_hand_btn"):
-                self.left_hand_btn.setVisible(visible)
+            pref = getattr(self, "current_hand_preference", "right")
+            if pref == "both":
+                # Show a single combined button and hide the other
+                if hasattr(self, "right_hand_btn"):
+                    try:
+                        self.right_hand_btn.setVisible(True)
+                        self.right_hand_btn.setText("🖐️🤚")
+                        self.right_hand_btn.setProperty("selected", True)
+                        self.right_hand_btn.style().unpolish(self.right_hand_btn)
+                        self.right_hand_btn.style().polish(self.right_hand_btn)
+                    except Exception:
+                        pass
+                if hasattr(self, "left_hand_btn"):
+                    self.left_hand_btn.setVisible(False)
+            else:
+                # Normal left/right visibility and labels
+                if hasattr(self, "right_hand_btn"):
+                    try:
+                        self.right_hand_btn.setVisible(True)
+                        self.right_hand_btn.setText("🖐️")
+                    except Exception:
+                        pass
+                if hasattr(self, "left_hand_btn"):
+                    try:
+                        self.left_hand_btn.setVisible(True)
+                        self.left_hand_btn.setText("🤚")
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -1111,6 +1174,7 @@ class LearnMode(BaseMode):
             from PySide6.QtSvgWidgets import QSvgWidget  # type: ignore
         except Exception:  # Fallback in environments without QtSvg or during tests
             QSvgWidget = None  # type: ignore
+        # QCursor may not exist in mocked environments; import lazily where used
         from PySide6.QtWidgets import (
             QButtonGroup,
             QComboBox,
@@ -1138,10 +1202,12 @@ class LearnMode(BaseMode):
         panel.setStyleSheet(panel_style)
 
         layout = QVBoxLayout(panel)
-        layout.setSpacing(15)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # Sign title
+        # Sign title (show selected language flag + code by default)
         self.sign_title = QLabel("Sign Language")
+        self.sign_title.setObjectName("signTitle")
         self.sign_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Get theme-aware title styling from theme manager with dynamic font size
@@ -1151,15 +1217,36 @@ class LearnMode(BaseMode):
         )
 
         self.sign_title.setStyleSheet(title_style)
+        # Initialize title with saved language (or ASL) showing flag + code
+        try:
+            from ...core.startup import get_all_settings
+            from ...utils.language_loader import get_all_languages
+
+            saved_language = get_all_settings(self.environment).get(
+                "selected_language", "ASL"
+            )
+            languages = get_all_languages()
+            flag = next(
+                (
+                    lang.get("flag", "🌐")
+                    for lang in languages
+                    if lang.get("code") == saved_language
+                ),
+                "🌐",
+            )
+            self.sign_title.setText(f"{flag} {saved_language}")
+        except Exception:
+            # Fallback to default
+            self.sign_title.setText("🌐 ASL")
         layout.addWidget(self.sign_title)
 
         # Sign display area (SVG + instructions)
         self.sign_display_container = QWidget()
         self.sign_display_layout = QVBoxLayout(self.sign_display_container)
-        self.sign_display_layout.setContentsMargins(12, 12, 12, 12)
-        self.sign_display_layout.setSpacing(20)
+        self.sign_display_layout.setContentsMargins(0, 0, 0, 0)
+        self.sign_display_layout.setSpacing(0)
         # Fix overall sign area height so the panel below does not shift
-        FIXED_SIGN_AREA_H = 520
+        FIXED_SIGN_AREA_H = 480
         self.sign_display_container.setFixedHeight(FIXED_SIGN_AREA_H)
         self.sign_display_container.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -1170,11 +1257,11 @@ class LearnMode(BaseMode):
 
         # SVG render widget
         self.sign_svg_widget = None
+        # Fixed character display size to prevent layout jumping
+        FIXED_W, FIXED_H = 200, 300
 
         if QSvgWidget is not None:
             self.sign_svg_widget = QSvgWidget()
-            # Fixed character display size to prevent layout jumping
-            FIXED_W, FIXED_H = 200, 300
             self.sign_svg_widget.setFixedSize(FIXED_W, FIXED_H)
             self.sign_svg_widget.setSizePolicy(
                 QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
@@ -1189,7 +1276,7 @@ class LearnMode(BaseMode):
         else:
             # Fallback to a QLabel placeholder if QtSvg not available
             self.sign_svg_widget = QLabel()
-            self.sign_svg_widget.setFixedSize(200, 300)
+            self.sign_svg_widget.setFixedSize(FIXED_W, FIXED_H)
             self.sign_svg_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
             self.sign_svg_widget.setText(
                 get_text("ui.language_selection.sign_will_appear_here")
@@ -1201,6 +1288,9 @@ class LearnMode(BaseMode):
         self.sign_instructions_label.setTextFormat(Qt.TextFormat.RichText)
         self.sign_instructions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.sign_instructions_label.setMinimumWidth(300)
+        # Constrain instruction area to avoid growing the overall container
+        self.sign_instructions_label.setMinimumHeight(75)
+        self.sign_instructions_label.setMaximumHeight(75)
         # Let height follow content to avoid clipping
         self.sign_instructions_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
@@ -1209,13 +1299,14 @@ class LearnMode(BaseMode):
         self.instructions_box = QFrame()
         self.instructions_box.setObjectName("instructionsBox")
         self.instructions_box.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
         self.instructions_box.setStyleSheet(
-            "#instructionsBox { border: 2px dotted #c8d1dc; border-radius: 12px; background: #ffffff; padding: 10px;}"
+            "#instructionsBox { border: 2px dotted #c8d1dc; border-radius: 12px; background: #ffffff; padding: 6px 8px;}"
         )
+
         _ibox_layout = QVBoxLayout(self.instructions_box)
-        _ibox_layout.setContentsMargins(16, 12, 16, 12)
+        _ibox_layout.setContentsMargins(8, 6, 8, 6)
         _ibox_layout.setSpacing(4)
         _ibox_layout.addWidget(
             self.sign_instructions_label, 1, Qt.AlignmentFlag.AlignHCenter
@@ -1230,12 +1321,35 @@ class LearnMode(BaseMode):
         self.clear_sign_btn = QPushButton("✕", self.sign_display_container)
         self.clear_sign_btn.setVisible(False)
         self.clear_sign_btn.setToolTip("Clear sign")
+
         self.clear_sign_btn.setFixedSize(24, 24)
-        self.clear_sign_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Set pointing hand cursor with robust fallbacks
+        try:
+            from PySide6.QtGui import QCursor  # type: ignore
+
+            self.clear_sign_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        except Exception:
+            try:
+                self.clear_sign_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            except Exception:
+                pass
+        self.clear_sign_btn.setEnabled(True)
+        try:
+            self.clear_sign_btn.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents, False
+            )
+        except Exception:
+            pass
         self.clear_sign_btn.setStyleSheet(
             "QPushButton { border: 1px solid rgba(0,0,0,0.15); border-radius: 12px; background: rgba(0,0,0,0.04); }"
             "QPushButton:hover { background: rgba(0,0,0,0.10); }"
         )
+        # Ensure hover cursor shows even if parent overrides
+        try:
+            self.clear_sign_btn.setMouseTracking(True)
+            self.clear_sign_btn.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        except Exception:
+            pass
         self.clear_sign_btn.clicked.connect(self._on_clear_sign_clicked)
         self.clear_sign_btn.raise_()
         # Reposition on container resize via a QObject-based event filter (skip in tests)
@@ -1257,24 +1371,24 @@ class LearnMode(BaseMode):
         )
         self.svg_layout = QVBoxLayout(self.svg_container)
         self.svg_layout.setContentsMargins(0, 0, 0, 0)
-        self.svg_layout.setSpacing(0)
+        self.svg_layout.setSpacing(12)
         self.svg_layout.addWidget(
             self.sign_svg_widget, 0, Qt.AlignmentFlag.AlignHCenter
         )
         # Add larger stretch BELOW the SVG to bias it upward
-        self.svg_layout.addStretch(6)
+        self.svg_layout.addStretch(1)
 
         # Add to layout without extra top spacing, give container stretch to take more space
         # so the internal bottom stretch can push the SVG higher
         self.sign_display_layout.addSpacing(0)
         self.sign_display_layout.addWidget(self.svg_container, 1)
         # Extra padding below the hand sign
-        self.sign_display_layout.addSpacing(12)
+        self.sign_display_layout.addSpacing(2)
         self.sign_display_layout.addWidget(
             self.instructions_box, 0, Qt.AlignmentFlag.AlignHCenter
         )
         # Stretch at the bottom keeps overall content slightly upward
-        self.sign_display_layout.addStretch(1)
+        self.sign_display_layout.addStretch(6)
         layout.addWidget(self.sign_display_container)
         # Show placeholder until a character is selected
         self._show_placeholder_message()
@@ -1293,7 +1407,7 @@ class LearnMode(BaseMode):
 
         placeholder = (
             '<div style="font-size: 18px; color: #6b7b8c; padding: 8px; text-align: center;">'
-            "Select a character to see the sign here."
+            "Select a character to see the sign."
             "</div>"
         )
         try:
@@ -1421,9 +1535,9 @@ class LearnMode(BaseMode):
             self.current_language, character, hand_preference
         )
 
-        # Update title
-        if hasattr(self, "sign_title") and self.sign_title is not None:
-            self.sign_title.setText(f"{hand_preference.title()} Hand Sign")
+        # # Update title
+        # if hasattr(self, "sign_title") and self.sign_title is not None:
+        #     self.sign_title.setText(f"{hand_preference.title()} Hand Sign")
 
         if svg_data:
             try:
@@ -1802,6 +1916,21 @@ class LearnMode(BaseMode):
             if not hasattr(self, "_activated"):
                 self.load_saved_language_selection()
                 self.update_character_buttons()
+                # Ensure correct hand UI for two-hand languages on first load
+                try:
+                    lang = getattr(self, "current_language", "ASL")
+                    hands = []
+                    if hasattr(self, "sign_loader") and self.sign_loader:
+                        hands = self.sign_loader.get_available_hands(lang)
+                    has_left_or_right = any(h in ("left", "right") for h in hands)
+                    has_both_only = ("both" in hands) or (
+                        not hands and not has_left_or_right
+                    )
+                    if has_both_only:
+                        self.current_hand_preference = "both"
+                        self._update_hand_icon_visibility_from_pref()
+                except Exception:
+                    pass
                 self._activated = True
 
             # Restore hand preference visual state

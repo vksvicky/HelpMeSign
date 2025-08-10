@@ -450,6 +450,16 @@ class MockQFrame(MockQWidget):
         """Get the frame style."""
         return self._frame_style
 
+    # Compatibility with newer PySide6 API where setFrameShape is used
+    class Shape:
+        NoFrame = 0
+        Box = 1
+        Panel = 2
+
+    def setFrameShape(self, shape: int):
+        """Alias for setFrameStyle to support tests using setFrameShape."""
+        self.setFrameStyle(shape)
+
     def setLineWidth(self, width: int):
         """Set the line width."""
         self._line_width = width
@@ -812,6 +822,7 @@ class MockQSizePolicy:
         Fixed = 0
         Expanding = 1
         Minimum = 2
+        Preferred = 3
 
     def setHorizontalPolicy(self, policy: int):
         """Set the horizontal policy."""
