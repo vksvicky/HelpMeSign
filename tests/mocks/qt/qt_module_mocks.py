@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 
 from .qt_mock_framework import (
     MockQApplication,
+    MockQByteArray,
     MockQComboBox,
     MockQDialog,
     MockQFrame,
@@ -98,6 +99,8 @@ class MockQtWidgets:
 
         # Add Shape enum for newer PySide6 syntax
         self.QFrame.Shape = MagicMock()
+        # Expose QSizePolicy via QtWidgets as well (some code imports from here)
+        self.QSizePolicy = MockQSizePolicy
         self.QFrame.Shape.NoFrame = 0
         self.QFrame.Shape.Box = 1
         self.QFrame.Shape.Panel = 2
@@ -126,6 +129,7 @@ class MockQtCore:
         self.QSize = MockQSize
         self.QRect = MockQRect
         self.QSizePolicy = MockQSizePolicy
+        self.QByteArray = MockQByteArray
 
         # Signal/Slot system
         self.Signal = MockSignal
@@ -250,6 +254,7 @@ class MockPySide6:
         self.QSize = self.QtCore.QSize
         self.QRect = self.QtCore.QRect
         self.QSizePolicy = self.QtCore.QSizePolicy
+        self.QByteArray = self.QtCore.QByteArray
         self.QPainter = self.QtGui.QPainter
         self.QFont = self.QtGui.QFont
         self.QColor = self.QtGui.QColor

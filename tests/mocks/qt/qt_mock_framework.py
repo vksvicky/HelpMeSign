@@ -11,6 +11,29 @@ from unittest.mock import MagicMock, Mock, PropertyMock
 from .qt_mock_registry import qt_mock_registry
 
 
+class MockQByteArray:
+    """Mock implementation of QByteArray."""
+
+    def __init__(self, data: Any = b""):
+        if isinstance(data, (bytes, bytearray)):
+            self._data = bytes(data)
+        else:
+            # Accept str and other types for robustness in tests
+            try:
+                self._data = bytes(data)
+            except Exception:
+                self._data = str(data).encode("utf-8")
+
+    def data(self) -> bytes:
+        return self._data
+
+    def size(self) -> int:
+        return len(self._data)
+
+    def __bytes__(self) -> bytes:
+        return self._data
+
+
 class MockQObject:
     """Base mock for QObject functionality."""
 
@@ -99,6 +122,7 @@ class MockQWidget(MockQObject):
         self._style_sheet = ""
         self._minimum_size = MockQSize(0, 0)
         self._maximum_size = MockQSize(16777215, 16777215)  # QWIDGETSIZE_MAX
+        self._event_filters = []
 
         # Register with registry
         qt_mock_registry.register_mock(
@@ -343,6 +367,31 @@ class MockQWidget(MockQObject):
         """Get the style object."""
         return MockQStyle()
 
+    def setSizePolicy(self, horizontal_policy, vertical_policy):
+        """Set the widget's size policy."""
+        # Accept both raw ints and policy enum values from the mock
+        self._size_policy = MockQSizePolicy()
+        try:
+            self._size_policy.setHorizontalPolicy(horizontal_policy)
+            self._size_policy.setVerticalPolicy(vertical_policy)
+        except Exception:
+            # Swallow errors in tests
+            pass
+
+    def sizePolicy(self) -> "MockQSizePolicy":
+        """Return the widget's size policy."""
+        return self._size_policy
+
+    def installEventFilter(self, filter_obj):
+        """Install an event filter (mock no-op)."""
+        if filter_obj not in self._event_filters:
+            self._event_filters.append(filter_obj)
+
+    def removeEventFilter(self, filter_obj):
+        """Remove an installed event filter (mock no-op)."""
+        if filter_obj in self._event_filters:
+            self._event_filters.remove(filter_obj)
+
 
 class MockQDialog(MockQWidget):
     """Mock implementation of QDialog."""
@@ -532,6 +581,10 @@ class MockQPushButton(MockQWidget):
     def font(self):
         """Get the font."""
         return self._font
+
+    def setCursor(self, cursor):
+        """Set the cursor shape (no-op for mock)."""
+        self._cursor = cursor
 
     @property
     def clicked_signal(self):
@@ -752,6 +805,13 @@ class MockQSizePolicy:
         self._vertical_policy = 0  # Fixed
         self._horizontal_stretch = 0
         self._vertical_stretch = 0
+
+    class Policy:
+        """Mock enum for QSizePolicy.Policy values used by code/tests."""
+
+        Fixed = 0
+        Expanding = 1
+        Minimum = 2
 
     def setHorizontalPolicy(self, policy: int):
         """Set the horizontal policy."""
