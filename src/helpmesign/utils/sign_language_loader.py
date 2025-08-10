@@ -131,28 +131,21 @@ class SignLanguageLoader:
                     )
                     continue
 
-        # If not found and a specific hand was requested, try the other common fallbacks
+        # If not found and a specific hand was requested, only try the generic file.
+        # Do NOT switch hands implicitly; respect the requested hand.
         if data is None and hand != "both":
-            fallback_files = [
-                f"{language.lower()}_right_hand.json",
-                f"{language.lower()}_left_hand.json",
-                f"{language.lower()}.json",
-            ]
-            for filename in fallback_files:
-                file_path = lang_dir / filename
-                if file_path.exists():
-                    try:
-                        with open(file_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                        logger.info(
-                            f"Loaded sign language data (fallback): {file_path}"
-                        )
-                        break
-                    except (json.JSONDecodeError, IOError) as e:
-                        logger.error(
-                            f"Error loading sign language data from {file_path}: {e}"
-                        )
-                        continue
+            generic_path = lang_dir / f"{language.lower()}.json"
+            if generic_path.exists():
+                try:
+                    with open(generic_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    logger.info(
+                        f"Loaded sign language data (generic fallback): {generic_path}"
+                    )
+                except (json.JSONDecodeError, IOError) as e:
+                    logger.error(
+                        f"Error loading sign language data from {generic_path}: {e}"
+                    )
 
         if data is None:
             logger.warning(f"No sign language data found for {language} ({hand} hand)")

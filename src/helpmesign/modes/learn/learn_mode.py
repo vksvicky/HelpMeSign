@@ -9,10 +9,32 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout
     from PySide6.QtGui import QFont
 
+from PySide6.QtCore import QEvent, QObject
+
 from ...utils.language_manager import get_text
 from ...utils.sign_language_loader import get_sign_language_loader
 from ...utils.theme_manager import get_theme_style
 from ..base_mode import BaseMode
+
+
+class _CornerButtonPositioner(QObject):
+    def __init__(self, parent_widget, widget, anchor: str = "top-right"):
+        super().__init__(parent_widget)
+        self._parent = parent_widget
+        self._widget = widget
+        self._anchor = anchor
+
+    def eventFilter(self, obj, event):  # type: ignore[override]
+        if obj is self._parent and event.type() == QEvent.Resize:
+            margin = 8
+            if self._anchor == "top-right":
+                x = self._parent.width() - self._widget.width() - margin
+                y = margin
+            else:  # top-left
+                x = margin
+                y = margin
+            self._widget.move(x, y)
+        return False
 
 
 class LearnMode(BaseMode):
@@ -589,7 +611,7 @@ class LearnMode(BaseMode):
         # Language grid area - clean and simple (keep content borderless)
         self.language_list_area = QScrollArea()
         self.language_list_area.setWidgetResizable(True)
-        self.language_list_area.setMaximumHeight(220)
+        self.language_list_area.setMaximumHeight(190)
         # Keep default frame on the outer panel; the scroll area itself remains minimal
         self.language_list_area.setFrameShape(QFrame.Shape.NoFrame)
         # Never show horizontal scrollbar and ensure transparent viewport
@@ -1064,6 +1086,12 @@ class LearnMode(BaseMode):
         """Create the right panel for sign display with language selector"""
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QFont
+
+        # Use QSvgWidget to render inline SVG reliably
+        try:
+            from PySide6.QtSvgWidgets import QSvgWidget  # type: ignore
+        except Exception:  # Fallback in environments without QtSvg
+            QSvgWidget = None  # type: ignore
         from PySide6.QtWidgets import (
             QButtonGroup,
             QComboBox,
@@ -1075,6 +1103,7 @@ class LearnMode(BaseMode):
             QPushButton,
             QRadioButton,
             QScrollArea,
+            QSizePolicy,
             QVBoxLayout,
             QWidget,
         )
@@ -1105,23 +1134,125 @@ class LearnMode(BaseMode):
         self.sign_title.setStyleSheet(title_style)
         layout.addWidget(self.sign_title)
 
-        # Sign display area
-        self.sign_display_label = QLabel()
-        self.sign_display_label.setMinimumSize(300, 300)
-
-        # Get theme-aware display label styling from theme manager
-        display_style = get_theme_style("learn_mode_sign_display")
-
-        self.sign_display_label.setStyleSheet(display_style)
-        self.sign_display_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sign_display_label.setTextFormat(
-            Qt.TextFormat.RichText
-        )  # Enable HTML support
-        self.sign_display_label.setWordWrap(True)  # Enable word wrapping
-        self.sign_display_label.setText(
-            get_text("ui.language_selection.sign_will_appear_here")
+        # Sign display area (SVG + instructions)
+        self.sign_display_container = QWidget()
+        self.sign_display_layout = QVBoxLayout(self.sign_display_container)
+        self.sign_display_layout.setContentsMargins(12, 12, 12, 12)
+        self.sign_display_layout.setSpacing(20)
+        # Fix overall sign area height so the panel below does not shift
+        FIXED_SIGN_AREA_H = 520
+        self.sign_display_container.setFixedHeight(FIXED_SIGN_AREA_H)
+        self.sign_display_container.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
-        layout.addWidget(self.sign_display_label)
+        self.sign_display_layout.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        # SVG render widget
+        self.sign_svg_widget = None
+
+        if QSvgWidget is not None:
+            self.sign_svg_widget = QSvgWidget()
+            # Fixed character display size to prevent layout jumping
+            FIXED_W, FIXED_H = 200, 300
+            self.sign_svg_widget.setFixedSize(FIXED_W, FIXED_H)
+            self.sign_svg_widget.setSizePolicy(
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+            )
+            # Keep original SVG aspect ratio when drawing into fixed viewbox
+            try:
+                renderer = self.sign_svg_widget.renderer()  # type: ignore[attr-defined]
+                if renderer is not None:
+                    renderer.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        else:
+            # Fallback to a QLabel placeholder if QtSvg not available
+            self.sign_svg_widget = QLabel()
+            self.sign_svg_widget.setFixedSize(200, 300)
+            self.sign_svg_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            self.sign_svg_widget.setText(
+                get_text("ui.language_selection.sign_will_appear_here")
+            )
+
+        # Instructions inside dotted border box
+        self.sign_instructions_label = QLabel()
+        self.sign_instructions_label.setWordWrap(True)
+        self.sign_instructions_label.setTextFormat(Qt.TextFormat.RichText)
+        self.sign_instructions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.sign_instructions_label.setMinimumWidth(300)
+        # Let height follow content to avoid clipping
+        self.sign_instructions_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+
+        self.instructions_box = QFrame()
+        self.instructions_box.setObjectName("instructionsBox")
+        self.instructions_box.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        self.instructions_box.setStyleSheet(
+            "#instructionsBox { border: 2px dotted #c8d1dc; border-radius: 12px; background: #ffffff; padding: 10px;}"
+        )
+        _ibox_layout = QVBoxLayout(self.instructions_box)
+        _ibox_layout.setContentsMargins(16, 12, 16, 12)
+        _ibox_layout.setSpacing(4)
+        _ibox_layout.addWidget(
+            self.sign_instructions_label, 1, Qt.AlignmentFlag.AlignHCenter
+        )
+
+        # Ensure container has no border to avoid double borders with the instructions box
+        self.sign_display_container.setStyleSheet(
+            "background: transparent; border: none;"
+        )
+
+        # Floating clear button (does not affect layout). Hidden by default; shown when a character is selected
+        self.clear_sign_btn = QPushButton("✕", self.sign_display_container)
+        self.clear_sign_btn.setVisible(False)
+        self.clear_sign_btn.setToolTip("Clear sign")
+        self.clear_sign_btn.setFixedSize(24, 24)
+        self.clear_sign_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.clear_sign_btn.setStyleSheet(
+            "QPushButton { border: 1px solid rgba(0,0,0,0.15); border-radius: 12px; background: rgba(0,0,0,0.04); }"
+            "QPushButton:hover { background: rgba(0,0,0,0.10); }"
+        )
+        self.clear_sign_btn.clicked.connect(self._on_clear_sign_clicked)
+        self.clear_sign_btn.raise_()
+        # Reposition on container resize via a QObject-based event filter
+        self._clear_btn_positioner = _CornerButtonPositioner(
+            self.sign_display_container, self.clear_sign_btn
+        )
+        self.sign_display_container.installEventFilter(self._clear_btn_positioner)
+
+        # Wrap SVG in its own container so we can bias it upward without moving instructions
+        self.svg_container = QWidget()
+        self.svg_container.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.svg_layout = QVBoxLayout(self.svg_container)
+        self.svg_layout.setContentsMargins(0, 0, 0, 0)
+        self.svg_layout.setSpacing(0)
+        self.svg_layout.addWidget(
+            self.sign_svg_widget, 0, Qt.AlignmentFlag.AlignHCenter
+        )
+        # Add larger stretch BELOW the SVG to bias it upward
+        self.svg_layout.addStretch(6)
+
+        # Add to layout without extra top spacing, give container stretch to take more space
+        # so the internal bottom stretch can push the SVG higher
+        self.sign_display_layout.addSpacing(0)
+        self.sign_display_layout.addWidget(self.svg_container, 1)
+        # Extra padding below the hand sign
+        self.sign_display_layout.addSpacing(12)
+        self.sign_display_layout.addWidget(
+            self.instructions_box, 0, Qt.AlignmentFlag.AlignHCenter
+        )
+        # Stretch at the bottom keeps overall content slightly upward
+        self.sign_display_layout.addStretch(1)
+        layout.addWidget(self.sign_display_container)
+        # Show placeholder until a character is selected
+        self._show_placeholder_message()
 
         # Hand preference moved to settings window
 
@@ -1130,6 +1261,82 @@ class LearnMode(BaseMode):
         layout.addWidget(language_group)
 
         return panel
+
+    def _show_placeholder_message(self) -> None:
+        """Show default placeholder before a character is selected."""
+        from PySide6.QtCore import Qt
+
+        placeholder = (
+            '<div style="font-size: 18px; color: #6b7b8c; padding: 8px; text-align: center;">'
+            "Select a character to see the sign here."
+            "</div>"
+        )
+        try:
+            # Center the placeholder inside the dotted box
+            self.sign_instructions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.sign_instructions_label.setText(placeholder)
+            # Clear SVG widget content
+            if hasattr(self, "sign_svg_widget") and hasattr(
+                self.sign_svg_widget, "load"
+            ):
+                from PySide6.QtCore import QByteArray
+
+                self.sign_svg_widget.load(QByteArray())  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    def _on_clear_sign_clicked(self) -> None:
+        """Clear current sign display and reset selection."""
+        try:
+            # Clear sign content
+            if hasattr(self, "sign_svg_widget") and hasattr(
+                self.sign_svg_widget, "load"
+            ):
+                from PySide6.QtCore import QByteArray
+
+                self.sign_svg_widget.load(QByteArray())  # type: ignore[attr-defined]
+            if hasattr(self, "sign_instructions_label"):
+                self._show_placeholder_message()
+                # Hide the clear button again when no selection
+                if hasattr(self, "clear_sign_btn"):
+                    self.clear_sign_btn.setVisible(False)
+
+            # Reset internal selection state
+            self.current_character = None
+            self.current_char_type = None
+
+            # Unselect all character buttons visually
+            if hasattr(self, "alphabet_buttons"):
+                for btn in self.alphabet_buttons.values():
+                    btn.setProperty("selected", False)
+                    btn.style().unpolish(btn)
+                    btn.style().polish(btn)
+            if hasattr(self, "number_buttons"):
+                for btn in self.number_buttons.values():
+                    btn.setProperty("selected", False)
+                    btn.style().unpolish(btn)
+                    btn.style().polish(btn)
+        except Exception as e:
+            self.logger.error(f"Error clearing sign display: {e}")
+
+    # Position the floating clear button at top-right on resize
+    def eventFilter(self, obj, event):  # type: ignore[override]
+        try:
+            from PySide6.QtCore import QEvent
+
+            if obj is self.sign_display_container and event.type() == QEvent.Resize:
+                if hasattr(self, "clear_sign_btn") and self.clear_sign_btn:
+                    margin = 8
+                    x = (
+                        self.sign_display_container.width()
+                        - self.clear_sign_btn.width()
+                        - margin
+                    )
+                    y = margin
+                    self.clear_sign_btn.move(x, y)
+        except Exception:
+            pass
+        return super().eventFilter(obj, event)
 
     def on_alphabet_selected(self, letter: str) -> None:
         """Handle alphabet letter selection"""
@@ -1166,8 +1373,10 @@ class LearnMode(BaseMode):
 
     def update_sign_display(self, character: str, char_type: str) -> None:
         """Update the sign display area with actual SVG signs"""
-        # Safety check - ensure sign display label exists
-        if not hasattr(self, "sign_display_label") or self.sign_display_label is None:
+        from PySide6.QtCore import QByteArray
+
+        # Safety check - ensure display widgets exist
+        if not hasattr(self, "sign_svg_widget") or self.sign_svg_widget is None:
             return
 
         # Store current character and type for hand preference changes
@@ -1185,35 +1394,56 @@ class LearnMode(BaseMode):
             self.current_language, character, hand_preference
         )
 
-        if svg_data and instructions:
-            # Create HTML content with SVG and instructions
-            html_content = f"""
-            <div style="text-align: center; padding: 20px;">
-                <div style="margin-bottom: 20px;">
-                    {svg_data}
-                </div>
-                <div style="font-family: {self.current_font_family}; font-size: {self.current_font_size}px; color: #333;">
-                    <h3 style="margin: 10px 0; color: #2c3e50;">{hand_preference.title()} Hand Sign</h3>
-                    <p style="margin: 10px 0; color: #7f8c8d; font-style: italic;">{instructions}</p>
-                    <p style="margin: 10px 0; color: #95a5a6; font-size: 0.9em;">Character: '{character}'</p>
-                </div>
-            </div>
-            """
+        # Update title
+        if hasattr(self, "sign_title") and self.sign_title is not None:
+            self.sign_title.setText(f"{hand_preference.title()} Hand Sign")
 
-            # Set the HTML content
-            self.sign_display_label.setText(html_content)
+        if svg_data:
+            try:
+                # QSvgWidget supports loading from QByteArray
+                if hasattr(self.sign_svg_widget, "load"):
+                    self.sign_svg_widget.load(QByteArray(svg_data.encode("utf-8")))  # type: ignore[attr-defined]
+                else:
+                    # Fallback label shows raw SVG text
+                    self.sign_svg_widget.setText(svg_data)  # type: ignore[attr-defined]
+                # Show the clear button since a sign is now displayed
+                if hasattr(self, "clear_sign_btn"):
+                    self.clear_sign_btn.setVisible(True)
+            except Exception:
+                # As a last resort, show raw SVG string
+                try:
+                    self.sign_svg_widget.setText(svg_data)  # type: ignore[attr-defined]
+                except Exception:
+                    pass
         else:
-            # Fallback if sign not found
-            fallback_text = f"""
-            <div style="text-align: center; padding: 20px;">
-                <div style="font-family: {self.current_font_family}; font-size: {self.current_font_size}px; color: #e74c3c;">
-                    <h3>Sign Not Found</h3>
-                    <p>No sign data available for '{character}' in {self.current_language}</p>
-                    <p>Please check the sign language data files.</p>
-                </div>
-            </div>
-            """
-            self.sign_display_label.setText(fallback_text)
+            # Clear SVG view on missing data
+            try:
+                if hasattr(self.sign_svg_widget, "load"):
+                    self.sign_svg_widget.load(QByteArray())  # type: ignore[attr-defined]
+                else:
+                    self.sign_svg_widget.setText(get_text("ui.language_selection.sign_will_appear_here"))  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        # Update instructions text
+        if instructions:
+            from ...utils.theme_manager import get_font_family, get_font_size
+
+            current_size = get_font_size()
+            current_family = get_font_family()
+            self.sign_instructions_label.setText(
+                f'<div style="font-family: {current_family}; font-size: {current_size}px; text-align: center;">'
+                f'<div style="margin: 6px 0;">{instructions}</div>'
+                f"<div style=\"margin: 4px 0; font-size: 0.9em; color: #95a5a6;\">Character: '{character}'</div>"
+                f"</div>"
+            )
+        else:
+            self.sign_instructions_label.setText(
+                f'<div style="font-family: {self.current_font_family}; font-size: {self.current_font_size}px; color: #e74c3c;">'
+                f"<h3>Sign Not Found</h3>"
+                f"<p>No sign data available for '{character}' in {self.current_language}</p>"
+                f"</div>"
+            )
 
     def setup_behavior(self) -> None:
         """Set up mode-specific behavior and event handlers"""
@@ -1507,7 +1737,7 @@ class LearnMode(BaseMode):
 
                     # Add the learning widget to the content area
                     self.main_window.content_area.addWidget(self.learning_widget)
-                    self.main_window.content_area.setCurrentWidget(self.learning_widget)
+            self.main_window.content_area.setCurrentWidget(self.learning_widget)
 
             # Load saved language selection and update character buttons (only once)
             if not hasattr(self, "_activated"):
@@ -1537,28 +1767,28 @@ class LearnMode(BaseMode):
                     pass
                 self._resize_timer = None
 
-            # Disconnect main_window signals we attached in setup_behavior
-            try:
-                if hasattr(self.main_window, "clear_requested"):
-                    self.main_window.clear_requested.disconnect(
-                        self._on_clear_requested
-                    )
-            except Exception:
-                pass
-            try:
-                if hasattr(self.main_window, "process_requested"):
-                    self.main_window.process_requested.disconnect(
-                        self._on_learn_requested
-                    )
-            except Exception:
-                pass
-            try:
-                if hasattr(self.main_window, "update_hand_preference"):
-                    self.main_window.update_hand_preference.disconnect(
-                        self._on_hand_preference_changed
-                    )
-            except Exception:
-                pass
+                # Disconnect main_window signals we attached in setup_behavior
+                try:
+                    if hasattr(self.main_window, "clear_requested"):
+                        self.main_window.clear_requested.disconnect(
+                            self._on_clear_requested
+                        )
+                except Exception:
+                    pass
+                try:
+                    if hasattr(self.main_window, "process_requested"):
+                        self.main_window.process_requested.disconnect(
+                            self._on_learn_requested
+                        )
+                except Exception:
+                    pass
+                try:
+                    if hasattr(self.main_window, "update_hand_preference"):
+                        self.main_window.update_hand_preference.disconnect(
+                            self._on_hand_preference_changed
+                        )
+                except Exception:
+                    pass
 
         except Exception as e:
             self.logger.error(f"Error deactivating learn mode: {e}")
