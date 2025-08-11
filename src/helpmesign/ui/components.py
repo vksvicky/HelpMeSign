@@ -992,6 +992,7 @@ class MainWindow(QMainWindow):
         from ..utils.logger import get_logger
 
         self.logger = get_logger("helpmesign.main_window")
+        self._centered_once = False
 
     def setup_ui(self):
         """Set up the main window UI"""
@@ -1124,6 +1125,37 @@ class MainWindow(QMainWindow):
         """Show the about dialog"""
         about_text = get_text("about.content")
         QMessageBox.about(self, get_text("about.title"), about_text)
+
+    # --- Centering behavior ---
+    def showEvent(self, event):
+        try:
+            super().showEvent(event)
+        except Exception:
+            pass
+        # Center on first show (after decorations are realized)
+        if not getattr(self, "_centered_once", False):
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(0, self._center_on_current_screen)
+            self._centered_once = True
+
+    def _center_on_current_screen(self) -> None:
+        try:
+            from PySide6.QtGui import QGuiApplication
+
+            screen = (
+                (self.windowHandle().screen() if self.windowHandle() else None)
+                or self.screen()
+                or QGuiApplication.primaryScreen()
+            )
+            if screen is None:
+                return
+            avail = screen.availableGeometry()
+            frame = self.frameGeometry()
+            frame.moveCenter(avail.center())
+            self.move(frame.topLeft())
+        except Exception:
+            pass
 
     def show_help(self) -> None:
         """Show the help dialog"""

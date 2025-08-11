@@ -15,6 +15,7 @@ from ...utils.language_manager import get_text
 from ...utils.sign_language_loader import get_sign_language_loader
 from ...utils.theme_manager import get_theme_style
 from ..base_mode import BaseMode
+from .animate_panel import AnimateGesturePanel
 
 
 class _CornerButtonPositioner(QObject):
@@ -1405,19 +1406,14 @@ class LearnMode(BaseMode):
         )
         # Small spacing below the instructions
         self.sign_display_layout.addSpacing(6)
-        # Reserve a 400px block above the sign area for future content (animate gesture panel)
-        self.animate_gesture_panel = QWidget()
+        # Reserve a 400px block above the sign area for the 3D animate panel
+        self.animate_gesture_panel = AnimateGesturePanel()
         self.animate_gesture_panel.setObjectName("animateGesturePanel")
         self.animate_gesture_panel.setFixedHeight(400)
-        # Full width, fixed height placeholder
         try:
             self.animate_gesture_panel.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
-        except Exception:
-            pass
-        # Themed dotted border for both Light and Dark themes
-        try:
             border_color = "#c8d1dc" if self.effective_theme == "Light" else "#5a6a7a"
             self.animate_gesture_panel.setStyleSheet(
                 f"#animateGesturePanel {{ border: 2px dotted {border_color}; border-radius: 16px; background: transparent; }}"
@@ -1516,6 +1512,17 @@ class LearnMode(BaseMode):
         # Update sign display
         self.update_sign_display(letter, "letter")
 
+        # Trigger 3D gesture animation if panel is available
+        try:
+            if hasattr(self, "animate_gesture_panel"):
+                hand = getattr(self, "current_hand_preference", "right")
+                self.animate_gesture_panel.set_language(
+                    getattr(self, "current_language", "ASL")
+                )
+                self.animate_gesture_panel.play_gesture(letter, hand)
+        except Exception:
+            pass
+
     def on_number_selected(self, number: str) -> None:
         """Handle number selection"""
         # Update button styling
@@ -1523,6 +1530,17 @@ class LearnMode(BaseMode):
 
         # Update sign display
         self.update_sign_display(number, "number")
+
+        # Trigger 3D gesture animation if panel is available
+        try:
+            if hasattr(self, "animate_gesture_panel"):
+                hand = getattr(self, "current_hand_preference", "right")
+                self.animate_gesture_panel.set_language(
+                    getattr(self, "current_language", "ASL")
+                )
+                self.animate_gesture_panel.play_gesture(number, hand)
+        except Exception:
+            pass
 
     def update_button_selection(self, selected: str, button_dict: dict) -> None:
         """Update button styling to show selection using property, not stylesheet"""
@@ -1711,6 +1729,17 @@ class LearnMode(BaseMode):
                 self.main_window.language_selected.connect(
                     self._on_external_language_selected
                 )
+        except Exception:
+            pass
+
+        # Load default 3D character into animate panel (non-fatal if missing)
+        try:
+            from ...utils.resource_manager import ResourceManager
+
+            rm = ResourceManager()
+            default_model = rm.get_model_path("default.glb")
+            if hasattr(self, "animate_gesture_panel"):
+                self.animate_gesture_panel.load_character(default_model)
         except Exception:
             pass
 

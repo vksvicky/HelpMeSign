@@ -48,6 +48,10 @@ class ResourceManager:
         """Get the path to a data file"""
         return str(self.get_resource_path("data", filename))
 
+    def get_model_path(self, filename: str) -> str:
+        """Get the path to a model file (3D characters, animations)."""
+        return str(self.get_resource_path("characters", filename))
+
     def load_config(self) -> Dict[str, Any]:
         """Load the application configuration"""
         config_path = self.get_data_path("config.json")

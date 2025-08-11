@@ -14,6 +14,22 @@ from PySide6.QtGui import QIcon
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
+# Ensure venv site-packages is discoverable. Some launch methods can drop it.
+try:
+    import site
+    venv_prefix = os.path.dirname(sys.executable)  # .../venv/bin
+    venv_root = os.path.dirname(venv_prefix)      # .../venv
+    sp = os.path.join(
+        venv_root,
+        'lib',
+        f"python{sys.version_info.major}.{sys.version_info.minor}",
+        'site-packages',
+    )
+    if os.path.isdir(sp) and sp not in sys.path:
+        sys.path.append(sp)
+except Exception:
+    pass
+
 from helpmesign.utils.logger import setup_logging, get_logger
 from helpmesign.utils.resource_manager import ResourceManager
 from helpmesign.utils.language_manager import get_text, get_list, get_dict
@@ -92,6 +108,28 @@ def main():
     # Create Qt application
     app = QApplication(sys.argv)
     logger.debug("QApplication created")
+
+    # Optional 3D support: log interpreter and register glTF loader if available
+    try:
+        import importlib.util
+        from importlib import metadata
+
+        logger.info(f"3D: Python interpreter: {sys.executable}")
+        gltf_spec = importlib.util.find_spec('panda3d_gltf')
+        gltf_pkg_version = None
+        try:
+            gltf_pkg_version = metadata.version('panda3d-gltf')
+        except Exception:
+            pass
+        logger.info(f"3D: glTF plugin present? spec={bool(gltf_spec)} pkg_version={gltf_pkg_version}")
+        if gltf_spec is not None:
+            try:
+                import panda3d_gltf  # type: ignore  # noqa: F401
+                logger.info("3D: glTF loader registered")
+            except Exception as e:
+                logger.warning(f"3D: Failed to register glTF loader: {e}")
+    except Exception:
+        pass
     
     # Set application metadata (must be done before creating any windows)
     app_name = get_text("app.name")

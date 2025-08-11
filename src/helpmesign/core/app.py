@@ -62,6 +62,8 @@ class HelpMeSignApp:
         self.setup_application()
         self.setup_event_handlers()
 
+        # STEP 4.5: 3D support now initialized by run_app.py
+
         # STEP 5: Check user mode and show startup if needed
         self.check_user_mode()
 
@@ -242,6 +244,12 @@ class HelpMeSignApp:
         window_width = window_cfg.get("width", 1280)
         window_height = window_cfg.get("height", 800)
         self.main_window.resize(window_width, window_height)
+
+        # Always open centered on the current screen
+        try:
+            self._center_main_window()
+        except Exception:
+            pass
 
         # Set window title
         title = get_text("ui.main_window.title")
@@ -731,6 +739,32 @@ class HelpMeSignApp:
         """Run the application"""
         self.show()
         self.logger.info("Application started successfully")
+        # Center after show, so frame geometry (including decorations) is known
+        try:
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(0, self._center_main_window)
+        except Exception:
+            pass
+
+    # --- Helpers ---
+    def _center_main_window(self) -> None:
+        try:
+            from PySide6.QtGui import QGuiApplication
+
+            screen = (
+                self.main_window.screen()
+                if hasattr(self.main_window, "screen") and self.main_window.screen()
+                else QGuiApplication.primaryScreen()
+            )
+            if screen is None:
+                return
+            avail = screen.availableGeometry()
+            frame = self.main_window.frameGeometry()
+            frame.moveCenter(avail.center())
+            self.main_window.move(frame.topLeft())
+        except Exception:
+            pass
 
 
 def create_app() -> HelpMeSignApp:
