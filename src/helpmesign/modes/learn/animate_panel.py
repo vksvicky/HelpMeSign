@@ -8,7 +8,7 @@ Notes:
 - All imports are guarded so tests without Panda3D still run.
 """
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from ...utils.logger import get_logger
 
@@ -88,6 +88,7 @@ class AnimateGesturePanel(QWidget):
                     Qt.WidgetAttribute.WA_TranslucentBackground, True
                 )
                 self._display.setAutoFillBackground(False)
+                # Transparent background so Panda3D alpha shows through
                 self._display.setStyleSheet(
                     "background: transparent; color:#80838a; font-size:13px;"
                 )
@@ -107,9 +108,14 @@ class AnimateGesturePanel(QWidget):
         self._timer: Optional[QTimer] = None
         self._language: str = "ASL"
         self._character_model: Optional[str] = None
+        self._current_model: Optional[str] = None
         self._clip_map: Dict[str, Dict[str, str]] = {}
         self._has_frame: bool = False
         self._pixel_ratio: float = 1.0
+        self._capture_every_n_frames: int = 1
+        self._capture_counter: int = 0
+        # Render-to-RAM texture (created in _ensure_panda). Annotated to satisfy mypy.
+        self._color_tex: Optional[Any] = None
 
     # No-op overrides in headless mode so callers can still set properties safely
     def setObjectName(self, name: str) -> None:
@@ -151,6 +157,9 @@ class AnimateGesturePanel(QWidget):
         self._language = code or self._language
 
     def load_character(self, model_path: str) -> None:
+        # Debounce duplicate requests
+        if self._current_model and str(self._current_model) == str(model_path):
+            return
         self._character_model = model_path
         if getattr(self, "_headless", False):
             return
@@ -171,13 +180,20 @@ class AnimateGesturePanel(QWidget):
         try:
             # Panda imports
             from direct.showbase.ShowBase import ShowBase  # type: ignore
-            from panda3d.core import loadPrcFileData  # type: ignore
+            from panda3d.core import AntialiasAttrib, loadPrcFileData  # type: ignore
 
             # Create a small offscreen context (no separate window)
             loadPrcFileData("", "window-type offscreen")
             loadPrcFileData("", "sync-video 0")
             loadPrcFileData("", "framebuffer-srgb true")
+            # Enable alpha so we can render with transparent background
             loadPrcFileData("", "framebuffer-alpha true")
+            # Reduce noisy GL error checks on macOS core profile drivers
+            loadPrcFileData("", "gl-check-errors false")
+            # Suppress driver error spam on macOS core profile
+            loadPrcFileData("", "notify-level-glgsg fatal")
+            loadPrcFileData("", "notify-level-display fatal")
+            # Keep default notify output so we see critical issues in logs
             # loadPrcFileData("", "color-bits 32")
             # Start tiny; we'll resize to the widget in resizeEvent
             loadPrcFileData("", "win-size 640 640")
@@ -189,20 +205,55 @@ class AnimateGesturePanel(QWidget):
             # Basic scene
             self._scene = self._showbase.render.attachNewNode("scene")
             self._camera = self._showbase.cam
-            # Transparent background for compositing into Qt
+            # Transparent background; underlying Qt widget will show through
             self._showbase.setBackgroundColor(0, 0, 0, 0)
+
+            # Enable physically-based rendering so glTF materials/textures display correctly
+            try:
+                from simplepbr import init as pbr_init
+
+                pbr_init(
+                    window=self._showbase.win,
+                    render_node=self._showbase.render,
+                    use_normal_maps=True,
+                    use_emission_maps=True,
+                )
+            except Exception:
+                # Fallback to the built-in shader generator
+                try:
+                    self._showbase.render.setShaderAuto()
+                except Exception:
+                    pass
+
+            # Improve edges
+            try:
+                self._showbase.render.setAntialias(AntialiasAttrib.MAuto)
+            except Exception:
+                pass
+            # Set reasonable defaults for the lens
+            try:
+                lens = self._showbase.camLens
+                if hasattr(lens, "setFov"):
+                    lens.setFov(45)
+                if hasattr(lens, "setNear"):
+                    lens.setNear(0.01)
+                if hasattr(lens, "setFar"):
+                    lens.setFar(10000)
+            except Exception:
+                pass
 
             self._log.debug("Creating offscreen Panda3D context…")
 
-            # Attach a RAM-copied render texture so we can blit into Qt without
-            # needing platform-specific window embedding.
-            from panda3d.core import GraphicsOutput, Texture
+            # Prefer RAM-copied render texture; fall back to screenshots if it fails
+            self._color_tex = None
+            try:
+                from panda3d.core import GraphicsOutput, Texture
 
-            self._color_tex = Texture()
-            # Copy rendered frames into system RAM every frame
-            self._showbase.win.addRenderTexture(
-                self._color_tex, GraphicsOutput.RTMCopyRam
-            )
+                tex = Texture()
+                self._showbase.win.addRenderTexture(tex, GraphicsOutput.RTMCopyRam)
+                self._color_tex = tex
+            except Exception:
+                self._color_tex = None
 
             # Timer to step Panda each frame
             self._timer = QTimer(self)
@@ -242,8 +293,21 @@ class AnimateGesturePanel(QWidget):
             self._log.info(f"Loading 3D model: {model_path}")
             node = self._showbase.loader.loadModel(model_path)
             node.reparentTo(self._scene)
+            try:
+                # Bake model-space transforms so bounds are accurate
+                node.clearModelNodes()
+                node.flattenStrong()
+            except Exception:
+                pass
+            # Normalize orientation to face camera (Y forward). Many tools export Z-up.
+            try:
+                # Rotate to face camera (front view), adjust yaw as needed for this asset
+                node.setHpr(-90, 0, 0)
+            except Exception:
+                pass
             # Frame and center the model to a comfortable, fully visible size
-            self._frame_model(node, fill_fraction=0.6)
+            self._frame_model(node, fill_fraction=0.75)
+            self._current_model = str(model_path)
 
             # Simple light (optional)
             try:
@@ -273,7 +337,7 @@ class AnimateGesturePanel(QWidget):
             except Exception:
                 pass
 
-    def _frame_model(self, node, fill_fraction: float = 0.65) -> None:
+    def _frame_model(self, node, fill_fraction: float = 0.55) -> None:
         """Center the model and set camera distance so it fills the view.
 
         fill_fraction controls how much of the vertical FOV the model height should occupy.
@@ -296,27 +360,28 @@ class AnimateGesturePanel(QWidget):
             size = max_pt - min_pt
             center = (min_pt + max_pt) * 0.5
 
-            # Move model so its center is at the origin and Y=0 plane
+            # Move model so its center is at the origin
             node.setPos(-center.x, -center.y, -center.z)
 
-            # Target camera distance to fit both height and width within FOV
-            height = max(1e-3, size.z)
-            width = max(1e-3, size.x)
+            # Use bounding sphere radius to compute distance
+            radius = max(1e-3, max(size.x, size.y, size.z) * 0.5)
             lens = self._showbase.camLens
-            fov_h_deg, fov_v_deg = (40.0, 40.0)
-            if hasattr(lens, "getFov"):
+            fov_v_deg = 40.0
+            try:
                 fov = lens.getFov()
                 if len(fov) == 2:
-                    fov_h_deg, fov_v_deg = float(fov[0]), float(fov[1])
-            fov_h = math.radians(max(1.0, fov_h_deg))
+                    fov_v_deg = float(fov[1])
+            except Exception:
+                pass
             fov_v = math.radians(max(1.0, fov_v_deg))
-            d_h = (width * 0.5) / math.tan(fov_h * 0.5)
-            d_v = (height * 0.5) / math.tan(fov_v * 0.5)
-            distance = max(d_h, d_v) / max(0.2, min(0.95, fill_fraction))
+            distance = (radius / math.tan(fov_v * 0.5)) / max(
+                0.2, min(0.95, fill_fraction)
+            )
+            distance = distance * 2.0  # back off more to fit whole body
 
-            # Place camera on -Y looking towards origin; slight downward tilt to match reference look
-            self._camera.setPos(0, -distance, height * 0.05)
-            self._camera.lookAt(0, 0, height * 0.1)
+            # Place camera on -Y looking at the model center
+            self._camera.setPos(0, -distance, radius * 0.4)
+            self._camera.lookAt(0, 0, radius * 0.2)
 
             # Keep neutral scaling
             node.setScale(1.0)
@@ -342,25 +407,30 @@ class AnimateGesturePanel(QWidget):
                 return
             self._showbase.taskMgr.step()
 
-            # Blit the RAM-copied render texture into the QLabel
+            # Attempt RAM image first
             image_updated = False
+            if self._color_tex is not None:
+                try:
+                    tex = self._color_tex
+                    if tex.hasRamImage():
+                        data = tex.getRamImageAs("RGBA")
+                        width = tex.getXSize()
+                        height = tex.getYSize()
+                        stride = width * 4
+                        img = QImage(
+                            bytes(data), width, height, stride, QImage.Format_RGBA8888  # type: ignore[attr-defined]
+                        ).mirrored(False, True)
+                        self._display.setPixmap(QPixmap.fromImage(img))
+                        image_updated = True
+                except Exception:
+                    image_updated = False
 
-            # Preferred path: texture copied to RAM
-            if getattr(self, "_color_tex", None) is not None:
-                tex = self._color_tex
-                if tex.hasRamImage():
-                    data = tex.getRamImageAs("RGBA")
-                    width = tex.getXSize()
-                    height = tex.getYSize()
-                    stride = width * 4
-                    img = QImage(
-                        bytes(data), width, height, stride, QImage.Format_RGBA8888  # type: ignore[attr-defined]
-                    ).mirrored(False, True)
-                    self._display.setPixmap(QPixmap.fromImage(img))
-                    image_updated = True
-
-            # Fallback path: explicit screenshot (some macOS setups prefer this)
-            if not image_updated:
+            # Fallback: explicit screenshot
+            # Throttle capture to reduce driver churn
+            self._capture_counter = (self._capture_counter + 1) % max(
+                1, self._capture_every_n_frames
+            )
+            if not image_updated and self._capture_counter == 0:
                 try:
                     from panda3d.core import PNMImage
 

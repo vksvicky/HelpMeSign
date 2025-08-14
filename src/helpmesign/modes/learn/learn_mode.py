@@ -1737,7 +1737,7 @@ class LearnMode(BaseMode):
             from ...utils.resource_manager import ResourceManager
 
             rm = ResourceManager()
-            default_model = rm.get_model_path("default.glb")
+            default_model = rm.get_model_path("arivo.glb")
             if hasattr(self, "animate_gesture_panel"):
                 self.animate_gesture_panel.load_character(default_model)
         except Exception:
