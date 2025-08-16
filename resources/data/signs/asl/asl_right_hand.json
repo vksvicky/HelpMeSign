@@ -17,7 +17,14 @@
     "C": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M50 50 Q100 50 150 100 Q100 150 50 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter C - Curved hand",
-      "instructions": "Curve your right hand fingers and thumb to form a C shape"
+      "instructions": "Curve your right hand fingers and thumb to form a C shape",
+      "pose": {
+        "index_01_r": [0, -30, 0], "index_02_r": [0, -20, 0], "index_03_r": [0, -15, 0],
+        "middle_01_r": [0, -30, 0], "middle_02_r": [0, -20, 0], "middle_03_r": [0, -15, 0],
+        "ring_01_r": [0, -30, 0], "ring_02_r": [0, -20, 0], "ring_03_r": [0, -15, 0],
+        "pinky_01_r": [0, -30, 0], "pinky_02_r": [0, -20, 0], "pinky_03_r": [0, -15, 0],
+        "thumb_01_r": [15, -20, 0], "thumb_02_r": [0, -15, 0], "thumb_03_r": [0, -10, 0]
+      }
     },
     "D": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
@@ -27,7 +34,14 @@
     "E": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 50 L120 150 L80 150 Z\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter E - Fingers curled down",
-      "instructions": "Curl all fingers of your right hand down toward your palm"
+      "instructions": "Curl all fingers of your right hand down toward your palm",
+      "pose": {
+        "index_01_r": [0, -50, 0], "index_02_r": [0, -35, 0], "index_03_r": [0, -30, 0],
+        "middle_01_r": [0, -50, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -50, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "pinky_01_r": [0, -50, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -30, 0],
+        "thumb_01_r": [20, -15, 10], "thumb_02_r": [0, -20, 0], "thumb_03_r": [0, -10, 0]
+      }
     },
     "F": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
@@ -37,17 +51,38 @@
     "G": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter G - Index finger pointing to the side",
-      "instructions": "Point your index finger to the side with your right hand"
+      "instructions": "Point your index finger to the side with your right hand",
+      "pose": {
+        "index_01_r": [0, 0, 0], "index_02_r": [0, 0, 0], "index_03_r": [0, 0, 0],
+        "middle_01_r": [0, -55, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -55, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "pinky_01_r": [0, -55, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -30, 0],
+        "thumb_01_r": [20, 0, 0]
+      }
     },
     "H": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M120 50 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter H - Index and middle fingers pointing to the side",
-      "instructions": "Point your index and middle fingers to the side with your right hand"
+      "instructions": "Point your index and middle fingers to the side with your right hand",
+      "pose": {
+        "index_01_r": [0, 0, 0], "index_02_r": [0, 0, 0], "index_03_r": [0, 0, 0],
+        "middle_01_r": [0, 0, 0], "middle_02_r": [0, 0, 0], "middle_03_r": [0, 0, 0],
+        "ring_01_r": [0, -55, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "pinky_01_r": [0, -55, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -30, 0],
+        "thumb_01_r": [15, 0, 0]
+      }
     },
     "I": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter I - Pinky finger pointing up",
-      "instructions": "Point your pinky finger up with your right hand, keeping other fingers closed"
+      "instructions": "Point your pinky finger up with your right hand, keeping other fingers closed",
+      "pose": {
+        "pinky_01_r": [0, 0, 0], "pinky_02_r": [0, 0, 0], "pinky_03_r": [0, 0, 0],
+        "index_01_r": [0, -55, 0], "index_02_r": [0, -35, 0], "index_03_r": [0, -30, 0],
+        "middle_01_r": [0, -55, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -55, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "thumb_01_r": [20, -10, 10]
+      }
     },
     "J": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
@@ -62,27 +97,62 @@
     "L": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M80 50 L120 50\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter L - Index finger and thumb forming L shape",
-      "instructions": "Form an L shape with your index finger and thumb of your right hand"
+      "instructions": "Form an L shape with your index finger and thumb of your right hand",
+      "pose": {
+        "index_01_r": [0, 0, 0], "index_02_r": [0, 0, 0], "index_03_r": [0, 0, 0],
+        "thumb_01_r": [35, 0, 0], "thumb_02_r": [0, 0, 0], "thumb_03_r": [0, 0, 0],
+        "middle_01_r": [0, -55, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -55, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "pinky_01_r": [0, -55, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -30, 0]
+      }
     },
     "M": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M100 50 L100 150 M120 50 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter M - Three fingers pointing down",
-      "instructions": "Point your index, middle, and ring fingers down with your right hand"
+      "instructions": "Point your index, middle, and ring fingers down with your right hand",
+      "pose": {
+        "index_01_r": [0, -55, 0], "index_02_r": [0, -35, 0], "index_03_r": [0, -30, 0],
+        "middle_01_r": [0, -55, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -55, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "pinky_01_r": [0, -35, 0], "pinky_02_r": [0, -25, 0], "pinky_03_r": [0, -20, 0],
+        "thumb_01_r": [20, -10, 10]
+      }
     },
     "N": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M100 50 L100 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter N - Index and middle fingers pointing down",
-      "instructions": "Point your index and middle fingers down with your right hand"
+      "instructions": "Point your index and middle fingers down with your right hand",
+      "pose": {
+        "index_01_r": [0, -55, 0], "index_02_r": [0, -35, 0], "index_03_r": [0, -30, 0],
+        "middle_01_r": [0, -55, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -35, 0], "ring_02_r": [0, -25, 0], "ring_03_r": [0, -20, 0],
+        "pinky_01_r": [0, -25, 0], "pinky_02_r": [0, -20, 0], "pinky_03_r": [0, -15, 0],
+        "thumb_01_r": [15, -10, 10]
+      }
     },
     "O": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><circle cx=\"100\" cy=\"100\" r=\"30\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter O - Fingers curled to form a circle",
-      "instructions": "Curl all fingers of your right hand to form a circle"
+      "instructions": "Curl all fingers of your right hand to form a circle",
+      "pose": {
+        "index_01_r": [0, -45, 0], "index_02_r": [0, -35, 0], "index_03_r": [0, -25, 0],
+        "middle_01_r": [0, -45, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -25, 0],
+        "ring_01_r": [0, -45, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -25, 0],
+        "pinky_01_r": [0, -45, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -25, 0],
+        "thumb_01_r": [15, -35, 10], "thumb_02_r": [0, -20, 0], "thumb_03_r": [0, -10, 0]
+      }
     },
     "P": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M80 50 L120 50 L120 100 L80 100\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter P - Index finger pointing down, thumb out",
-      "instructions": "Point your index finger down with your right hand, thumb pointing out"
+      "instructions": "Point your index finger down with your right hand, thumb pointing out",
+      "pose": {
+        "index_01_r": [0, -80, 0], "index_02_r": [0, -15, 0], "index_03_r": [0, -10, 0],
+        "thumb_01_r": [20, 0, 0],
+        "middle_01_r": [0, -40, 0], "middle_02_r": [0, -25, 0], "middle_03_r": [0, -20, 0],
+        "ring_01_r": [0, -40, 0], "ring_02_r": [0, -25, 0], "ring_03_r": [0, -20, 0],
+        "pinky_01_r": [0, -40, 0], "pinky_02_r": [0, -25, 0], "pinky_03_r": [0, -20, 0]
+      }
     },
     "Q": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M100 50 L100 150 M80 50 L120 50 M80 70 L120 70 M80 90 L120 90 M80 110 L120 110 M80 130 L120 130\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
@@ -97,12 +167,26 @@
     "S": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 50 L120 150 L80 150 Z\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter S - Fist with thumb over fingers",
-      "instructions": "Make a fist with your right hand, thumb over your fingers"
+      "instructions": "Make a fist with your right hand, thumb over your fingers",
+      "pose": {
+        "index_01_r": [0, -55, 0], "index_02_r": [0, -35, 0], "index_03_r": [0, -30, 0],
+        "middle_01_r": [0, -55, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -55, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "pinky_01_r": [0, -55, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -30, 0],
+        "thumb_01_r": [20, -10, 15], "thumb_02_r": [0, -10, 0]
+      }
     },
     "T": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 50 M100 50 L100 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter T - Index finger pointing up, thumb out",
-      "instructions": "Point your index finger up with your right hand, thumb pointing out"
+      "instructions": "Point your index finger up with your right hand, thumb pointing out",
+      "pose": {
+        "index_01_r": [0, 0, 0], "index_02_r": [0, 0, 0], "index_03_r": [0, 0, 0],
+        "thumb_01_r": [25, 0, 0],
+        "middle_01_r": [0, -55, 0], "middle_02_r": [0, -35, 0], "middle_03_r": [0, -30, 0],
+        "ring_01_r": [0, -55, 0], "ring_02_r": [0, -35, 0], "ring_03_r": [0, -30, 0],
+        "pinky_01_r": [0, -55, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -30, 0]
+      }
     },
     "U": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L80 150 M120 50 L120 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
@@ -117,7 +201,14 @@
     "W": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M70 50 L90 150 M100 50 L100 150 M130 50 L110 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",
       "description": "ASL letter W - Three fingers pointing up",
-      "instructions": "Point your index, middle, and ring fingers up with your right hand"
+      "instructions": "Point your index, middle, and ring fingers up with your right hand",
+      "pose": {
+        "index_01_r": [0, 0, 0], "index_02_r": [0, 0, 0], "index_03_r": [0, 0, 0],
+        "middle_01_r": [0, 0, 0], "middle_02_r": [0, 0, 0], "middle_03_r": [0, 0, 0],
+        "ring_01_r": [0, 0, 0], "ring_02_r": [0, 0, 0], "ring_03_r": [0, 0, 0],
+        "pinky_01_r": [0, -55, 0], "pinky_02_r": [0, -35, 0], "pinky_03_r": [0, -30, 0],
+        "thumb_01_r": [15, 0, 0]
+      }
     },
     "X": {
       "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><path d=\"M80 50 L120 150 M120 50 L80 150\" stroke=\"black\" stroke-width=\"3\" fill=\"none\"/></svg>",

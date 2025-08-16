@@ -86,6 +86,11 @@ class SignLanguageLoader:
             if len(parts) >= 3 and parts[-1] == "hand":
                 hands.append(parts[-2])
 
+        # Check for words file (supports both hands)
+        words_file = lang_dir / f"{language.lower()}_words.json"
+        if words_file.exists():
+            hands.append("both")
+
         return sorted(hands)
 
     def load_sign_data(
@@ -109,6 +114,7 @@ class SignLanguageLoader:
         possible_files = [f"{language.lower()}_{hand}_hand.json"]
         if hand == "both":
             possible_files = [
+                f"{language.lower()}_words.json",  # Try words file first for both hands
                 f"{language.lower()}_right_hand.json",
                 f"{language.lower()}_left_hand.json",
                 f"{language.lower()}.json",
@@ -119,6 +125,7 @@ class SignLanguageLoader:
 
         for filename in possible_files:
             file_path = lang_dir / filename
+            logger.info(f"Trying to load sign language file: {file_path}")
             if file_path.exists():
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
@@ -130,6 +137,8 @@ class SignLanguageLoader:
                         f"Error loading sign language data from {file_path}: {e}"
                     )
                     continue
+            else:
+                logger.info(f"File not found: {file_path}")
 
         # If not found and a specific hand was requested, only try the generic file.
         # Do NOT switch hands implicitly; respect the requested hand.
@@ -271,9 +280,11 @@ class SignLanguageLoader:
                 logger.error(f"Missing required field: {field}")
                 return False
 
-        # Check for alphabet or numbers sections
-        if "alphabet" not in data and "numbers" not in data:
-            logger.error("Data must contain either 'alphabet' or 'numbers' section")
+        # Check for alphabet, numbers, or words sections
+        if "alphabet" not in data and "numbers" not in data and "words" not in data:
+            logger.error(
+                "Data must contain either 'alphabet', 'numbers', or 'words' section"
+            )
             return False
 
         # Validate alphabet structure
@@ -300,7 +311,94 @@ class SignLanguageLoader:
                     )
                     return False
 
+        # Validate words structure
+        if "words" in data:
+            for word, sign_data in data["words"].items():
+                if not isinstance(sign_data, dict):
+                    logger.error(f"Invalid words entry for {word}")
+                    return False
+                if "description" not in sign_data:
+                    logger.error(f"Missing required fields in words entry for {word}")
+                    return False
+
         return True
+
+    def get_word_signs(self, language: str, hand: str = "right") -> Dict[str, Any]:
+        """
+        Get word signs for a specific language and hand.
+
+        Args:
+            language: Language code (e.g., 'ASL')
+            hand: Hand preference ('right' or 'left')
+
+        Returns:
+            Dictionary of word signs or empty dict if not found
+        """
+        data = self.load_sign_data(language, hand)
+        if not data:
+            return {}
+        return data.get("words", {})
+
+    def get_word_pose(
+        self, language: str, word: str, hand: str = "right"
+    ) -> Optional[Dict[str, List[float]]]:
+        """
+        Get pose data for a specific word.
+
+        Args:
+            language: Language code (e.g., 'ASL')
+            word: Word to get pose for
+            hand: Hand preference ('right' or 'left')
+
+        Returns:
+            Pose data dictionary or None if not found
+        """
+        words = self.get_word_signs(language, hand)
+        logger.info(
+            f"Looking for word '{word.upper()}' in {language} ({hand} hand), available words: {list(words.keys())}"
+        )
+        if word.upper() in words:
+            pose = words[word.upper()].get("pose")
+            logger.info(f"Found pose for word '{word.upper()}': {pose is not None}")
+            return pose
+        logger.info(f"Word '{word.upper()}' not found in available words")
+        return None
+
+    def get_word_animation(
+        self, language: str, word: str, hand: str = "right"
+    ) -> Optional[List[Dict]]:
+        """
+        Get animation data for a specific word.
+
+        Args:
+            language: Language code (e.g., 'ASL')
+            word: Word to get animation for
+            hand: Hand preference ('right' or 'left')
+
+        Returns:
+            Animation data list or None if not found
+        """
+        words = self.get_word_signs(language, hand)
+        if word.upper() in words:
+            return words[word.upper()].get("animation")
+        return None
+
+    def get_word_duration(self, language: str, word: str, hand: str = "right") -> int:
+        """
+        Get duration for a specific word animation.
+
+        Args:
+            language: Language code (e.g., 'ASL')
+            word: Word to get duration for
+            hand: Hand preference ('right' or 'left')
+
+        Returns:
+            Duration in milliseconds (default 1000)
+        """
+        words = self.get_word_signs(language, hand)
+        if word.upper() in words:
+            return words[word.upper()].get("duration", 1000)
+        return 1000
 
     def clear_cache(self):
         """Clear the internal cache."""

@@ -86,15 +86,6 @@ def main():
     logger = get_logger("helpmesign.runner")
     logger.info("Starting HelpMeSign application runner")
     
-    # Set up signal handlers for graceful shutdown
-    import signal
-    def signal_handler(signum, frame):
-        logger.info(f"Received signal {signum}, shutting down gracefully...")
-        sys.exit(0)
-    
-    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
-    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
-    
     # Set up logging based on arguments
     if args.debug:
         # Configure debug logging
@@ -108,6 +99,35 @@ def main():
     # Create Qt application
     app = QApplication(sys.argv)
     logger.debug("QApplication created")
+    
+    # Set up signal handlers for graceful shutdown (after Qt app is created)
+    import signal
+    import atexit
+    
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, shutting down gracefully...")
+        # Don't call sys.exit() here - let the main loop handle it
+        try:
+            # Try to quit the Qt application gracefully
+            app = QApplication.instance()
+            if app:
+                app.quit()
+        except Exception:
+            pass
+    
+    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+    
+    # Register cleanup function
+    def cleanup():
+        try:
+            # Shutdown logging gracefully
+            import logging
+            logging.shutdown()
+        except Exception:
+            pass
+    
+    atexit.register(cleanup)
 
     # Optional 3D support: log interpreter and register glTF loader if available
     try:
@@ -187,14 +207,31 @@ def main():
         
         logger.info("Application started successfully")
         
-        # Start the event loop
-        sys.exit(app.exec())
+        # Start the event loop with graceful shutdown handling
+        try:
+            exit_code = app.exec()
+            sys.exit(exit_code)
+        except KeyboardInterrupt:
+            logger.info("Event loop interrupted, shutting down gracefully...")
+            sys.exit(0)
         
     except KeyboardInterrupt:
         logger.info("Application interrupted by user")
+        try:
+            # Graceful shutdown
+            helpmesign_app.close() if 'helpmesign_app' in locals() else None
+            app.quit()
+        except Exception:
+            pass
         sys.exit(0)
     except Exception as e:
         logger.error(f"Error running application: {e}")
+        try:
+            # Graceful shutdown even on error
+            helpmesign_app.close() if 'helpmesign_app' in locals() else None
+            app.quit()
+        except Exception:
+            pass
         sys.exit(1)
 
 

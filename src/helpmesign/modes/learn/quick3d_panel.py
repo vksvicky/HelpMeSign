@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 from ...utils.logger import get_logger
 
 try:
-    from PySide6.QtCore import QCoreApplication, QLibraryInfo, QObject, QSize, Qt, QUrl
+    from PySide6.QtCore import (
+        QCoreApplication,
+        QLibraryInfo,
+        QObject,
+        QSize,
+        Qt,
+        QTimer,
+        QUrl,
+    )
     from PySide6.QtGui import QColor, QVector3D
     from PySide6.QtQuick import QQuickView
     from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
@@ -19,6 +27,7 @@ except Exception:  # pragma: no cover - CI may mock Qt
     QUrl = object  # type: ignore
     QObject = object  # type: ignore
     QVector3D = object  # type: ignore
+    QTimer = object  # type: ignore
 
 
 class Quick3DGesturePanel(QWidget):
@@ -36,6 +45,9 @@ class Quick3DGesturePanel(QWidget):
         self._language: str = "generic"
         self._model_path: Optional[str] = None
         self._joint_cache: Dict[str, QObject] = {}
+        self._pose_map: Optional[Dict[str, Dict[str, List[float]]]] = None
+        self._phrase_timer: Optional[QTimer] = None
+        self._phrase_queue: List[str] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -276,6 +288,80 @@ class Quick3DGesturePanel(QWidget):
         letter = (char_code or "").strip().upper()
         if letter == "A":
             self._pose_a(hand)
+
+    # ---------- Phrase playback (procedural posing) ----------
+    def play_phrase(
+        self, phrase: str, language: str = "ASL", hand: str = "right"
+    ) -> None:
+        """Play a phrase by posing joints per letter using existing sign JSON.
+
+        Looks for a 'pose' object inside resources/data/signs/<lang>/<lang>_<hand>_hand.json
+        (or <lang>.json for two-hand languages). Pose is a mapping of joint-> [h,p,r].
+        """
+        try:
+            letters = [c for c in (phrase or "").upper() if c.isalnum()]
+            self._phrase_queue = letters
+            if isinstance(QTimer, type):
+                if self._phrase_timer is None:
+                    self._phrase_timer = QTimer(self)
+                    self._phrase_timer.timeout.connect(
+                        lambda: self._on_phrase_step_from_signs(language, hand)
+                    )
+                if not self._phrase_timer.isActive():
+                    self._phrase_timer.start(700)
+        except Exception:
+            pass
+
+    def _on_phrase_step_from_signs(self, language: str, hand: str) -> None:
+        try:
+            if not self._phrase_queue:
+                if self._phrase_timer:
+                    self._phrase_timer.stop()
+                return
+            letter = self._phrase_queue.pop(0)
+            pose = self._get_letter_pose_from_signs(language, hand, letter)
+            if pose:
+                self._apply_pose(pose)
+        except Exception:
+            try:
+                if self._phrase_timer:
+                    self._phrase_timer.stop()
+            except Exception:
+                pass
+
+    def _apply_pose(self, pose: Dict[str, List[float]]) -> None:
+        for joint, hpr in pose.items():
+            try:
+                h, p, r = (float(hpr[0]), float(hpr[1]), float(hpr[2]))
+            except Exception:
+                continue
+            self._set_euler(joint, h, p, r)
+
+    def _get_letter_pose_from_signs(
+        self, language: str, hand: str, letter: str
+    ) -> Optional[Dict[str, List[float]]]:
+        try:
+            # Use existing sign JSON through the loader
+            from ...utils.sign_language_loader import SignLanguageLoader
+
+            loader = SignLanguageLoader()
+            # Try the requested hand first
+            alphabet = loader.get_alphabet_signs(language or "ASL", hand or "right")
+            data = alphabet.get(letter.upper())
+            if data and isinstance(data, dict) and "pose" in data:
+                pose = data.get("pose")
+                if isinstance(pose, dict):
+                    return cast(Dict[str, List[float]], pose)
+            # If not found and language might be two-handed, try generic file
+            alphabet_generic = loader.get_alphabet_signs(language or "ASL", "both")
+            data2 = alphabet_generic.get(letter.upper())
+            if data2 and isinstance(data2, dict) and "pose" in data2:
+                pose2 = data2.get("pose")
+                if isinstance(pose2, dict):
+                    return cast(Dict[str, List[float]], pose2)
+        except Exception:
+            return None
+        return None
 
     # ---------- Helpers ----------
     # Placeholder for future QML signal hook

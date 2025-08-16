@@ -932,22 +932,11 @@ class LearnMode(BaseMode):
                     # Default to right hand
                     self._set_hand_preference("right")
             elif has_both_only:
-                # BSL-like languages: select 'both' and show a single combined button
-                self.current_hand_preference = "both"
-                try:
-                    if hasattr(self, "right_hand_btn"):
-                        self.right_hand_btn.setVisible(True)
-                        self.right_hand_btn.setText("🖐️🤚")
-                    if hasattr(self, "left_hand_btn"):
-                        self.left_hand_btn.setVisible(False)
-                except Exception:
-                    pass
-                try:
-                    from src.helpmesign.core.startup import set_hand_preference
-
-                    set_hand_preference("both")
-                except Exception:
-                    pass
+                # BSL-like languages: default to right hand, but allow both hands for word-based signing
+                # Don't change the UI preference to "both"
+                if getattr(self, "current_hand_preference", "right") == "both":
+                    # Reset to right hand if it was set to "both"
+                    self._set_hand_preference("right")
             else:
                 # Unknown capability info; do not change visibility, but avoid 'both'
                 if getattr(self, "current_hand_preference", "right") == "both":
@@ -988,37 +977,34 @@ class LearnMode(BaseMode):
     def _update_hand_icon_visibility_from_pref(self) -> None:
         """Show/hide hand icons solely based on saved hand preference.
 
-        If the preference is "both", hide the left/right icons. Otherwise, show them.
+        Always show individual left/right hand buttons, never show combined "both" button.
         """
         try:
             pref = getattr(self, "current_hand_preference", "right")
-            if pref == "both":
-                # Show a single combined button and hide the other
-                if hasattr(self, "right_hand_btn"):
-                    try:
-                        self.right_hand_btn.setVisible(True)
-                        self.right_hand_btn.setText("🖐️🤚")
-                        self.right_hand_btn.setProperty("selected", True)
-                        self.right_hand_btn.style().unpolish(self.right_hand_btn)
-                        self.right_hand_btn.style().polish(self.right_hand_btn)
-                    except Exception:
-                        pass
-                if hasattr(self, "left_hand_btn"):
-                    self.left_hand_btn.setVisible(False)
-            else:
-                # Normal left/right visibility and labels
-                if hasattr(self, "right_hand_btn"):
-                    try:
-                        self.right_hand_btn.setVisible(True)
-                        self.right_hand_btn.setText("🖐️")
-                    except Exception:
-                        pass
-                if hasattr(self, "left_hand_btn"):
-                    try:
-                        self.left_hand_btn.setVisible(True)
-                        self.left_hand_btn.setText("🤚")
-                    except Exception:
-                        pass
+
+            # Always show individual hand buttons
+            if hasattr(self, "right_hand_btn"):
+                try:
+                    self.right_hand_btn.setVisible(True)
+                    self.right_hand_btn.setText("🖐️")
+                    # Set selected state based on preference
+                    is_right_selected = pref == "right"
+                    self.right_hand_btn.setProperty("selected", is_right_selected)
+                    self.right_hand_btn.style().unpolish(self.right_hand_btn)
+                    self.right_hand_btn.style().polish(self.right_hand_btn)
+                except Exception:
+                    pass
+            if hasattr(self, "left_hand_btn"):
+                try:
+                    self.left_hand_btn.setVisible(True)
+                    self.left_hand_btn.setText("🤚")
+                    # Set selected state based on preference
+                    is_left_selected = pref == "left"
+                    self.left_hand_btn.setProperty("selected", is_left_selected)
+                    self.left_hand_btn.style().unpolish(self.left_hand_btn)
+                    self.left_hand_btn.style().polish(self.left_hand_btn)
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -1421,12 +1407,48 @@ class LearnMode(BaseMode):
         except Exception:
             pass
         layout.addWidget(self.animate_gesture_panel)
+
+        # Add HPR Editor button
+        hpr_button_layout = QHBoxLayout()
+        self.hpr_editor_btn = QPushButton("Open HPR Editor")
+        self.hpr_editor_btn.setToolTip(
+            "Open interactive HPR editor to adjust character joint positions"
+        )
+        self.hpr_editor_btn.clicked.connect(self.open_hpr_editor)
+        hpr_button_layout.addWidget(self.hpr_editor_btn)
+        hpr_button_layout.addStretch()
+        layout.addLayout(hpr_button_layout)
+
         layout.addWidget(self.sign_display_container)
         # Show placeholder until a character is selected
         self._show_placeholder_message()
 
         # Hand preference moved to settings window
         return panel
+
+    def open_hpr_editor(self) -> None:
+        """Open the interactive HPR editor for character joint positioning."""
+        try:
+            from .hpr_editor import HPRInteractiveEditor
+
+            # Create and show the HPR editor
+            self.hpr_editor_window = HPRInteractiveEditor(self.animate_gesture_panel)
+            self.hpr_editor_window.show()
+            self.logger.info("Opened HPR Interactive Editor")
+
+        except Exception as e:
+            self.logger.error(f"Error opening HPR editor: {e}")
+            # Show error message to user
+            # Parent must be QWidget or None for typing; cast as needed
+            from typing import cast
+
+            from PySide6.QtWidgets import QMessageBox, QWidget
+
+            QMessageBox.warning(
+                cast(QWidget, self),
+                "HPR Editor Error",
+                f"Could not open HPR editor: {e}",
+            )
 
     def _show_placeholder_message(self) -> None:
         """Show default placeholder before a character is selected."""
@@ -1734,14 +1756,89 @@ class LearnMode(BaseMode):
 
         # Load default 3D character into animate panel (non-fatal if missing)
         try:
+            import os
+
             from ...utils.resource_manager import ResourceManager
 
             rm = ResourceManager()
-            default_model = rm.get_model_path("arivo.glb")
+            # Try multiple file formats - GLB first, then FBX
+            default_model = None
+            for filename in ["arivo.glb"]:
+                try:
+                    model_path = rm.get_model_path(filename)
+                    self.logger.info(f"Checking file: {filename} -> {model_path}")
+                    if os.path.exists(model_path):
+                        default_model = model_path
+                        self.logger.info(f"Found model file: {default_model}")
+                        break
+                    else:
+                        self.logger.info(f"File does not exist: {model_path}")
+                except Exception as e:
+                    self.logger.error(f"Error checking {filename}: {e}")
+                    continue
+
             if hasattr(self, "animate_gesture_panel"):
-                self.animate_gesture_panel.load_character(default_model)
-        except Exception:
-            pass
+                import os
+
+                if default_model and os.path.exists(default_model):
+                    self.animate_gesture_panel.load_character(default_model)
+                    # Start phrase spelling using procedural poses from sign JSON with 10-second delay
+                    try:
+                        welcome = "Welcome to HelpMeSign"
+                        lang = getattr(self, "current_language", "ASL") or "ASL"
+                        hand = (
+                            getattr(self, "current_hand_preference", "right") or "right"
+                        )
+
+                        # Create a timer to delay the start of signing by 5 seconds
+                        from PySide6.QtCore import QTimer
+
+                        # Store timer as instance variable to prevent garbage collection
+                        self._welcome_timer = QTimer()
+                        self._welcome_timer.setSingleShot(True)
+
+                        # Store parameters as instance variables
+                        self._welcome_phrase = welcome
+                        self._welcome_lang = lang
+                        self._welcome_hand = hand
+
+                        # Connect to instance method
+                        self._welcome_timer.timeout.connect(self._on_welcome_timer)
+                        self._welcome_timer.start(5000)  # 5 seconds delay
+                        self.logger.info(
+                            "Started 5-second delay timer for welcome animation"
+                        )
+
+                    except Exception:
+                        pass
+                else:
+                    # Show a clear note to the user and continue
+                    try:
+                        if (
+                            hasattr(self, "sign_display_label")
+                            and self.sign_display_label is not None
+                        ):
+                            self.sign_display_label.setText(
+                                "3D character not found. Please add a character file (GLB or FBX) to the characters folder."
+                            )
+                    except Exception:
+                        pass
+                    try:
+                        if default_model:
+                            self.logger.error(
+                                "Default 3D character missing: %s", default_model
+                            )
+                        else:
+                            self.logger.info(
+                                "No 3D character files found. Please add airvo.glb"
+                            )
+                    except Exception:
+                        pass
+        except Exception as e:
+            try:
+                self.logger.warning("Could not initialize default 3D character: %s", e)
+            except Exception:
+                pass
 
     def _on_external_language_selected(self, code: str) -> None:
         """Handle language selection coming from the status-bar popup.
@@ -1770,6 +1867,37 @@ class LearnMode(BaseMode):
                 self.select_language_by_code(str(code))
             except Exception:
                 pass
+
+    def _on_welcome_timer(self) -> None:
+        """Timer callback for welcome animation."""
+        try:
+            self.logger.info("Welcome timer fired - starting animation")
+            welcome = getattr(self, "_welcome_phrase", "Welcome to HelpMeSign")
+            lang = getattr(self, "_welcome_lang", "ASL")
+            hand = getattr(self, "_welcome_hand", "right")
+            self._start_welcome_animation(welcome, lang, hand)
+        except Exception as e:
+            self.logger.error(f"Error in welcome timer callback: {e}")
+
+    def _start_welcome_animation(self, welcome: str, lang: str, hand: str) -> None:
+        """Start the welcome animation after the delay."""
+        try:
+            self.logger.info(
+                f"Starting welcome animation: '{welcome}' in {lang} with {hand} hand"
+            )
+            if hasattr(self.animate_gesture_panel, "play_phrase"):
+                self.animate_gesture_panel.play_phrase(
+                    welcome, language=lang, hand=hand
+                )
+                self.logger.info("Called play_phrase method")
+            elif hasattr(self.animate_gesture_panel, "play_intro"):
+                self.animate_gesture_panel.play_intro()
+                self.logger.info("Called play_intro method")
+            elif hasattr(self.animate_gesture_panel, "play_welcome"):
+                self.animate_gesture_panel.play_welcome()
+                self.logger.info("Called play_welcome method")
+        except Exception as e:
+            self.logger.error(f"Error starting welcome animation: {e}")
 
     def _set_hand_preference(self, hand_preference: str) -> None:
         """Set the hand preference and update the UI"""
@@ -2061,8 +2189,9 @@ class LearnMode(BaseMode):
                         not hands and not has_left_or_right
                     )
                     if has_both_only:
-                        self.current_hand_preference = "both"
-                        self._update_hand_icon_visibility_from_pref()
+                        # Don't set to "both" - keep default "right" hand preference
+                        # The word-based signing will handle "both" hands internally
+                        pass
                 except Exception:
                     pass
                 self._activated = True
