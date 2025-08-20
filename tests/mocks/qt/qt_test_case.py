@@ -11,8 +11,7 @@ import pytest
 
 from .qt_mock_framework import qt_mock_framework
 from .qt_mock_registry import qt_mock_registry
-from .qt_module_mocks import (activate_qt_mocks, deactivate_qt_mocks,
-                              is_qt_mocks_active)
+from .qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks, is_qt_mocks_active
 
 
 class QtTestCase:

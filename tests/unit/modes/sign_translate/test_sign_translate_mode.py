@@ -9,8 +9,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 # Import the sign translate mode class
-from src.helpmesign.modes.sign_translate.sign_translate_mode import \
-    SignTranslateMode
+from src.helpmesign.modes.sign_translate.sign_translate_mode import SignTranslateMode
 
 
 class TestSignTranslateMode:

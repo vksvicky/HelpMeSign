@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 try:
     from panda3d.core import VBase4 as VBase4
 except Exception:
+
     class VBase4:  # type: ignore[no-redef]
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass

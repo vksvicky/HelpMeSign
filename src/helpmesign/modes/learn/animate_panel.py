@@ -11,6 +11,7 @@ Notes:
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from ...utils.logger import get_logger
+from ...utils.sign_mt_pipeline import PoseSequence, SignMTPipeline
 
 try:
     from PySide6.QtCore import Qt, QTimer
@@ -148,6 +149,10 @@ class AnimateGesturePanel(QWidget):
             frame_duration: int
 
         self._current_animation: Optional[_AnimState] = None
+        # Sign.mt animation state
+        self._is_animating = False
+        self._current_pose_sequence = None
+        self._current_frame_index = 0
         # Actor for skinned control (preferred when available)
         self._actor: Optional[Any] = None
         # Simple welcome-wave animation (right hand)
@@ -165,6 +170,9 @@ class AnimateGesturePanel(QWidget):
         self._phrase_language: str = "ASL"
         self._phrase_hand: str = "right"
         self._joint_cache: Dict[str, Any] = {}
+
+        # Initialize sign.mt pipeline
+        self._sign_mt_pipeline = SignMTPipeline()
 
     # No-op overrides in headless mode so callers can still set properties safely
     def setObjectName(self, name: str) -> None:
@@ -225,42 +233,77 @@ class AnimateGesturePanel(QWidget):
     def play_phrase(
         self, phrase: str, language: str = "ASL", hand: str = "right"
     ) -> None:
-        """Sign a phrase word by word with smooth animations."""
+        """Sign a phrase using the sign.mt pipeline."""
         try:
             if getattr(self, "_headless", False):
                 return
-            # Set animation flag to prevent arm position maintenance from interfering
+
+            # Set language for the sign.mt pipeline
+            self._sign_mt_pipeline.set_language(language)
+
+            # Set animation flag
             self._is_animating = True
-            self._log.info(
-                "Starting word-based phrase animation - setting _is_animating flag"
-            )
+            self._log.info("Starting sign.mt phrase animation")
 
-            self._phrase_language = language or "ASL"
-            self._phrase_hand = hand or "right"
-
-            # Split phrase into words for word-based signing
-            words = [
-                word.strip() for word in (phrase or "").upper().split() if word.strip()
-            ]
-            self._phrase_queue = words
-            self._log.info(f"Split phrase '{phrase}' into words: {words}")
-
-            if not self._phrase_queue:
-                self._is_animating = False
-                return
-
-            # Zoom in ONCE at the start of the entire phrase
+            # Zoom in for signing
             self._log.info("Phrase starting - zooming in")
             self._zoom_camera_for_signing(True)
 
-            if self._phrase_timer is None:
-                self._phrase_timer = QTimer(self)
-                self._phrase_timer.timeout.connect(self._on_phrase_step)
-            if not self._phrase_timer.isActive():
-                self._phrase_timer.start(1000)  # Start with 1 second interval
-        except Exception:
+            # Generate pose sequence using sign.mt pipeline
+            pose_sequence = self._sign_mt_pipeline.text_to_pose_sequence(phrase)
+
+            if pose_sequence and pose_sequence.frames:
+                self._current_pose_sequence = pose_sequence  # type: ignore[assignment]
+                self._current_frame_index = 0
+
+                # Start animation timer
+                if self._animation_timer is None:
+                    self._animation_timer = QTimer(self)
+                    self._animation_timer.timeout.connect(
+                        self._on_sign_mt_animation_frame
+                    )
+
+                frame_duration = int(
+                    1000 / pose_sequence.fps
+                )  # Convert to milliseconds
+                self._animation_timer.start(frame_duration)
+
+                self._log.info(
+                    f"Started sign.mt animation: {len(pose_sequence.frames)} frames, {pose_sequence.total_duration_ms}ms"
+                )
+            else:
+                self._log.error(f"No pose sequence generated for phrase: {phrase}")
+                self._is_animating = False
+
+        except Exception as e:
+            self._log.error(f"Error playing phrase: {e}")
             self._is_animating = False
-            pass
+
+    def _on_sign_mt_animation_frame(self) -> None:
+        """Handle sign.mt animation frame updates."""
+        try:
+            if not self._is_animating or not self._current_pose_sequence:
+                return
+
+            if self._current_frame_index < len(self._current_pose_sequence.frames):
+                frame = self._current_pose_sequence.frames[self._current_frame_index]
+                self._apply_pose(frame.pose)
+                self._current_frame_index += 1
+            else:
+                # Animation complete
+                self._is_animating = False
+                if self._animation_timer:
+                    self._animation_timer.stop()
+                self._log.info(
+                    f"Sign.mt animation completed: {self._current_frame_index} frames"
+                )
+                # Zoom out at the end
+                self._log.info("Phrase completed - zooming out")
+                self._zoom_camera_for_signing(False)
+
+        except Exception as e:
+            self._log.error(f"Error in sign.mt animation frame: {e}")
+            self._is_animating = False
 
     def _on_phrase_step(self) -> None:
         """Handle each step of the word-based phrase animation."""
@@ -360,31 +403,22 @@ class AnimateGesturePanel(QWidget):
     def _get_word_pose_from_signs(
         self, language: str, hand: str, word: str
     ) -> Optional[Dict[str, List[float]]]:
-        """Get pose data for a specific word."""
+        """Get pose data for a specific word using sign.mt pipeline."""
         try:
-            from ...utils.sign_language_loader import SignLanguageLoader
+            # Use sign.mt pipeline
+            symbols = self._sign_mt_pipeline.text_to_signwriting(word.upper())
 
-            loader = SignLanguageLoader()
-
-            self._log.info(
-                f"Looking for word pose: '{word}' in {language} with {hand} hand"
-            )
-
-            # For word-based signing, always try "both" hand variant first (generic joint names)
-            # This allows word data to work with both hands regardless of user preference
-            pose = loader.get_word_pose(language or "ASL", word, "both")
-            if pose:
-                self._log.info(f"Found word pose for '{word}' in 'both' hand variant")
+            if symbols:
+                pose = self._sign_mt_pipeline._get_pose_for_symbol(symbols[0])
+                self._log.info(
+                    f"✅ Generated sign.mt pose for '{word}' using symbol {symbols[0].code}"
+                )
                 return pose
-
-            # Fall back to specific hand variant
-            pose = loader.get_word_pose(language or "ASL", word, hand or "right")
-            if pose:
-                self._log.info(f"Found word pose for '{word}' in '{hand}' hand variant")
-                return pose
-
-            self._log.info(f"No word pose found for '{word}' in any hand variant")
-            return None
+            else:
+                self._log.warning(
+                    f"⚠️ No sign.mt symbols found for '{word}', using neutral pose"
+                )
+                return self._sign_mt_pipeline.get_neutral_pose()
         except Exception as e:
             self._log.error(f"Error getting word pose for '{word}': {e}")
             return None
@@ -392,37 +426,50 @@ class AnimateGesturePanel(QWidget):
     def _get_word_animation_from_signs(
         self, language: str, hand: str, word: str
     ) -> Optional[List[Dict]]:
-        """Get animation data for a specific word."""
+        """Get animation data for a specific word using sign.mt pipeline."""
         try:
-            from ...utils.sign_language_loader import SignLanguageLoader
+            # Use sign.mt pipeline
+            symbols = self._sign_mt_pipeline.text_to_signwriting(word.upper())
 
-            loader = SignLanguageLoader()
+            if symbols:
+                pose_sequence = self._sign_mt_pipeline.signwriting_to_pose_sequence(
+                    symbols
+                )
 
-            # Try "both" hand variant first (generic joint names)
-            animation = loader.get_word_animation(language or "ASL", word, "both")
-            if animation:
+                # Convert pose sequence to animation format
+                animation = []
+                for i, pose in enumerate(pose_sequence.frames):
+                    animation.append({"frame": i, "pose": pose.pose})
+
+                self._log.info(
+                    f"✅ Generated sign.mt animation for '{word}' with {len(animation)} frames"
+                )
                 return animation
-
-            # Fall back to specific hand variant
-            return loader.get_word_animation(language or "ASL", word, hand or "right")
+            else:
+                self._log.warning(
+                    f"⚠️ No sign.mt animation found for '{word}', using neutral pose"
+                )
+                neutral_pose = self._sign_mt_pipeline.get_neutral_pose()
+                return [{"frame": 0, "pose": neutral_pose}]
         except Exception as e:
             self._log.error(f"Error getting word animation for '{word}': {e}")
             return None
 
     def _get_word_duration_from_signs(self, language: str, hand: str, word: str) -> int:
-        """Get duration for a specific word animation."""
+        """Get duration for a specific word animation using sign.mt pipeline."""
         try:
-            from ...utils.sign_language_loader import SignLanguageLoader
+            # Use sign.mt pipeline
+            symbols = self._sign_mt_pipeline.text_to_signwriting(word.upper())
 
-            loader = SignLanguageLoader()
-
-            # Try "both" hand variant first (generic joint names)
-            duration = loader.get_word_duration(language or "ASL", word, "both")
-            if duration != 1000:  # If we got a non-default duration
+            if symbols:
+                duration = symbols[0].duration_ms
+                self._log.info(f"✅ Found sign.mt duration for '{word}': {duration}ms")
                 return duration
-
-            # Fall back to specific hand variant
-            return loader.get_word_duration(language or "ASL", word, hand or "right")
+            else:
+                self._log.warning(
+                    f"⚠️ No sign.mt duration found for '{word}', using default"
+                )
+                return 1000
         except Exception as e:
             self._log.error(f"Error getting word duration for '{word}': {e}")
             return 1000
@@ -505,125 +552,44 @@ class AnimateGesturePanel(QWidget):
             self._log.error(f"Error spelling word letters: {e}")
 
     def _apply_pose(self, pose: Dict[str, List[float]]) -> None:
-        """Apply HPR to joints by name; supports left/right by suffix in keys."""
+        """Apply HPR to joints by name for sign.mt pipeline."""
         try:
-            if self._model_np is None:
+            if self._actor is None:
                 return
-            # For left-hand requests, remap any *_r keys to *_l before lookup
-            use_left = (self._phrase_hand or "right").lower().startswith("l")
 
             # Track if any joints were successfully moved
             joints_moved = False
 
             for joint_name, hpr in pose.items():
                 try:
-                    name = str(joint_name)
+                    if len(hpr) >= 3:
+                        h, p, r = float(hpr[0]), float(hpr[1]), float(hpr[2])
 
-                    # Handle generic joint names (without _r/_l suffix)
-                    if not name.endswith(("_r", "_l", "_R", "_L")):
-                        # For word-based signing, apply to both hands
-                        # For word-based signing, apply to both hands
-                        # Check if this is word-based signing by looking at the phrase queue content
-                        is_word_based = (
-                            hasattr(self, "_phrase_queue")
-                            and len(getattr(self, "_phrase_queue", [])) > 0
+                        # Use Actor's controlJoint method for direct joint control
+                        joint_node = self._actor.controlJoint(
+                            None, "modelRoot", joint_name
                         )
-                        if is_word_based:
-                            # This is word-based signing, apply to both hands
-                            right_name = name + "_r"
-                            left_name = name + "_l"
-
-                            # Try right hand first
-                            right_node = self._get_joint_node(right_name)
-                            if right_node is not None:
-                                h = float(hpr[0])
-                                p = float(hpr[1])
-                                r = float(hpr[2])
-                                right_node.setHpr(h, p, r)
-                                joints_moved = True
-                                self._log.info(
-                                    f"Applied pose to right hand joint: {right_name}"
-                                )
-
-                            # Try left hand
-                            left_node = self._get_joint_node(left_name)
-                            if left_node is not None:
-                                h = float(hpr[0])
-                                p = float(hpr[1])
-                                r = float(hpr[2])
-                                left_node.setHpr(h, p, r)
-                                joints_moved = True
-                                self._log.info(
-                                    f"Applied pose to left hand joint: {left_name}"
-                                )
-                        else:
-                            # Letter-based signing, use single hand
-                            if use_left:
-                                name = name + "_l"
-                            else:
-                                name = name + "_r"
-
-                            node = self._get_joint_node(name)
-                            if node is None:
-                                # Retry with common alias variants
-                                alias = self._best_alias(name)
-                                node = self._get_joint_node(alias)
-                            if node is None:
-                                continue
-                            h = float(hpr[0])
-                            p = float(hpr[1])
-                            r = float(hpr[2])
-                            node.setHpr(h, p, r)
+                        if joint_node and not joint_node.isEmpty():
+                            joint_node.setHpr(h, p, r)
                             joints_moved = True
-                    elif use_left:
-                        # Remap right-hand suffixes to left-hand
-                        if name.endswith("_r"):
-                            name = name[:-2] + "_l"
-                        elif name.endswith("_R"):
-                            name = name[:-2] + "_L"
+                        else:
+                            # Fallback to old method if Actor control fails
+                            node = self._get_joint_node(joint_name)
+                            if node is not None:
+                                node.setHpr(h, p, r)
+                                joints_moved = True
 
-                        node = self._get_joint_node(name)
-                        if node is None:
-                            # Retry with common alias variants
-                            alias = self._best_alias(name)
-                            node = self._get_joint_node(alias)
-                        if node is None:
-                            continue
-                        h = float(hpr[0])
-                        p = float(hpr[1])
-                        r = float(hpr[2])
-                        node.setHpr(h, p, r)
-                        joints_moved = True
-                    else:
-                        # Use original name for right hand
-                        node = self._get_joint_node(name)
-                        if node is None:
-                            # Retry with common alias variants
-                            alias = self._best_alias(name)
-                            node = self._get_joint_node(alias)
-                        if node is None:
-                            continue
-                        h = float(hpr[0])
-                        p = float(hpr[1])
-                        r = float(hpr[2])
-                        node.setHpr(h, p, r)
-                        joints_moved = True
                 except Exception as e:
-                    self._log.error(f"Error applying pose to joint {name}: {e}")
+                    self._log.debug(f"Failed to apply pose to joint {joint_name}: {e}")
                     continue
 
-            # For now, don't try to move larger body parts since the character doesn't respond to joint manipulation
-            # Instead, let's try to create a simple sign language animation
             if joints_moved:
-                self._log.info("Sign language pose applied successfully")
-                # Zoom is now handled at the word level, not in _apply_pose
+                self._log.debug(f"Applied pose to {len(pose)} joints")
             else:
-                self._log.info(
-                    "No joints could be moved - character needs custom animations"
-                )
+                self._log.warning("No joints were moved in pose application")
 
-        except Exception:
-            pass
+        except Exception as e:
+            self._log.error(f"Error applying pose: {e}")
 
     def _get_joint_node(self, name: str) -> Optional[Any]:
         """Find and cache a joint/nodepath by exact or partial name match (case-insensitive)."""
@@ -1071,7 +1037,7 @@ class AnimateGesturePanel(QWidget):
                         self._log.info(f"Error setting hand position: {e}")
                 else:
                     # For non-Actor models, try to rotate arms down
-                    self._reset_to_neutral_pose(node)
+                    self._reset_to_neutral_pose()
             except Exception:
                 pass
             # Frame and center the model to a comfortable, fully visible size
@@ -1166,29 +1132,15 @@ class AnimateGesturePanel(QWidget):
             except Exception:
                 pass
 
-    def _reset_to_neutral_pose(self, node) -> None:
-        """Try to reset character to neutral pose (arms down) instead of T-pose."""
+    def _reset_to_neutral_pose(self) -> None:
+        """Reset character to neutral pose using sign.mt pipeline."""
         try:
-            # Common arm bone names to rotate down
-            arm_bones = [
-                "upperarm_r",
-                "upperarm_l",
-                "upperarm_R",
-                "upperarm_L",
-                "mixamorig:RightArm",
-                "mixamorig:LeftArm",
-                "RightArm",
-                "LeftArm",
-            ]
-
-            for bone_name in arm_bones:
-                bone = self._get_joint_node(bone_name)
-                if bone is not None:
-                    # Rotate arm down (pitch forward)
-                    bone.setHpr(0, -45, 0)
-                    break
-        except Exception:
-            pass
+            if self._sign_mt_pipeline:
+                neutral_pose = self._sign_mt_pipeline.get_neutral_pose()
+                self._apply_pose(neutral_pose)
+                self._log.info("Reset to neutral pose using sign.mt pipeline")
+        except Exception as e:
+            self._log.error(f"Error resetting to neutral pose: {e}")
 
     # REMOVED: _ensure_arm_position function - now using HPR editor for manual control
 

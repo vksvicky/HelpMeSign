@@ -92,7 +92,21 @@ class SignWritingPipeline:
         """Load REAL pose templates for different SignWriting symbols based on sign.mt"""
         return {
             "S10000": {  # ASL WELCOME - Both hands open, palms up, in front of chest
-                # Keep existing arm positions (from your posture) but add hand movements
+                # Arms positioned for ASL welcome sign (both hands in front of chest)
+                "mixamorig:RightArm": [
+                    45,
+                    30,
+                    0,
+                ],  # Right arm forward and up to chest level
+                "mixamorig:LeftArm": [
+                    -45,
+                    30,
+                    0,
+                ],  # Left arm forward and up to chest level
+                "mixamorig:RightForeArm": [0, 0, 0],  # Forearm straight
+                "mixamorig:LeftForeArm": [0, 0, 0],  # Forearm straight
+                "mixamorig:RightHand": [0, 0, 0],  # Hand neutral
+                "mixamorig:LeftHand": [0, 0, 0],  # Hand neutral
                 # Right hand - all fingers extended (open hand for welcome)
                 "mixamorig:RightHandIndex1": [0, 0, 0],
                 "mixamorig:RightHandIndex2": [0, 0, 0],
@@ -387,18 +401,11 @@ class SignWritingPipeline:
 
             # Apply hand side modifications
             if symbol.hand_side == "both":
-                # Apply to both hands
-                both_hands_pose = {}
-                for joint, hpr in base_pose.items():
-                    both_hands_pose[joint] = hpr
-                    # Add left hand version for finger joints
-                    if "Right" in joint and any(
-                        finger in joint
-                        for finger in ["Index", "Middle", "Ring", "Pinky", "Thumb"]
-                    ):
-                        left_joint = joint.replace("Right", "Left")
-                        both_hands_pose[left_joint] = hpr
-                return both_hands_pose
+                # For "both" hands, return the pose as-is (it already contains both hands)
+                self.logger.info(
+                    f"🎯 Applying both hands pose for symbol {symbol.symbol}"
+                )
+                return base_pose
             elif symbol.hand_side == "left":
                 # Apply to left hand only
                 left_hand_pose = {}
@@ -416,9 +423,18 @@ class SignWritingPipeline:
                 return left_hand_pose
             else:  # right
                 # Apply to right hand only
-                return base_pose
+                right_hand_pose = {}
+                for joint, hpr in base_pose.items():
+                    if "Right" in joint or any(
+                        arm in joint for arm in ["Arm", "ForeArm", "Hand"]
+                    ):
+                        right_hand_pose[joint] = hpr
+                return right_hand_pose
 
         # Fallback to neutral pose
+        self.logger.warning(
+            f"⚠️ Symbol {symbol.symbol} not found in pose templates, using neutral pose"
+        )
         return self._get_neutral_pose()
 
     def _get_neutral_pose(self) -> Dict[str, List[float]]:

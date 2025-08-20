@@ -10,11 +10,13 @@ from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
-from src.helpmesign.utils.language_loader import (LanguageLoader,
-                                                  get_all_languages,
-                                                  get_language_by_code,
-                                                  get_language_categories,
-                                                  search_languages)
+from src.helpmesign.utils.language_loader import (
+    LanguageLoader,
+    get_all_languages,
+    get_language_by_code,
+    get_language_categories,
+    search_languages,
+)
 
 
 class TestLanguageLoader:

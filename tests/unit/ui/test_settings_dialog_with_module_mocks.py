@@ -14,11 +14,14 @@ import pytest
 # Add the tests/mocks directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "mocks"))
 
-from tests.mocks.qt.qt_mock_framework import (MockQComboBox, MockQDialog,
-                                              MockQLabel, MockQPushButton,
-                                              MockQWidget)
-from tests.mocks.qt.qt_module_mocks import (activate_qt_mocks,
-                                            deactivate_qt_mocks)
+from tests.mocks.qt.qt_mock_framework import (
+    MockQComboBox,
+    MockQDialog,
+    MockQLabel,
+    MockQPushButton,
+    MockQWidget,
+)
+from tests.mocks.qt.qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks
 
 
 class TestSettingsDialogWithModuleMocks:
@@ -59,8 +62,11 @@ class TestSettingsDialogWithModuleMocks:
         from PySide6.QtWidgets import QDialog, QPushButton, QWidget
 
         # Test that they are our mock classes
-        from tests.mocks.qt.qt_mock_framework import (MockQDialog, MockQWidget,
-                                                      MockSignal)
+        from tests.mocks.qt.qt_mock_framework import (
+            MockQDialog,
+            MockQWidget,
+            MockSignal,
+        )
 
         assert QWidget == MockQWidget
         assert QDialog == MockQDialog
