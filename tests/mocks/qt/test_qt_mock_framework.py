@@ -8,25 +8,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from .qt_mock_framework import (
-    MockQDialog,
-    MockQLabel,
-    MockQPushButton,
-    MockQWidget,
-    qt_mock_framework,
-)
+from .qt_mock_framework import (MockQDialog, MockQLabel, MockQPushButton,
+                                MockQWidget, qt_mock_framework)
 from .qt_mock_registry import qt_mock_registry
-from .qt_test_case import (
-    QtIntegrationTestCase,
-    QtTestCase,
-    mock_qcombobox,
-    mock_qdialog,
-    mock_qlabel,
-    mock_qpushbutton,
-    mock_qwidget,
-    qt_framework,
-    qt_registry,
-)
+from .qt_test_case import (QtIntegrationTestCase, QtTestCase, mock_qcombobox,
+                           mock_qdialog, mock_qlabel, mock_qpushbutton,
+                           mock_qwidget, qt_framework, qt_registry)
 
 
 class TestQtMockFramework:

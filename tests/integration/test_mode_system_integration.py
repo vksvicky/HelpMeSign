@@ -13,12 +13,12 @@ import pytest
 
 from src.helpmesign.modes.base_mode import BaseMode
 from src.helpmesign.modes.learn.learn_mode import LearnMode
-
 # Import the mode system components
 from src.helpmesign.modes.mode_manager import ModeManager
-from src.helpmesign.modes.sign_translate.sign_translate_mode import SignTranslateMode
-from tests.mocks.qt.qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks
-
+from src.helpmesign.modes.sign_translate.sign_translate_mode import \
+    SignTranslateMode
+from tests.mocks.qt.qt_module_mocks import (activate_qt_mocks,
+                                            deactivate_qt_mocks)
 # Import Qt mock framework
 from tests.mocks.qt.qt_test_case import QtTestCase
 

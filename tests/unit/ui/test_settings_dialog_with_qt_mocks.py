@@ -14,13 +14,9 @@ import pytest
 # Add the tests/mocks directory to the path so we can import our Qt mock framework
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "mocks"))
 
-from tests.mocks.qt.qt_mock_framework import (
-    MockQComboBox,
-    MockQDialog,
-    MockQLabel,
-    MockQPushButton,
-    MockQWidget,
-)
+from tests.mocks.qt.qt_mock_framework import (MockQComboBox, MockQDialog,
+                                              MockQLabel, MockQPushButton,
+                                              MockQWidget)
 from tests.mocks.qt.qt_test_case import QtTestCase, qt_framework
 
 

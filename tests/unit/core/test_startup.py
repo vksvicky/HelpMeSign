@@ -2441,10 +2441,8 @@ class TestSecureConfigManager:
     def test_conditional_imports_coverage(self):
         """Test conditional imports coverage"""
         # Test that imports work correctly
-        from src.helpmesign.core.startup import (
-            FONT_MANAGER_AVAILABLE,
-            PYSIDE6_AVAILABLE,
-        )
+        from src.helpmesign.core.startup import (FONT_MANAGER_AVAILABLE,
+                                                 PYSIDE6_AVAILABLE)
 
         # These should be boolean values
         assert isinstance(PYSIDE6_AVAILABLE, bool)

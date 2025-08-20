@@ -9,15 +9,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from .qt_mock_framework import MockQDialog, MockQPushButton, MockQWidget, MockSignal
-from .qt_module_mocks import (
-    activate_qt_mocks,
-    deactivate_qt_mocks,
-    get_qt_mock,
-    is_qt_mocks_active,
-    qt_module_mocker,
-    reset_qt_mocks,
-)
+from .qt_mock_framework import (MockQDialog, MockQPushButton, MockQWidget,
+                                MockSignal)
+from .qt_module_mocks import (activate_qt_mocks, deactivate_qt_mocks,
+                              get_qt_mock, is_qt_mocks_active,
+                              qt_module_mocker, reset_qt_mocks)
 
 
 class TestQtModuleMocks:

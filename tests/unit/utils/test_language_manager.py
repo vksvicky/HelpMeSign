@@ -15,14 +15,8 @@ import pytest
 # Import the language manager - handle missing PySide6 gracefully
 try:
     from src.helpmesign.utils.language_manager import (
-        change_language,
-        detect_system_language,
-        get_available_languages,
-        get_current_language_info,
-        get_dict,
-        get_list,
-        get_text,
-    )
+        change_language, detect_system_language, get_available_languages,
+        get_current_language_info, get_dict, get_list, get_text)
 
     LANGUAGE_MANAGER_AVAILABLE = True
 except (ImportError, OSError):
@@ -54,7 +48,8 @@ except (ImportError, OSError):
 try:
     from tests.mocks.qt.qt_mock_framework import qt_mock_framework
     from tests.mocks.qt.qt_mock_registry import qt_mock_registry
-    from tests.mocks.qt.qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks
+    from tests.mocks.qt.qt_module_mocks import (activate_qt_mocks,
+                                                deactivate_qt_mocks)
     from tests.mocks.qt.qt_test_case import QtIntegrationTestCase, QtTestCase
 
     QT_FRAMEWORK_AVAILABLE = True
@@ -1080,14 +1075,8 @@ class TestLanguageManagerRealImplementation:
     def test_global_functions(self):
         """Test global language functions"""
         from src.helpmesign.utils.language_manager import (
-            change_language,
-            detect_system_language,
-            get_available_languages,
-            get_current_language_info,
-            get_dict,
-            get_list,
-            get_text,
-        )
+            change_language, detect_system_language, get_available_languages,
+            get_current_language_info, get_dict, get_list, get_text)
 
         # Mock the get_language_manager function to return a mock manager
         with patch(
@@ -1143,14 +1132,8 @@ class TestLanguageManagerRealImplementation:
             pytest.skip("Qt framework not available")
 
         from src.helpmesign.utils.language_manager import (
-            change_language,
-            detect_system_language,
-            get_available_languages,
-            get_current_language_info,
-            get_dict,
-            get_list,
-            get_text,
-        )
+            change_language, detect_system_language, get_available_languages,
+            get_current_language_info, get_dict, get_list, get_text)
 
         # Create mock widgets
         title_label = MagicMock()

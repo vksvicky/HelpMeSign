@@ -20,27 +20,17 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 # Import the logger classes and functions
 try:
-    from src.helpmesign.utils.logger import (
-        HelpMeSignLogger,
-        get_logger,
-        log_exception,
-        log_function_entry,
-        log_function_exit,
-        set_log_level,
-        setup_logging,
-    )
+    from src.helpmesign.utils.logger import (HelpMeSignLogger, get_logger,
+                                             log_exception, log_function_entry,
+                                             log_function_exit, set_log_level,
+                                             setup_logging)
 except ImportError:
     # Fallback for when src is not in path
     try:
-        from helpmesign.utils.logger import (
-            HelpMeSignLogger,
-            get_logger,
-            log_exception,
-            log_function_entry,
-            log_function_exit,
-            set_log_level,
-            setup_logging,
-        )
+        from helpmesign.utils.logger import (HelpMeSignLogger, get_logger,
+                                             log_exception, log_function_entry,
+                                             log_function_exit, set_log_level,
+                                             setup_logging)
     except ImportError:
         # Mock the classes for testing
         HelpMeSignLogger = None

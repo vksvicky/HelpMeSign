@@ -9,13 +9,11 @@ from unittest.mock import MagicMock, Mock, patch
 import psutil
 import pytest
 
-from src.helpmesign.utils.system_monitor import (
-    SystemMonitor,
-    SystemResources,
-    get_system_monitor,
-    start_system_monitoring,
-    stop_system_monitoring,
-)
+from src.helpmesign.utils.system_monitor import (SystemMonitor,
+                                                 SystemResources,
+                                                 get_system_monitor,
+                                                 start_system_monitoring,
+                                                 stop_system_monitoring)
 
 
 class TestSystemResources:

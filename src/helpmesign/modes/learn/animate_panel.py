@@ -816,7 +816,7 @@ class AnimateGesturePanel(QWidget):
             return
         try:
             # Panda imports
-            from direct.showbase.ShowBase import ShowBase  # type: ignore
+            from direct.showbase.ShowBase import ShowBase
             from panda3d.core import AntialiasAttrib, loadPrcFileData
 
             # Create a small offscreen context (no separate window)
@@ -930,7 +930,7 @@ class AnimateGesturePanel(QWidget):
             self._actor = None
             # Prefer Actor for skeletal control
             try:
-                from direct.actor.Actor import Actor  # type: ignore
+                from direct.actor.Actor import Actor
 
                 self._actor = Actor(model_path)
                 node = self._actor

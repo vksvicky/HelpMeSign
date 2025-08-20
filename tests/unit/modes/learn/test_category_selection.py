@@ -8,7 +8,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from src.helpmesign.modes.learn.learn_mode import LearnMode
-from tests.mocks.qt.qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks
+from tests.mocks.qt.qt_module_mocks import (activate_qt_mocks,
+                                            deactivate_qt_mocks)
 from tests.mocks.qt.qt_test_case import QtTestCase
 
 

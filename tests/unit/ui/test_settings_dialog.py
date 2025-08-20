@@ -14,7 +14,8 @@ import pytest
 try:
     from tests.mocks.qt.qt_mock_framework import qt_mock_framework
     from tests.mocks.qt.qt_mock_registry import qt_mock_registry
-    from tests.mocks.qt.qt_module_mocks import activate_qt_mocks, deactivate_qt_mocks
+    from tests.mocks.qt.qt_module_mocks import (activate_qt_mocks,
+                                                deactivate_qt_mocks)
     from tests.mocks.qt.qt_test_case import QtIntegrationTestCase, QtTestCase
 
     QT_FRAMEWORK_AVAILABLE = True
@@ -680,11 +681,9 @@ class TestSettingsDialogRealImplementation:
 
     def test_class_definitions_coverage(self):
         """Test that class definitions exist - for coverage"""
-        from src.helpmesign.ui.settings_dialog import (
-            FontSizeSelector,
-            ModernSegmentedControl,
-            SettingsDialog,
-        )
+        from src.helpmesign.ui.settings_dialog import (FontSizeSelector,
+                                                       ModernSegmentedControl,
+                                                       SettingsDialog)
 
         # Test that classes are defined
         assert FontSizeSelector is not None
@@ -698,11 +697,9 @@ class TestSettingsDialogRealImplementation:
 
     def test_class_methods_exist_coverage(self):
         """Test that class methods exist - for coverage"""
-        from src.helpmesign.ui.settings_dialog import (
-            FontSizeSelector,
-            ModernSegmentedControl,
-            SettingsDialog,
-        )
+        from src.helpmesign.ui.settings_dialog import (FontSizeSelector,
+                                                       ModernSegmentedControl,
+                                                       SettingsDialog)
 
         # Test FontSizeSelector methods
         assert hasattr(FontSizeSelector, "__init__")
@@ -4395,10 +4392,8 @@ class TestSettingsDialogWithQt(QtTestCase):
         mock_settings_dialog.__doc__ = "Settings dialog for HelpMeSign application"
 
         # Temporarily deactivate Qt mocks to use real PySide6
-        from tests.mocks.qt.qt_module_mocks import (
-            activate_qt_mocks,
-            deactivate_qt_mocks,
-        )
+        from tests.mocks.qt.qt_module_mocks import (activate_qt_mocks,
+                                                    deactivate_qt_mocks)
 
         try:
             # Deactivate mocks temporarily

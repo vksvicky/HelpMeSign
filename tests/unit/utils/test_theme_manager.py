@@ -563,7 +563,8 @@ class TestThemeManagerRealImplementation:
         mock_get_manager.return_value = mock_manager
         mock_widget = MagicMock()
 
-        from src.helpmesign.utils.theme_manager import apply_font_size_to_widget_tree
+        from src.helpmesign.utils.theme_manager import \
+            apply_font_size_to_widget_tree
 
         apply_font_size_to_widget_tree(mock_widget)
 
@@ -1049,18 +1050,10 @@ class TestThemeManagerFunctionWrappers:
         mock_get_manager.return_value = mock_manager
 
         from src.helpmesign.utils.theme_manager import (
-            apply_font_size_to_widget_tree,
-            apply_theme,
-            force_font_size_update,
-            get_complete_style,
-            get_font_family,
-            get_font_size,
-            get_font_size_style,
-            get_theme_color,
-            get_theme_style,
-            set_font_family,
-            set_font_size,
-        )
+            apply_font_size_to_widget_tree, apply_theme,
+            force_font_size_update, get_complete_style, get_font_family,
+            get_font_size, get_font_size_style, get_theme_color,
+            get_theme_style, set_font_family, set_font_size)
 
         # Test all function wrappers
         apply_theme("Light")

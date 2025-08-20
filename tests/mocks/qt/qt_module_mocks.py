@@ -9,22 +9,11 @@ import sys
 from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
-from .qt_mock_framework import (
-    MockQApplication,
-    MockQByteArray,
-    MockQComboBox,
-    MockQDialog,
-    MockQFrame,
-    MockQLabel,
-    MockQObject,
-    MockQPushButton,
-    MockQRect,
-    MockQScrollArea,
-    MockQSize,
-    MockQSizePolicy,
-    MockQWidget,
-    MockSignal,
-)
+from .qt_mock_framework import (MockQApplication, MockQByteArray,
+                                MockQComboBox, MockQDialog, MockQFrame,
+                                MockQLabel, MockQObject, MockQPushButton,
+                                MockQRect, MockQScrollArea, MockQSize,
+                                MockQSizePolicy, MockQWidget, MockSignal)
 
 
 class MockQtWidgets:

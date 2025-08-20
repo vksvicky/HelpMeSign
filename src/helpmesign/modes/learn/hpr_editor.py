@@ -24,14 +24,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-# # Panda3D typing fallback: define VBase4 with a typed alias so mypy does not require stubs
-# try:
-#     from panda3d.core import VBase4 as VBase4  # type: ignore[import-untyped]
-# except Exception:
-
-#     class VBase4:  # type: ignore[no-redef]
-#         def __init__(self, *args: Any, **kwargs: Any) -> None:
-#             pass
+# Panda3D typing fallback: define VBase4 with a typed alias so mypy does not require stubs
+try:
+    from panda3d.core import VBase4 as VBase4
+except Exception:
+    class VBase4:  # type: ignore[no-redef]
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
 
 class HPRSlider(QWidget):
@@ -650,6 +649,8 @@ actor.update()
             return
 
         try:
+            VBase4
+
             # Color mapping
             color_map = {
                 "Default (Light Brown)": VBase4(0.8, 0.6, 0.4, 1.0),
@@ -684,6 +685,8 @@ actor.update()
             return
 
         try:
+            VBase4
+
             # Get RGB values from sliders
             r = self.red_slider.value() / 255.0
             g = self.green_slider.value() / 255.0
