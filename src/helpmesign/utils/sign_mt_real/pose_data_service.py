@@ -488,5 +488,5 @@ class PoseDataService:
         """
         return PoseData(
             joints={},  # Empty joints - let character use its natural model pose
-            duration_ms=1000
+            duration_ms=1000,
         )

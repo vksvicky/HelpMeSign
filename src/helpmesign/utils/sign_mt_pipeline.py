@@ -2,6 +2,7 @@
 """
 Sign.mt Compatible Pipeline
 Follows the Text → SignWriting → Pose Sequence architecture
+Integrates with https://github.com/sign/ ecosystem
 """
 
 import json
@@ -13,6 +14,7 @@ from typing import Dict, List, Optional, Tuple
 from .resource_manager import ResourceManager
 from .sign_mt_real.asset_manager import AssetManager
 from .sign_mt_real.pose_data_service import PoseDataService
+from .sign_mt_integration import SignMTTranslator, SignLanguageType, SignSequence
 
 
 class HandSide(Enum):
@@ -65,6 +67,9 @@ class SignMTPipeline:
 
         # Neutral pose from pose_data_service
         self.neutral_pose = self.pose_data_service.get_neutral_pose().joints
+        
+        # Initialize sign.mt translator
+        self.sign_translator = SignMTTranslator(SignLanguageType.ASL)
 
     def _normalize_text(self, text: str) -> str:
         """Normalize input text"""
@@ -163,22 +168,37 @@ class SignMTPipeline:
 
     def set_language(self, language: str):
         """Set the current sign language"""
-        # For now, we only have ASL mappings
-        # In the future, this would load different SignWriting dictionaries
-        self.current_language = language if language == "ASL" else self.default_language
+        try:
+            # Convert string to SignLanguageType enum
+            lang_enum = SignLanguageType(language.lower())
+            self.current_language = language
+            self.sign_translator.set_language(lang_enum)
+        except ValueError:
+            # Fallback to ASL if language not supported
+            self.current_language = self.default_language
+            self.sign_translator.set_language(SignLanguageType.ASL)
 
     def text_to_pose_sequence(self, text: str) -> Optional[PoseSequence]:
-        """Convert text to pose sequence"""
+        """Convert text to pose sequence using sign.mt integration"""
         try:
-            # For now, return a simple pose sequence with neutral pose
-            # This is a placeholder - in the real implementation, this would:
-            # 1. Convert text to SignWriting
-            # 2. Convert SignWriting to pose sequence
-            neutral_pose = self.get_neutral_pose()
-
-            frame = PoseFrame(frame_number=0, pose=neutral_pose, timestamp_ms=0)
-
-            return PoseSequence(frames=[frame], total_duration_ms=1000, fps=30)
+            # Use sign.mt translator to convert text to sign sequence
+            sign_sequence = self.sign_translator.translate_text_to_signs(text)
+            
+            # Convert SignSequence to PoseSequence format
+            frames = []
+            for sign_frame in sign_sequence.frames:
+                pose_frame = PoseFrame(
+                    frame_number=sign_frame.frame_number,
+                    pose=sign_frame.to_pose_dict(),
+                    timestamp_ms=sign_frame.timestamp_ms
+                )
+                frames.append(pose_frame)
+            
+            return PoseSequence(
+                frames=frames,
+                total_duration_ms=sign_sequence.total_duration_ms,
+                fps=30
+            )
         except Exception as e:
             print(f"Error in text_to_pose_sequence: {e}")
             return None

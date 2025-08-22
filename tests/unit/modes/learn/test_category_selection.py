@@ -30,7 +30,7 @@ class TestCategorySelection(QtTestCase):
         self.mock_main_window.set_text_output = Mock()
         self.mock_main_window.set_text_input = Mock()
 
-        # Create the mode instance
+        # Create the mode instance and let it create the UI
         self.mode = LearnMode(self.mock_main_window)
 
         yield

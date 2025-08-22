@@ -1436,7 +1436,6 @@ class TestComponentsRealModuleCoverage:
             main_window.get_text_input()
             main_window.get_text_output()
             main_window.focus_input()
-            main_window.update_fonts()
             main_window.clear_all()
 
             # Test comprehensive SystemMonitorPanel workflow

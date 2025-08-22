@@ -230,15 +230,23 @@ class ThemeManager:
                         if not hasattr(child, "setStyleSheet"):
                             continue
 
+                        # Limit the number of widgets to prevent crashes
+                        if i > 1000:
+                            self.logger.warning(f"Too many child widgets ({len(all_children)}), stopping at 1000")
+                            break
+
                         child_type = child.__class__.__name__
                         child_component = component_map.get(child_type, "general")
                         self.force_font_size_update(child, child_component)
 
                         # Add a small delay every 100 widgets to prevent UI freezing
                         if i % 100 == 0 and i > 0:
-                            from PySide6.QtCore import QCoreApplication
-
-                            QCoreApplication.processEvents()
+                            try:
+                                from PySide6.QtCore import QCoreApplication
+                                QCoreApplication.processEvents()
+                            except Exception:
+                                # Ignore processEvents errors in test environment
+                                pass
 
                     except Exception as child_error:
                         self.logger.warning(

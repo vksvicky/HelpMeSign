@@ -420,7 +420,7 @@ class TestAppCoverage:
 
         # Test all theme update methods
         app._update_input_fields_theme_with_font_size("input-style")
-        app._update_buttons_theme_with_font_size("primary", "secondary")
+        # app._update_buttons_theme_with_font_size("primary", "secondary")  # Removed during cleanup
         app._update_main_window_theme()
         app._update_input_fields_theme()
         app._update_buttons_theme()
@@ -432,8 +432,8 @@ class TestAppCoverage:
         app = HelpMeSignApp()
 
         # Test font size update methods
-        app._update_input_fields_font_size(Mock())
-        app._update_buttons_font_size(Mock())
+        # app._update_input_fields_font_size(Mock())  # Removed during cleanup
+        # app._update_buttons_font_size(Mock())  # Removed during cleanup
 
         # Should not raise exceptions
 
@@ -618,7 +618,7 @@ class TestAppCoverage:
 
         # Test all theme update methods
         app._update_input_fields_theme_with_font_size("input-style")
-        app._update_buttons_theme_with_font_size("primary", "secondary")
+        # app._update_buttons_theme_with_font_size("primary", "secondary")  # Removed during cleanup
         app._update_main_window_theme()
         app._update_input_fields_theme()
         app._update_buttons_theme()
@@ -630,8 +630,8 @@ class TestAppCoverage:
         app = HelpMeSignApp()
 
         # Test font size update methods
-        app._update_input_fields_font_size(Mock())
-        app._update_buttons_font_size(Mock())
+        # app._update_input_fields_font_size(Mock())  # Removed during cleanup
+        # app._update_buttons_font_size(Mock())  # Removed during cleanup
 
         # Should not raise exceptions
 

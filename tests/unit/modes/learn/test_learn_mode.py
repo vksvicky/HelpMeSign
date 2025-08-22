@@ -844,8 +844,9 @@ class TestLearnMode:
 
         # Assert
         # Should not crash when learning_widget is None
-        # The method should handle this gracefully
-        assert True  # Method completed without error
+        # The method should handle this gracefully and not attempt to remove widget
+        assert mode.learning_widget is None
+        # Verify that no exception was raised (test passes if we reach here)
 
     def test_force_layout_stability(self):
         """Test _force_layout_stability method"""
@@ -1220,23 +1221,30 @@ class TestLearnMode:
 
         # Assert
         # Should handle the exception gracefully and log it
-        # The method should not crash
-        assert True  # Method completed without error
+        # When an exception occurs early in activate(), the method catches it and logs
+        # but doesn't continue with the rest of the operations
+        mode.main_window.set_mode.assert_called_once()
+        # Since the exception is caught and logged, other methods may not be called
+        # The key test is that the method doesn't crash and handles the exception
+        assert hasattr(mode, 'activate'), "activate method should exist"
 
     def test_deactivate_with_widget_exception(self):
         """Test deactivate with widget exception"""
         # Arrange
         mode = self.mode
         mode.learning_widget = Mock()
-        mode.learning_widget.hide = Mock(side_effect=Exception("Widget error"))
+        # Mock content_area.removeWidget to raise exception
+        mode.main_window.content_area.removeWidget = Mock(side_effect=Exception("Widget removal error"))
 
         # Act
         mode.deactivate()
 
         # Assert
         # Should handle the exception gracefully and log it
-        # The method should not crash
-        assert True  # Method completed without error
+        # Verify that removeWidget was attempted despite the exception
+        mode.main_window.content_area.removeWidget.assert_called_once_with(mode.learning_widget)
+        # Verify that the learning_widget is still accessible (not None)
+        assert mode.learning_widget is not None
 
     def test_force_layout_stability_with_widget_exception(self):
         """Test _force_layout_stability with widget exception"""

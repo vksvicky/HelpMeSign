@@ -798,7 +798,17 @@ class AnimateGesturePanel(QWidget):
             loadPrcFileData("", "framebuffer-multisample 1")
             # loadPrcFileData("", "multisamples 4")
 
-            self._showbase = ShowBase(windowType="offscreen")
+            # Check if ShowBase already exists
+            try:
+                from direct.showbase.ShowBaseGlobal import base
+                if hasattr(base, 'render'):
+                    self._showbase = base
+                    self._log.info("Using existing ShowBase instance")
+                else:
+                    raise AttributeError("Existing ShowBase not properly initialized")
+            except (ImportError, AttributeError):
+                # Create new ShowBase instance
+                self._showbase = ShowBase(windowType="offscreen")
 
             # Basic scene
             self._scene = self._showbase.render.attachNewNode("scene")
@@ -963,7 +973,9 @@ class AnimateGesturePanel(QWidget):
                 pose_joints = neutral_pose
 
                 # Don't apply any pose - let character use its natural model pose
-            self._log.info("Using character's natural model pose - no joint modifications applied")
+            self._log.info(
+                "Using character's natural model pose - no joint modifications applied"
+            )
 
             # Update skeleton
             self._actor.update()
@@ -995,9 +1007,7 @@ class AnimateGesturePanel(QWidget):
             # Position camera for front-facing T-pose viewing
             # Front view for sign language - character facing camera
             distance = radius * 2.5  # Good distance for front view
-            self._camera.setPos(
-                0, -distance, radius * 0.6
-            )  # Front view at chest level
+            self._camera.setPos(0, -distance, radius * 0.6)  # Front view at chest level
             self._camera.lookAt(0, 0, radius * 0.6)  # Look at character chest level
 
             self._log.info("Camera positioned for front-facing T-pose view")
@@ -1250,9 +1260,12 @@ class AnimateGesturePanel(QWidget):
                         width = tex.getXSize()
                         height = tex.getYSize()
                         stride = width * 4
-                        img = QImage(
-                            bytes(data), width, height, stride, QImage.Format_RGBA8888  # type: ignore[attr-defined]
-                        ).mirrored(False, True)
+                        import warnings
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", DeprecationWarning)
+                            img = QImage(
+                                bytes(data), width, height, stride, QImage.Format_RGBA8888  # type: ignore[attr-defined]
+                            ).mirrored(False, True)
                         self._display.setPixmap(QPixmap.fromImage(img))
                         image_updated = True
                 except Exception:
@@ -1274,9 +1287,12 @@ class AnimateGesturePanel(QWidget):
                         height = pimg.getYSize()
                         data = pimg.getRamImageAs("RGBA")
                         stride = width * 4
-                        img = QImage(
-                            bytes(data), width, height, stride, QImage.Format_RGBA8888  # type: ignore[attr-defined]
-                        ).mirrored(False, True)
+                        import warnings
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", DeprecationWarning)
+                            img = QImage(
+                                bytes(data), width, height, stride, QImage.Format_RGBA8888  # type: ignore[attr-defined]
+                            ).mirrored(False, True)
                         self._display.setPixmap(QPixmap.fromImage(img))
                         image_updated = True
                 except Exception:
