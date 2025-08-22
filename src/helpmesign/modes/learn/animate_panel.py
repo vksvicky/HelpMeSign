@@ -962,11 +962,8 @@ class AnimateGesturePanel(QWidget):
             else:
                 pose_joints = neutral_pose
 
-                # Don't apply pose joints to character - let it use its natural model pose
-            # But keep the joints available for HPR editor
-            self._log.info(
-                "Using model's natural pose - joints available for HPR editor"
-            )
+                # Don't apply any pose - let character use its natural model pose
+            self._log.info("Using character's natural model pose - no joint modifications applied")
 
             # Update skeleton
             self._actor.update()
@@ -995,15 +992,15 @@ class AnimateGesturePanel(QWidget):
             size = max_pt - min_pt
             radius = max(1e-3, max(size.x, size.y, size.z) * 0.5)
 
-            # Position camera for front-facing model pose viewing
+            # Position camera for front-facing T-pose viewing
             # Front view for sign language - character facing camera
             distance = radius * 2.5  # Good distance for front view
             self._camera.setPos(
-                0, -distance, radius * 0.2
-            )  # Front view, slightly elevated
-            self._camera.lookAt(0, 0, radius * 0.2)  # Look directly at character center
+                0, -distance, radius * 0.6
+            )  # Front view at chest level
+            self._camera.lookAt(0, 0, radius * 0.6)  # Look at character chest level
 
-            self._log.info("Camera positioned for front-facing model pose view")
+            self._log.info("Camera positioned for front-facing T-pose view")
 
         except Exception as e:
             self._log.error(f"Error setting camera for T-pose: {e}")

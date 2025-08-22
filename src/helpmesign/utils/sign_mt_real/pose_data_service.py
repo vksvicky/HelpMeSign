@@ -484,69 +484,9 @@ class PoseDataService:
 
     def get_neutral_pose(self) -> PoseData:
         """
-        Get character's natural model pose - includes all joints for HPR editor
+        Get character's natural pose - let the model use its inherent pose
         """
         return PoseData(
-            joints={
-                # Core body - model's natural pose
-                "mixamorig:Hips": [0.0, 0.0, 0.0],
-                "mixamorig:Spine": [0.0, 0.0, 0.0],
-                "mixamorig:Spine1": [0.0, 0.0, 0.0],
-                "mixamorig:Spine2": [0.0, 0.0, 0.0],
-                "mixamorig:Spine3": [0.0, 0.0, 0.0],
-                "mixamorig:Neck": [0.0, 0.0, 0.0],
-                "mixamorig:Head": [0.0, 0.0, 0.0],
-                # Shoulders - model's natural position
-                "mixamorig:RightShoulder": [0.0, 0.0, 0.0],
-                "mixamorig:LeftShoulder": [0.0, 0.0, 0.0],
-                # Arms - model's natural position
-                "mixamorig:RightArm": [0.0, 0.0, 0.0],
-                "mixamorig:LeftArm": [0.0, 0.0, 0.0],
-                "mixamorig:RightForeArm": [0.0, 0.0, 0.0],
-                "mixamorig:LeftForeArm": [0.0, 0.0, 0.0],
-                # Hands - model's natural position
-                "mixamorig:RightHand": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHand": [0.0, 0.0, 0.0],
-                # Fingers - model's natural position
-                "mixamorig:RightHandIndex1": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandIndex2": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandIndex3": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandMiddle1": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandMiddle2": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandMiddle3": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandRing1": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandRing2": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandRing3": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandPinky1": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandPinky2": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandPinky3": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandThumb1": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandThumb2": [0.0, 0.0, 0.0],
-                "mixamorig:RightHandThumb3": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandIndex1": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandIndex2": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandIndex3": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandMiddle1": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandMiddle2": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandMiddle3": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandRing1": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandRing2": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandRing3": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandPinky1": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandPinky2": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandPinky3": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandThumb1": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandThumb2": [0.0, 0.0, 0.0],
-                "mixamorig:LeftHandThumb3": [0.0, 0.0, 0.0],
-                # Legs - model's natural position
-                "mixamorig:RightUpLeg": [0.0, 0.0, 0.0],
-                "mixamorig:LeftUpLeg": [0.0, 0.0, 0.0],
-                "mixamorig:RightLeg": [0.0, 0.0, 0.0],
-                "mixamorig:LeftLeg": [0.0, 0.0, 0.0],
-                "mixamorig:RightFoot": [0.0, 0.0, 0.0],
-                "mixamorig:LeftFoot": [0.0, 0.0, 0.0],
-                "mixamorig:RightToeBase": [0.0, 0.0, 0.0],
-                "mixamorig:LeftToeBase": [0.0, 0.0, 0.0],
-            },
-            duration_ms=1000,
+            joints={},  # Empty joints - let character use its natural model pose
+            duration_ms=1000
         )

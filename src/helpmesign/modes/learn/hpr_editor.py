@@ -88,7 +88,7 @@ class PoseManager(QObject):
         self._initialize_poses()
 
     def _create_neutral_pose(self) -> Dict[str, JointPose]:
-        """Create neutral pose using pose data service."""
+        """Create neutral pose using pose data service, with fallback for editing."""
         # Use the same pose data service as the main pipeline
         from ...utils.sign_mt_real.asset_manager import AssetManager
         from ...utils.sign_mt_real.pose_data_service import PoseDataService
@@ -99,14 +99,40 @@ class PoseManager(QObject):
 
         # Convert PoseData to JointPose format
         neutral_poses = {}
-        for joint_name, hpr_values in neutral_pose_data.joints.items():
-            if len(hpr_values) >= 3:
-                neutral_poses[joint_name] = JointPose(
-                    joint_name,
-                    float(hpr_values[0]),
-                    float(hpr_values[1]),
-                    float(hpr_values[2]),
-                )
+        
+        # If the pose service returns empty joints (natural pose), provide a full joint list for editing
+        if not neutral_pose_data.joints:
+            # Provide all standard joints with zero values for editing purposes
+            joint_names = [
+                "mixamorig:Hips", "mixamorig:Spine", "mixamorig:Spine1", "mixamorig:Spine2", "mixamorig:Spine3",
+                "mixamorig:Neck", "mixamorig:Head", "mixamorig:RightShoulder", "mixamorig:LeftShoulder",
+                "mixamorig:RightArm", "mixamorig:LeftArm", "mixamorig:RightForeArm", "mixamorig:LeftForeArm",
+                "mixamorig:RightHand", "mixamorig:LeftHand",
+                "mixamorig:RightHandIndex1", "mixamorig:RightHandIndex2", "mixamorig:RightHandIndex3",
+                "mixamorig:RightHandMiddle1", "mixamorig:RightHandMiddle2", "mixamorig:RightHandMiddle3",
+                "mixamorig:RightHandRing1", "mixamorig:RightHandRing2", "mixamorig:RightHandRing3",
+                "mixamorig:RightHandPinky1", "mixamorig:RightHandPinky2", "mixamorig:RightHandPinky3",
+                "mixamorig:RightHandThumb1", "mixamorig:RightHandThumb2", "mixamorig:RightHandThumb3",
+                "mixamorig:LeftHandIndex1", "mixamorig:LeftHandIndex2", "mixamorig:LeftHandIndex3",
+                "mixamorig:LeftHandMiddle1", "mixamorig:LeftHandMiddle2", "mixamorig:LeftHandMiddle3",
+                "mixamorig:LeftHandRing1", "mixamorig:LeftHandRing2", "mixamorig:LeftHandRing3",
+                "mixamorig:LeftHandPinky1", "mixamorig:LeftHandPinky2", "mixamorig:LeftHandPinky3",
+                "mixamorig:LeftHandThumb1", "mixamorig:LeftHandThumb2", "mixamorig:LeftHandThumb3",
+                "mixamorig:RightUpLeg", "mixamorig:LeftUpLeg", "mixamorig:RightLeg", "mixamorig:LeftLeg",
+                "mixamorig:RightFoot", "mixamorig:LeftFoot", "mixamorig:RightToeBase", "mixamorig:LeftToeBase"
+            ]
+            for joint_name in joint_names:
+                neutral_poses[joint_name] = JointPose(joint_name, 0.0, 0.0, 0.0)
+        else:
+            # Use joints from pose service
+            for joint_name, hpr_values in neutral_pose_data.joints.items():
+                if len(hpr_values) >= 3:
+                    neutral_poses[joint_name] = JointPose(
+                        joint_name,
+                        float(hpr_values[0]),
+                        float(hpr_values[1]),
+                        float(hpr_values[2]),
+                    )
 
         return neutral_poses
 
@@ -565,12 +591,12 @@ class SignLanguagePoseEditor(QWidget):
         self.pose_manager.pose_reset.connect(self.on_pose_reset)
 
     def showEvent(self, event):
-        """Handle show event - load current character values when editor opens."""
+        """Handle show event - capture current character pose when editor opens."""
         super().showEvent(event)
         # Only detect joints once when opening
         if not self._available_joints_cache:
             self.update_joint_combo_box()  # Update combo box with available joints first
-        self.load_current_pose_from_service()
+        self.load_current_character_values()  # Capture current pose instead of loading zeros
         self.update_pose_display()
 
     def load_current_character_values(self):

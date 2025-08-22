@@ -1408,6 +1408,9 @@ class LearnMode(BaseMode):
             pass
         layout.addWidget(self.animate_gesture_panel)
 
+        # Add text-to-sign translation interface (following sign.mt architecture)
+        self.create_text_to_sign_interface(layout)
+
         # Add HPR Editor button
         hpr_button_layout = QHBoxLayout()
         self.hpr_editor_btn = QPushButton("Open HPR Editor")
@@ -1425,6 +1428,199 @@ class LearnMode(BaseMode):
 
         # Hand preference moved to settings window
         return panel
+
+    def create_text_to_sign_interface(self, layout) -> None:
+        """Create text input and play button for text-to-sign translation (sign.mt architecture)"""
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QFont
+        from PySide6.QtWidgets import (
+            QFrame,
+            QHBoxLayout,
+            QLineEdit,
+            QPushButton,
+            QVBoxLayout,
+            QLabel
+        )
+        
+        # Create container frame for the text-to-sign interface
+        text_interface_frame = QFrame()
+        text_interface_frame.setFrameStyle(QFrame.Shape.Box)
+        text_interface_frame.setObjectName("textToSignInterface")
+        
+        # Apply theme-aware styling
+        border_color = "#c8d1dc" if self.effective_theme == "Light" else "#5a6a7a"
+        bg_color = "#f8f9fa" if self.effective_theme == "Light" else "#2b3035"
+        text_color = "#333333" if self.effective_theme == "Light" else "#ffffff"
+        
+        text_interface_frame.setStyleSheet(f"""
+            #textToSignInterface {{
+                border: 2px solid {border_color};
+                border-radius: 12px;
+                background: {bg_color};
+                padding: 8px;
+                margin: 4px;
+            }}
+        """)
+        
+        interface_layout = QVBoxLayout(text_interface_frame)
+        interface_layout.setContentsMargins(12, 8, 12, 8)
+        interface_layout.setSpacing(8)
+        
+        # Title label
+        title_label = QLabel("Text to Sign Translation")
+        title_font = QFont(self.current_font_family, max(10, self.current_font_size - 2))
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setStyleSheet(f"color: {text_color}; font-weight: bold;")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        interface_layout.addWidget(title_label)
+        
+        # Input area layout
+        input_layout = QHBoxLayout()
+        input_layout.setSpacing(8)
+        
+        # Text input field
+        self.text_input = QLineEdit()
+        self.text_input.setPlaceholderText("Enter text to translate to sign language...")
+        self.text_input.setMinimumHeight(36)
+        
+        # Style the input field
+        input_bg = "#ffffff" if self.effective_theme == "Light" else "#3c4043"
+        input_border = "#d1d5da" if self.effective_theme == "Light" else "#5a6a7a"
+        input_text = "#333333" if self.effective_theme == "Light" else "#ffffff"
+        placeholder_color = "#6a737d" if self.effective_theme == "Light" else "#8c959f"
+        
+        self.text_input.setStyleSheet(f"""
+            QLineEdit {{
+                border: 2px solid {input_border};
+                border-radius: 8px;
+                padding: 8px 12px;
+                background: {input_bg};
+                color: {input_text};
+                font-size: {self.current_font_size}px;
+                font-family: {self.current_font_family};
+            }}
+            QLineEdit:focus {{
+                border: 2px solid #0969da;
+                outline: none;
+            }}
+            QLineEdit::placeholder {{
+                color: {placeholder_color};
+            }}
+        """)
+        
+        # Play button with sign.mt styling
+        self.play_button = QPushButton("▶ Play Sign")
+        self.play_button.setMinimumHeight(36)
+        self.play_button.setMinimumWidth(100)
+        
+        # Style the play button with sign.mt inspired colors
+        play_bg = "#0969da" if self.effective_theme == "Light" else "#238636"
+        play_hover = "#0860ca" if self.effective_theme == "Light" else "#2ea043"
+        play_text = "#ffffff"
+        
+        self.play_button.setStyleSheet(f"""
+            QPushButton {{
+                background: {play_bg};
+                color: {play_text};
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: {self.current_font_size}px;
+                font-family: {self.current_font_family};
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background: {play_hover};
+            }}
+            QPushButton:pressed {{
+                background: {play_bg};
+                transform: translateY(1px);
+            }}
+            QPushButton:disabled {{
+                background: #6a737d;
+                color: #8c959f;
+            }}
+        """)
+        
+        # Connect events
+        self.text_input.returnPressed.connect(self.on_text_to_sign_play)
+        self.play_button.clicked.connect(self.on_text_to_sign_play)
+        
+        # Add widgets to input layout
+        input_layout.addWidget(self.text_input, 1)
+        input_layout.addWidget(self.play_button, 0)
+        
+        interface_layout.addLayout(input_layout)
+        
+        # Add to main layout with some spacing
+        layout.addSpacing(8)
+        layout.addWidget(text_interface_frame)
+        layout.addSpacing(8)
+
+    def on_text_to_sign_play(self) -> None:
+        """Handle text-to-sign translation and animation (sign.mt architecture)"""
+        try:
+            text = self.text_input.text().strip()
+            if not text:
+                self.logger.warning("No text entered for translation")
+                return
+                
+            self.logger.info(f"Starting text-to-sign translation for: '{text}'")
+            
+            # Disable play button during translation
+            self.play_button.setEnabled(False)
+            self.play_button.setText("⏳ Translating...")
+            
+            # Clear any current character selection to show we're in text mode
+            self.current_character = None
+            self.current_char_type = None
+            self._hide_clear_button()
+            
+            # Use the animate panel's sign.mt pipeline for translation
+            if hasattr(self, 'animate_gesture_panel') and self.animate_gesture_panel:
+                # Set the language for the pipeline
+                current_language = getattr(self, 'current_language', 'ASL')
+                
+                # Trigger the sign animation using the sign.mt pipeline
+                self.animate_gesture_panel.play_phrase(text, current_language, "right")
+                
+                # Update the instructions to show we're playing text
+                self._show_text_translation_message(text)
+                
+            else:
+                self.logger.error("Animation panel not available for text translation")
+                
+        except Exception as e:
+            self.logger.error(f"Error in text-to-sign translation: {e}")
+        finally:
+            # Re-enable play button
+            self.play_button.setEnabled(True)
+            self.play_button.setText("▶ Play Sign")
+
+    def _show_text_translation_message(self, text: str) -> None:
+        """Show message indicating text is being translated to sign"""
+        try:
+            message = f"""
+            <div style="text-align: center; padding: 8px;">
+                <h3 style="color: #0969da; margin: 4px 0;">Translating Text to Sign</h3>
+                <p style="margin: 8px 0; font-size: 14px;"><strong>Text:</strong> "{text}"</p>
+                <p style="margin: 4px 0; font-size: 12px; color: #6a737d;">
+                    Watch the 3D character above perform the sign language translation
+                </p>
+            </div>
+            """
+            self.sign_instructions_label.setText(message)
+        except Exception as e:
+            self.logger.error(f"Error showing text translation message: {e}")
+
+    def _hide_clear_button(self) -> None:
+        """Hide the clear button"""
+        try:
+            if hasattr(self, "clear_sign_btn"):
+                self.clear_sign_btn.setVisible(False)
+        except Exception as e:
+            self.logger.error(f"Error hiding clear button: {e}")
 
     def open_hpr_editor(self) -> None:
         """Open the interactive HPR editor for character joint positioning."""
