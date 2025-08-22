@@ -1,14 +1,18 @@
 """
-Interactive HPR Editor for 3D Character Joint Positioning
-Allows real-time adjustment of Heading, Pitch, and Roll values for character joints.
+Sign Language Pose Editor - Aligned with sign.mt Architecture
+Real-time 3D character pose management for sign language applications.
 """
 
+import json
 import sys
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QObject, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFrame,
     QGridLayout,
@@ -16,7 +20,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QSlider,
+    QSpacerItem,
     QSpinBox,
     QSplitter,
     QTextEdit,
@@ -24,55 +30,157 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-# Panda3D typing fallback: define VBase4 with a typed alias so mypy does not require stubs
+# Panda3D typing fallback
 try:
-    from panda3d.core import VBase4 as VBase4
-except Exception:
+    from panda3d.core import VBase4
+except ImportError:
 
     class VBase4:  # type: ignore[no-redef]
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
 
-class HPRSlider(QWidget):
-    """Individual HPR slider with label and spinbox."""
+class PoseType(Enum):
+    """Sign language pose types following sign.mt conventions."""
 
-    valueChanged = Signal(str, float)
+    NEUTRAL = "neutral"
+    T_POSE = "t_pose"
+    SIGNING = "signing"
+    EXPRESSION = "expression"
+    CUSTOM = "custom"
 
-    def __init__(
-        self,
-        name: str,
-        min_val: float = -180.0,
-        max_val: float = 180.0,
-        default: float = 0.0,
-    ):
+
+@dataclass
+class JointPose:
+    """Represents a joint's pose in 3D space."""
+
+    joint_name: str
+    heading: float = 0.0
+    pitch: float = 0.0
+    roll: float = 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "joint_name": self.joint_name,
+            "hpr": [self.heading, self.pitch, self.roll],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "JointPose":
+        return cls(
+            joint_name=data["joint_name"],
+            heading=data["hpr"][0],
+            pitch=data["hpr"][1],
+            roll=data["hpr"][2],
+        )
+
+
+class PoseManager(QObject):
+    """Manages sign language poses following sign.mt patterns."""
+
+    pose_changed = Signal(str, JointPose)
+    pose_reset = Signal()
+
+    def __init__(self):
         super().__init__()
-        self.name = name
-        self.setup_ui(min_val, max_val, default)
+        self._poses: Dict[str, JointPose] = {}
+        self._neutral_pose = self._create_neutral_pose()
+        self._initialize_poses()
 
-    def setup_ui(self, min_val: float, max_val: float, default: float):
+    def _create_neutral_pose(self) -> Dict[str, JointPose]:
+        """Create neutral pose using pose data service."""
+        # Use the same pose data service as the main pipeline
+        from ...utils.sign_mt_real.asset_manager import AssetManager
+        from ...utils.sign_mt_real.pose_data_service import PoseDataService
+
+        asset_manager = AssetManager()
+        pose_data_service = PoseDataService(asset_manager)
+        neutral_pose_data = pose_data_service.get_neutral_pose()
+
+        # Convert PoseData to JointPose format
+        neutral_poses = {}
+        for joint_name, hpr_values in neutral_pose_data.joints.items():
+            if len(hpr_values) >= 3:
+                neutral_poses[joint_name] = JointPose(
+                    joint_name,
+                    float(hpr_values[0]),
+                    float(hpr_values[1]),
+                    float(hpr_values[2]),
+                )
+
+        return neutral_poses
+
+    def _initialize_poses(self):
+        """Initialize poses with neutral values."""
+        self._poses = {name: pose for name, pose in self._neutral_pose.items()}
+
+    def get_pose(self, joint_name: str) -> Optional[JointPose]:
+        """Get pose for a specific joint."""
+        return self._poses.get(joint_name)
+
+    def set_pose(self, joint_name: str, pose: JointPose):
+        """Set pose for a specific joint."""
+        self._poses[joint_name] = pose
+        self.pose_changed.emit(joint_name, pose)
+
+    def reset_to_neutral(self):
+        """Reset all poses to neutral position."""
+        self._poses = {name: pose for name, pose in self._neutral_pose.items()}
+        self.pose_reset.emit()
+
+    def get_all_poses(self) -> Dict[str, JointPose]:
+        """Get all current poses."""
+        return self._poses.copy()
+
+    def export_poses(self) -> str:
+        """Export poses as JSON string."""
+        poses_dict = {name: pose.to_dict() for name, pose in self._poses.items()}
+        return json.dumps(poses_dict, indent=2)
+
+    def import_poses(self, poses_json: str):
+        """Import poses from JSON string."""
+        try:
+            poses_dict = json.loads(poses_json)
+            for joint_name, pose_data in poses_dict.items():
+                pose = JointPose.from_dict(pose_data)
+                self._poses[joint_name] = pose
+        except Exception as e:
+            print(f"Error importing poses: {e}")
+
+
+class PoseSlider(QWidget):
+    """Individual pose slider component."""
+
+    value_changed = Signal(str, float)
+
+    def __init__(self, axis: str, min_val: float = -180.0, max_val: float = 180.0):
+        super().__init__()
+        self.axis = axis
+        self.setup_ui(min_val, max_val)
+
+    def setup_ui(self, min_val: float, max_val: float):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(5, 2, 5, 2)
 
         # Label
-        label = QLabel(f"{self.name}:")
-        label.setMinimumWidth(60)
+        label = QLabel(f"{self.axis}:")
+        label.setMinimumWidth(40)
         layout.addWidget(label)
 
         # Slider
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(int(min_val * 10), int(max_val * 10))
-        self.slider.setValue(int(default * 10))
+        self.slider.setValue(0)
         self.slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.slider.setTickInterval(45 * 10)  # 45 degree ticks
+        self.slider.setTickInterval(45 * 10)
         layout.addWidget(self.slider)
 
         # SpinBox
         self.spinbox = QSpinBox()
         self.spinbox.setRange(int(min_val), int(max_val))
-        self.spinbox.setValue(int(default))
+        self.spinbox.setValue(0)
         self.spinbox.setSuffix("°")
-        self.spinbox.setMinimumWidth(80)
+        self.spinbox.setMinimumWidth(70)
         layout.addWidget(self.spinbox)
 
         # Connect signals
@@ -82,11 +190,11 @@ class HPRSlider(QWidget):
     def _on_slider_changed(self, value: int):
         float_value = value / 10.0
         self.spinbox.setValue(int(float_value))
-        self.valueChanged.emit(self.name, float_value)
+        self.value_changed.emit(self.axis, float_value)
 
     def _on_spinbox_changed(self, value: int):
         self.slider.setValue(int(value * 10))
-        self.valueChanged.emit(self.name, float(value))
+        self.value_changed.emit(self.axis, float(value))
 
     def get_value(self) -> float:
         return self.spinbox.value()
@@ -96,115 +204,169 @@ class HPRSlider(QWidget):
         self.slider.setValue(int(value * 10))
 
 
-class HPRJointEditor(QWidget):
-    """Editor for a single joint's HPR values."""
+class JointEditor(QWidget):
+    """Editor for a single joint's pose."""
 
-    hprChanged = Signal(str, float, float, float)
+    pose_changed = Signal(str, JointPose)
 
-    def __init__(self, joint_name: str):
+    def __init__(self, joint_name: str, pose_manager: PoseManager):
         super().__init__()
         self.joint_name = joint_name
+        self.pose_manager = pose_manager
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 5, 10, 5)
 
-        # Joint name header
+        # Joint name header with close button
+        header_layout = QHBoxLayout()
+
         header = QLabel(self.joint_name)
         header.setFont(QFont("Arial", 10, QFont.Bold))
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(header)
+        header.setAlignment(Qt.AlignCenter)
+        header_layout.addWidget(header)
 
-        # HPR sliders
-        self.h_slider = HPRSlider("H", -180, 180, 0)
-        self.p_slider = HPRSlider("P", -180, 180, 0)
-        self.r_slider = HPRSlider("R", -180, 180, 0)
+        # Close button for this joint editor
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(20, 20)
+        close_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #ff4444;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #ff6666;
+            }
+        """
+        )
+        close_btn.clicked.connect(self.close_joint_editor)
+        header_layout.addWidget(close_btn)
+
+        layout.addLayout(header_layout)
+
+        # Pose sliders
+        self.h_slider = PoseSlider("H", -180, 180)
+        self.p_slider = PoseSlider("P", -180, 180)
+        self.r_slider = PoseSlider("R", -180, 180)
 
         layout.addWidget(self.h_slider)
         layout.addWidget(self.p_slider)
         layout.addWidget(self.r_slider)
 
         # Connect signals
-        self.h_slider.valueChanged.connect(self._on_h_changed)
-        self.p_slider.valueChanged.connect(self._on_p_changed)
-        self.r_slider.valueChanged.connect(self._on_r_changed)
+        self.h_slider.value_changed.connect(self._on_h_changed)
+        self.p_slider.value_changed.connect(self._on_p_changed)
+        self.r_slider.value_changed.connect(self._on_r_changed)
 
         # Reset button
         reset_btn = QPushButton("Reset")
-        reset_btn.clicked.connect(self.reset_values)
+        reset_btn.clicked.connect(self.reset_pose)
         layout.addWidget(reset_btn)
 
-    def _on_h_changed(self, name: str, value: float):
-        self.hprChanged.emit(
-            self.joint_name, value, self.p_slider.get_value(), self.r_slider.get_value()
-        )
+        # Load current pose
+        self.load_current_pose()
 
-    def _on_p_changed(self, name: str, value: float):
-        self.hprChanged.emit(
-            self.joint_name, self.h_slider.get_value(), value, self.r_slider.get_value()
-        )
+    def _on_h_changed(self, axis: str, value: float):
+        self._update_pose()
 
-    def _on_r_changed(self, name: str, value: float):
-        self.hprChanged.emit(
-            self.joint_name, self.h_slider.get_value(), self.p_slider.get_value(), value
-        )
+    def _on_p_changed(self, axis: str, value: float):
+        self._update_pose()
 
-    def get_hpr(self) -> tuple[float, float, float]:
-        return (
+    def _on_r_changed(self, axis: str, value: float):
+        self._update_pose()
+
+    def _update_pose(self):
+        pose = JointPose(
+            self.joint_name,
             self.h_slider.get_value(),
             self.p_slider.get_value(),
             self.r_slider.get_value(),
         )
+        self.pose_manager.set_pose(self.joint_name, pose)
+        self.pose_changed.emit(self.joint_name, pose)
 
-    def set_hpr(self, h: float, p: float, r: float):
-        self.h_slider.set_value(h)
-        self.p_slider.set_value(p)
-        self.r_slider.set_value(r)
+    def load_current_pose(self):
+        """Load current pose from pose manager."""
+        pose = self.pose_manager.get_pose(self.joint_name)
+        if pose:
+            self.h_slider.set_value(pose.heading)
+            self.p_slider.set_value(pose.pitch)
+            self.r_slider.set_value(pose.roll)
 
-    def reset_values(self):
-        self.set_hpr(0, 0, 0)
+    def reset_pose(self):
+        """Reset this joint to neutral pose."""
+        neutral_pose = self.pose_manager._neutral_pose.get(self.joint_name)
+        if neutral_pose:
+            self.h_slider.set_value(neutral_pose.heading)
+            self.p_slider.set_value(neutral_pose.pitch)
+            self.r_slider.set_value(neutral_pose.roll)
+            self._update_pose()
+
+    def close_joint_editor(self):
+        """Close this joint editor."""
+        self.setParent(None)
+        self.deleteLater()
 
 
-class HPRInteractiveEditor(QWidget):
-    """Main interactive HPR editor window."""
+class SignLanguagePoseEditor(QWidget):
+    """Main sign language pose editor following sign.mt architecture."""
 
     def __init__(self, animate_panel=None):
         super().__init__()
         self.animate_panel = animate_panel
-        self.joint_editors: Dict[str, HPRJointEditor] = {}
-        self.setup_ui()
+        self.pose_manager = PoseManager()
+        self.joint_editors: Dict[str, JointEditor] = {}
+        self._available_joints_cache = []  # Cache for available joints
 
-        # Timer for periodic updates - DISABLED to prevent automatic value application
-        # self.update_timer = QTimer()
-        # self.update_timer.timeout.connect(self.apply_current_values)
-        # self.update_timer.start(100)  # Update 10 times per second
+        self.setup_ui()
+        self.setup_connections()
 
     def setup_ui(self):
-        self.setWindowTitle("Interactive HPR Editor - Character Joint Positioning")
+        self.setWindowTitle("Sign Language Pose Editor - sign.mt Style")
         self.setMinimumSize(1000, 800)
         self.resize(1000, 800)
 
-        # Clear any existing layout and widgets
-        if self.layout():
-            QWidget().setLayout(self.layout())
-
-        # Clear any existing joint editors
-        for editor in self.joint_editors.values():
-            if editor.parent():
-                editor.setParent(None)
-        self.joint_editors.clear()
-
         layout = QVBoxLayout(self)
 
-        # Header
-        header = QLabel("Interactive HPR Editor")
-        header.setFont(QFont("Arial", 14, QFont.Bold))
+        # Header with close button
+        header_layout = QHBoxLayout()
+
+        header = QLabel("Sign Language Pose Editor")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
         header.setAlignment(Qt.AlignCenter)
-        layout.addWidget(header)
+        header_layout.addWidget(header)
+
+        # Close button
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(30, 30)
+        close_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #ff4444;
+                color: white;
+                border: none;
+                border-radius: 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #ff6666;
+            }
+        """
+        )
+        close_btn.clicked.connect(self.close)
+        header_layout.addWidget(close_btn)
+
+        layout.addLayout(header_layout)
 
         # Instructions
         instructions = QLabel(
-            "Adjust the sliders to position the character's joints in real-time.\n"
+            "Real-time 3D character pose management for sign language applications.\n"
             "H=Heading (left/right), P=Pitch (forward/back), R=Roll (side tilt)"
         )
         instructions.setAlignment(Qt.AlignCenter)
@@ -215,148 +377,162 @@ class HPRInteractiveEditor(QWidget):
         layout.addWidget(splitter)
 
         # Left panel - Joint editors
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setSpacing(10)  # Add spacing between widgets
-        left_layout.setContentsMargins(10, 10, 10, 10)  # Add margins
+        left_panel = self.create_left_panel()
+        splitter.addWidget(left_panel)
+
+        # Right panel - Controls and info
+        right_panel = self.create_right_panel()
+        splitter.addWidget(right_panel)
+
+        # Set splitter proportions
+        splitter.setSizes([600, 400])
+
+    def create_left_panel(self) -> QWidget:
+        """Create the left panel with joint editors."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
 
         # Joint selection
         joint_group = QGroupBox("Joint Selection")
         joint_layout = QHBoxLayout(joint_group)
-        joint_layout.setContentsMargins(10, 10, 10, 10)
 
         self.joint_combo = QComboBox()
-        self.joint_combo.addItems(
-            [
-                "mixamorig:RightArm",
-                "mixamorig:LeftArm",
-                "mixamorig:RightForeArm",
-                "mixamorig:LeftForeArm",
-                "mixamorig:RightHand",
-                "mixamorig:LeftHand",
-                "mixamorig:Hips",
-                "mixamorig:Spine",
-                "mixamorig:Spine1",
-                "mixamorig:Spine2",
-                "mixamorig:RightUpLeg",
-                "mixamorig:LeftUpLeg",
-                "mixamorig:RightLeg",
-                "mixamorig:LeftLeg",
-            ]
-        )
+        # Add all joints that are available in the neutral pose
+        joint_list = [
+            "mixamorig:Hips",
+            "mixamorig:Spine",
+            "mixamorig:Spine1",
+            "mixamorig:Spine2",
+            "mixamorig:Spine3",
+            "mixamorig:Neck",
+            "mixamorig:Head",
+            "mixamorig:RightShoulder",
+            "mixamorig:LeftShoulder",
+            "mixamorig:RightArm",
+            "mixamorig:LeftArm",
+            "mixamorig:RightForeArm",
+            "mixamorig:LeftForeArm",
+            "mixamorig:RightHand",
+            "mixamorig:LeftHand",
+            # Right Hand Fingers
+            "mixamorig:RightHandIndex1",
+            "mixamorig:RightHandIndex2",
+            "mixamorig:RightHandIndex3",
+            "mixamorig:RightHandMiddle1",
+            "mixamorig:RightHandMiddle2",
+            "mixamorig:RightHandMiddle3",
+            "mixamorig:RightHandRing1",
+            "mixamorig:RightHandRing2",
+            "mixamorig:RightHandRing3",
+            "mixamorig:RightHandPinky1",
+            "mixamorig:RightHandPinky2",
+            "mixamorig:RightHandPinky3",
+            "mixamorig:RightHandThumb1",
+            "mixamorig:RightHandThumb2",
+            "mixamorig:RightHandThumb3",
+            # Left Hand Fingers
+            "mixamorig:LeftHandIndex1",
+            "mixamorig:LeftHandIndex2",
+            "mixamorig:LeftHandIndex3",
+            "mixamorig:LeftHandMiddle1",
+            "mixamorig:LeftHandMiddle2",
+            "mixamorig:LeftHandMiddle3",
+            "mixamorig:LeftHandRing1",
+            "mixamorig:LeftHandRing2",
+            "mixamorig:LeftHandRing3",
+            "mixamorig:LeftHandPinky1",
+            "mixamorig:LeftHandPinky2",
+            "mixamorig:LeftHandPinky3",
+            "mixamorig:LeftHandThumb1",
+            "mixamorig:LeftHandThumb2",
+            "mixamorig:LeftHandThumb3",
+            "mixamorig:RightUpLeg",
+            "mixamorig:LeftUpLeg",
+            "mixamorig:RightLeg",
+            "mixamorig:LeftLeg",
+            "mixamorig:RightFoot",
+            "mixamorig:LeftFoot",
+            "mixamorig:RightToeBase",
+            "mixamorig:LeftToeBase",
+        ]
+        # Connect the signal as fallback (will be reconnected with valid joints)
         self.joint_combo.currentTextChanged.connect(self.on_joint_selected)
+
         joint_layout.addWidget(QLabel("Joint:"))
         joint_layout.addWidget(self.joint_combo)
+        layout.addWidget(joint_group)
 
-        left_layout.addWidget(joint_group)
-
-        # Body Rotation Controls
-        body_group = QGroupBox("Body Rotation & Positioning")
-        body_layout = QVBoxLayout(body_group)
-        body_layout.setContentsMargins(10, 10, 10, 10)
-        body_layout.setSpacing(8)
-
-        # Body rotation presets
-        preset_layout = QHBoxLayout()
-        preset_layout.addWidget(QLabel("Body Presets:"))
-
-        self.body_preset_combo = QComboBox()
-        self.body_preset_combo.addItems(
-            [
-                "Neutral (T-Pose)",
-                "Forward Lean",
-                "Backward Lean",
-                "Left Turn",
-                "Right Turn",
-                "Sitting Pose",
-                "Signing Pose (Arms Forward)",
-                "Custom",
-            ]
-        )
-        self.body_preset_combo.currentTextChanged.connect(self.apply_body_preset)
-        preset_layout.addWidget(self.body_preset_combo)
-
-        body_layout.addLayout(preset_layout)
-
-        # Quick body rotation controls
-        rotation_layout = QGridLayout()
-
-        # Hips rotation
-        rotation_layout.addWidget(QLabel("Hips Rotation:"), 0, 0)
-        self.hips_h_slider = QSlider(Qt.Horizontal)
-        self.hips_h_slider.setRange(-180, 180)
-        self.hips_h_slider.setValue(0)
-        self.hips_h_slider.valueChanged.connect(
-            lambda v: self.quick_body_rotation("mixamorig:Hips", "H", v)
-        )
-        rotation_layout.addWidget(self.hips_h_slider, 0, 1)
-
-        # Spine rotation
-        rotation_layout.addWidget(QLabel("Spine Rotation:"), 1, 0)
-        self.spine_h_slider = QSlider(Qt.Horizontal)
-        self.spine_h_slider.setRange(-180, 180)
-        self.spine_h_slider.setValue(0)
-        self.spine_h_slider.valueChanged.connect(
-            lambda v: self.quick_body_rotation("mixamorig:Spine", "H", v)
-        )
-        rotation_layout.addWidget(self.spine_h_slider, 1, 1)
-
-        # Body lean (pitch)
-        rotation_layout.addWidget(QLabel("Body Lean:"), 2, 0)
-        self.body_p_slider = QSlider(Qt.Horizontal)
-        self.body_p_slider.setRange(-90, 90)
-        self.body_p_slider.setValue(0)
-        self.body_p_slider.valueChanged.connect(self.body_lean)
-        rotation_layout.addWidget(self.body_p_slider, 2, 1)
-
-        body_layout.addLayout(rotation_layout)
-
-        # Body reset button
-        body_reset_btn = QPushButton("Reset Body Position")
-        body_reset_btn.clicked.connect(self.reset_body_position)
-        body_layout.addWidget(body_reset_btn)
-
-        left_layout.addWidget(body_group)
-
-        # Joint editors container with scroll area
-        from PySide6.QtWidgets import QScrollArea
-
+        # Joint editors container
         scroll_area = QScrollArea()
         self.joint_editors_container = QWidget()
         self.joint_editors_layout = QVBoxLayout(self.joint_editors_container)
-        self.joint_editors_layout.setSpacing(5)
-        self.joint_editors_layout.setContentsMargins(5, 5, 5, 5)
         scroll_area.setWidget(self.joint_editors_container)
         scroll_area.setWidgetResizable(True)
-        scroll_area.setMinimumHeight(400)  # Increased height
-        scroll_area.setMaximumHeight(500)  # Set maximum height
-        left_layout.addWidget(scroll_area)
+        scroll_area.setMinimumHeight(500)
+        layout.addWidget(scroll_area)
 
-        # Add a spacer to ensure proper separation
-        from PySide6.QtWidgets import QSpacerItem
+        return panel
 
-        spacer = QSpacerItem(20, 20)
-        left_layout.addItem(spacer)
+    def create_right_panel(self) -> QWidget:
+        """Create the right panel with controls and info."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
 
-        # Control buttons
-        button_layout = QHBoxLayout()
+        # Pose controls
+        controls_group = QGroupBox("Pose Controls")
+        controls_layout = QVBoxLayout(controls_group)
 
-        self.apply_btn = QPushButton("Apply All Values")
-        self.apply_btn.clicked.connect(self.apply_current_values)
-        button_layout.addWidget(self.apply_btn)
+        # Quick actions
+        actions_layout = QHBoxLayout()
 
         self.reset_all_btn = QPushButton("Reset All")
-        self.reset_all_btn.clicked.connect(self.reset_all_values)
-        button_layout.addWidget(self.reset_all_btn)
+        self.reset_all_btn.clicked.connect(self.reset_all_poses)
+        actions_layout.addWidget(self.reset_all_btn)
 
-        self.copy_values_btn = QPushButton("Copy Values to Code")
-        self.copy_values_btn.clicked.connect(self.copy_values_to_clipboard)
-        button_layout.addWidget(self.copy_values_btn)
+        self.apply_btn = QPushButton("Apply to Character")
+        self.apply_btn.clicked.connect(self.apply_to_character)
+        actions_layout.addWidget(self.apply_btn)
 
-        # Color control
-        color_group = QGroupBox("Character Color")
+        controls_layout.addLayout(actions_layout)
+
+        # Export/Import
+        export_layout = QHBoxLayout()
+
+        self.export_btn = QPushButton("Export Poses")
+        self.export_btn.clicked.connect(self.export_poses)
+        export_layout.addWidget(self.export_btn)
+
+        self.import_btn = QPushButton("Import Poses")
+        self.import_btn.clicked.connect(self.import_poses)
+        export_layout.addWidget(self.import_btn)
+
+        controls_layout.addLayout(export_layout)
+
+        # Refresh button
+        refresh_layout = QHBoxLayout()
+
+        self.refresh_btn = QPushButton("Capture Current Pose")
+        self.refresh_btn.clicked.connect(self.load_current_character_values)
+        refresh_layout.addWidget(self.refresh_btn)
+
+        controls_layout.addLayout(refresh_layout)
+
+        layout.addWidget(controls_group)
+
+        # Pose information
+        info_group = QGroupBox("Pose Information")
+        info_layout = QVBoxLayout(info_group)
+
+        self.pose_display = QTextEdit()
+        self.pose_display.setMaximumHeight(300)
+        self.pose_display.setReadOnly(True)
+        info_layout.addWidget(self.pose_display)
+
+        layout.addWidget(info_group)
+
+        # Character color (if needed)
+        color_group = QGroupBox("Character Appearance")
         color_layout = QHBoxLayout(color_group)
-        color_layout.setContentsMargins(10, 10, 10, 10)
 
         color_layout.addWidget(QLabel("Color:"))
         self.color_combo = QComboBox()
@@ -376,208 +552,29 @@ class HPRInteractiveEditor(QWidget):
         self.color_combo.currentTextChanged.connect(self.change_character_color)
         color_layout.addWidget(self.color_combo)
 
-        left_layout.addWidget(color_group)
+        layout.addWidget(color_group)
 
-        # RGB Color sliders for fine control
-        rgb_group = QGroupBox("RGB Color Control")
-        rgb_layout = QVBoxLayout(rgb_group)
-        rgb_layout.setContentsMargins(10, 10, 10, 10)
-        rgb_layout.setSpacing(5)
+        # Spacer
+        layout.addStretch()
 
-        # Red slider
-        red_layout = QHBoxLayout()
-        red_layout.addWidget(QLabel("Red:"))
-        self.red_slider = QSlider(Qt.Horizontal)
-        self.red_slider.setRange(0, 255)
-        self.red_slider.setValue(200)
-        self.red_slider.valueChanged.connect(self.update_rgb_color)
-        red_layout.addWidget(self.red_slider)
-        self.red_label = QLabel("200")
-        red_layout.addWidget(self.red_label)
-        rgb_layout.addLayout(red_layout)
+        return panel
 
-        # Green slider
-        green_layout = QHBoxLayout()
-        green_layout.addWidget(QLabel("Green:"))
-        self.green_slider = QSlider(Qt.Horizontal)
-        self.green_slider.setRange(0, 255)
-        self.green_slider.setValue(150)
-        self.green_slider.valueChanged.connect(self.update_rgb_color)
-        green_layout.addWidget(self.green_slider)
-        self.green_label = QLabel("150")
-        green_layout.addWidget(self.green_label)
-        rgb_layout.addLayout(green_layout)
+    def setup_connections(self):
+        """Setup signal connections."""
+        self.pose_manager.pose_changed.connect(self.on_pose_changed)
+        self.pose_manager.pose_reset.connect(self.on_pose_reset)
 
-        # Blue slider
-        blue_layout = QHBoxLayout()
-        blue_layout.addWidget(QLabel("Blue:"))
-        self.blue_slider = QSlider(Qt.Horizontal)
-        self.blue_slider.setRange(0, 255)
-        self.blue_slider.setValue(100)
-        self.blue_slider.valueChanged.connect(self.update_rgb_color)
-        blue_layout.addWidget(self.blue_slider)
-        self.blue_label = QLabel("100")
-        blue_layout.addWidget(self.blue_label)
-        rgb_layout.addLayout(blue_layout)
+    def showEvent(self, event):
+        """Handle show event - load current character values when editor opens."""
+        super().showEvent(event)
+        # Only detect joints once when opening
+        if not self._available_joints_cache:
+            self.update_joint_combo_box()  # Update combo box with available joints first
+        self.load_current_pose_from_service()
+        self.update_pose_display()
 
-        left_layout.addWidget(rgb_group)
-
-        left_layout.addLayout(button_layout)
-
-        splitter.addWidget(left_panel)
-
-        # Right panel - Log and current values
-        right_panel = QWidget()
-        right_layout = QVBoxLayout(right_panel)
-
-        # Current values display
-        values_group = QGroupBox("Current Values")
-        values_layout = QVBoxLayout(values_group)
-
-        self.values_display = QTextEdit()
-        self.values_display.setMaximumHeight(200)
-        self.values_display.setReadOnly(True)
-        values_layout.addWidget(self.values_display)
-
-        right_layout.addWidget(values_group)
-
-        # Log display
-        log_group = QGroupBox("Application Log")
-        log_layout = QVBoxLayout(log_group)
-
-        self.log_display = QTextEdit()
-        self.log_display.setReadOnly(True)
-        log_layout.addWidget(self.log_display)
-
-        right_layout.addWidget(log_group)
-
-        splitter.addWidget(right_panel)
-
-        # Set splitter proportions - give more space to left panel
-        splitter.setSizes([600, 400])
-
-        # Initialize joint editors
-        self.initialize_joint_editors()
-
-    def initialize_joint_editors(self):
-        """Create editors for all joints."""
-
-        # Clear any existing joint editors
-        for editor in self.joint_editors.values():
-            if editor.parent():
-                editor.setParent(None)
-        self.joint_editors.clear()
-
-        # Clear the joint editors layout
-        while self.joint_editors_layout.count():
-            child = self.joint_editors_layout.takeAt(0)
-            if child.widget():
-                child.widget().setParent(None)
-
-        # Create joint editors organized by category
-        arm_joints = [
-            "mixamorig:RightArm",
-            "mixamorig:LeftArm",
-            "mixamorig:RightForeArm",
-            "mixamorig:LeftForeArm",
-            "mixamorig:RightHand",
-            "mixamorig:LeftHand",
-        ]
-        body_joints = [
-            "mixamorig:Hips",
-            "mixamorig:Spine",
-            "mixamorig:Spine1",
-            "mixamorig:Spine2",
-        ]
-        leg_joints = [
-            "mixamorig:RightUpLeg",
-            "mixamorig:LeftUpLeg",
-            "mixamorig:RightLeg",
-            "mixamorig:LeftLeg",
-        ]
-
-        # Add arm joints section
-        arm_group = QGroupBox("Arm & Hand Joints")
-        arm_layout = QVBoxLayout(arm_group)
-        arm_layout.setContentsMargins(10, 10, 10, 10)
-        arm_layout.setSpacing(5)
-        for joint_name in arm_joints:
-            editor = HPRJointEditor(joint_name)
-            editor.hprChanged.connect(self.on_hpr_changed)
-            self.joint_editors[joint_name] = editor
-            arm_layout.addWidget(editor)
-            editor.setVisible(True)
-
-        self.joint_editors_layout.addWidget(arm_group)
-
-        # Add body joints section
-        body_joint_group = QGroupBox("Body Joints")
-        body_joint_layout = QVBoxLayout(body_joint_group)
-        body_joint_layout.setContentsMargins(10, 10, 10, 10)
-        body_joint_layout.setSpacing(5)
-        for joint_name in body_joints:
-            editor = HPRJointEditor(joint_name)
-            editor.hprChanged.connect(self.on_hpr_changed)
-            self.joint_editors[joint_name] = editor
-            body_joint_layout.addWidget(editor)
-            editor.setVisible(True)
-
-        self.joint_editors_layout.addWidget(body_joint_group)
-
-        # Add leg joints section
-        leg_group = QGroupBox("Leg Joints")
-        leg_layout = QVBoxLayout(leg_group)
-        leg_layout.setContentsMargins(10, 10, 10, 10)
-        leg_layout.setSpacing(5)
-        for joint_name in leg_joints:
-            editor = HPRJointEditor(joint_name)
-            editor.hprChanged.connect(self.on_hpr_changed)
-            self.joint_editors[joint_name] = editor
-            leg_layout.addWidget(editor)
-            editor.setVisible(True)
-
-        self.joint_editors_layout.addWidget(leg_group)
-
-        # Don't set initial values - let the character keep its current pose
-        # self.set_initial_values()
-
-        # Force layout update
-        self.joint_editors_container.updateGeometry()
-
-    def set_initial_values(self):
-        """Set initial HPR values based on current code."""
-        initial_values = {
-            "mixamorig:RightArm": (100, 90, 0),  # Optimized from HPR editor testing
-            "mixamorig:LeftArm": (-100, 90, 0),  # Optimized from HPR editor testing
-            "mixamorig:RightForeArm": (0, 0, 0),  # Optimized from HPR editor testing
-            "mixamorig:LeftForeArm": (0, 0, 0),  # Optimized from HPR editor testing
-            "mixamorig:RightHand": (0, 0, 0),
-            "mixamorig:LeftHand": (0, 0, 0),
-            "mixamorig:Hips": (0, 0, 0),
-            "mixamorig:Spine": (0, 0, 0),
-            "mixamorig:Spine1": (0, 0, 0),
-            "mixamorig:Spine2": (0, 0, 0),
-            "mixamorig:RightUpLeg": (0, 0, 0),
-            "mixamorig:LeftUpLeg": (0, 0, 0),
-            "mixamorig:RightLeg": (0, 0, 0),
-            "mixamorig:LeftLeg": (0, 0, 0),
-        }
-
-        for joint_name, (h, p, r) in initial_values.items():
-            if joint_name in self.joint_editors:
-                self.joint_editors[joint_name].set_hpr(h, p, r)
-
-    def on_joint_selected(self, joint_name: str):
-        """Handle joint selection."""
-        self.log_message(f"Selected joint: {joint_name}")
-
-    def on_hpr_changed(self, joint_name: str, h: float, p: float, r: float):
-        """Handle HPR value changes."""
-        self.log_message(f"{joint_name}: H={h:.1f}°, P={p:.1f}°, R={r:.1f}°")
-        self.update_values_display()
-
-    def apply_current_values(self):
-        """Apply current HPR values to the character."""
+    def load_current_character_values(self):
+        """Reset editor to neutral pose values (default pose)."""
         if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
             return
 
@@ -586,73 +583,265 @@ class HPRInteractiveEditor(QWidget):
             if actor is None:
                 return
 
-            for joint_name, editor in self.joint_editors.items():
-                h, p, r = editor.get_hpr()
-                joint = actor.controlJoint(None, "modelRoot", joint_name)
-                if joint is not None:
-                    joint.setHpr(h, p, r)
+            # Get available joints from the actor
+            available_joints = self.get_available_joints(actor)
 
-            # Force update
-            actor.update()
-            self.log_message("Applied all HPR values to character")
+            # Capture current character pose as neutral pose
+            self.capture_current_pose_as_neutral(actor, available_joints)
+
+            # Update existing joint editors to show neutral values
+            for joint_name, editor in self.joint_editors.items():
+                editor.load_current_pose()
+
+            # Update the pose display
+            self.update_pose_display()
+
+            print(
+                f"Captured current character pose as neutral pose ({len(available_joints)} available joints)"
+            )
 
         except Exception as e:
-            self.log_message(f"Error applying HPR values: {e}")
+            print(f"Error capturing current pose: {e}")
 
-    def reset_all_values(self):
-        """Reset all HPR values to zero."""
+    def load_current_pose_from_service(self):
+        """Load the current pose from pose_data_service into the pose manager."""
+        try:
+            # Import and get the pose from pose_data_service
+            from ...utils.sign_mt_real.asset_manager import AssetManager
+            from ...utils.sign_mt_real.pose_data_service import PoseDataService
+
+            asset_manager = AssetManager()
+            pose_service = PoseDataService(asset_manager)
+            current_pose_data = pose_service.get_neutral_pose()
+
+            # Temporarily disconnect pose_changed signal to prevent applying to character
+            self.pose_manager.pose_changed.disconnect()
+
+            # Convert the pose data to JointPose objects
+            for joint_name, hpr_values in current_pose_data.joints.items():
+                if len(hpr_values) >= 3:
+                    h, p, r = hpr_values[0], hpr_values[1], hpr_values[2]
+                    joint_pose = JointPose(joint_name, h, p, r)
+                    self.pose_manager.set_pose(joint_name, joint_pose)
+
+            # Reconnect the signal
+            self.pose_manager.pose_changed.connect(self.on_pose_changed)
+
+            print(
+                f"Loaded current pose from pose_data_service for {len(current_pose_data.joints)} joints"
+            )
+
+        except Exception as e:
+            print(f"Error loading pose from service: {e}")
+            # Make sure to reconnect signal even if there's an error
+            try:
+                self.pose_manager.pose_changed.connect(self.on_pose_changed)
+            except:
+                pass
+
+    def capture_current_pose_as_neutral(self, actor, available_joints):
+        """Capture the current character pose and use it as the neutral pose."""
+        try:
+            # Get current pose values from the character
+            current_pose = {}
+            for joint_name in available_joints:
+                joint = actor.controlJoint(None, "modelRoot", joint_name)
+                if joint is not None:
+                    h, p, r = joint.getHpr()
+                    current_pose[joint_name] = JointPose(joint_name, h, p, r)
+
+            # Update the pose manager with current values
+            for joint_name, pose in current_pose.items():
+                self.pose_manager.set_pose(joint_name, pose)
+
+            print(f"Captured current pose for {len(current_pose)} joints")
+
+        except Exception as e:
+            print(f"Error capturing current pose: {e}")
+
+    def get_available_joints(self, actor) -> list:
+        """Get list of joints that are actually available in the character."""
+        # Return cached result if available
+        if self._available_joints_cache:
+            return self._available_joints_cache
+
+        available_joints = []
+
+        try:
+            # Test each joint in our neutral pose to see if it exists
+            for joint_name in self.pose_manager._neutral_pose.keys():
+                try:
+                    joint = actor.controlJoint(None, "modelRoot", joint_name)
+                    if joint is not None:
+                        available_joints.append(joint_name)
+                except Exception:
+                    # Silently skip joints that can't be controlled
+                    pass
+
+            # Cache the result
+            self._available_joints_cache = available_joints
+            print(f"Detected {len(available_joints)} available joints")
+            return available_joints
+
+        except Exception as e:
+            print(f"Error getting available joints: {e}")
+            return []
+
+    def update_joint_combo_box(self):
+        """Update the joint combo box to only show available joints."""
+        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
+            return
+
+        try:
+            actor = self.animate_panel._actor
+            if actor is None:
+                return
+
+            # Get available joints
+            available_joints = self.get_available_joints(actor)
+
+            # Clear and repopulate the combo box with valid joint names
+            self.joint_combo.clear()
+            valid_joints = [
+                joint for joint in available_joints if joint and joint.strip()
+            ]
+            self.joint_combo.addItems(valid_joints)
+
+            # Always connect the signal (disconnect first to avoid duplicates)
+            try:
+                self.joint_combo.currentTextChanged.disconnect()
+            except:
+                pass
+            self.joint_combo.currentTextChanged.connect(self.on_joint_selected)
+
+            print(f"Updated joint combo box with {len(valid_joints)} valid joints")
+
+        except Exception as e:
+            print(f"Error updating joint combo box: {e}")
+
+    def on_joint_selected(self, joint_name: str):
+        """Handle joint selection."""
+        print(f"Joint selected: {joint_name}")
+
+        # Validate joint name
+        if not joint_name or joint_name.strip() == "":
+            print("Invalid joint name, skipping")
+            return
+
+        if joint_name not in self.joint_editors:
+            print(f"Creating editor for joint: {joint_name}")
+            editor = JointEditor(joint_name, self.pose_manager)
+            self.joint_editors[joint_name] = editor
+            self.joint_editors_layout.addWidget(editor)
+            editor.pose_changed.connect(self.on_pose_changed)
+            print(f"Created editor for {joint_name}")
+        else:
+            print(f"Editor already exists for {joint_name}")
+
+    def on_pose_changed(self, joint_name: str, pose: JointPose):
+        """Handle pose changes."""
+        # Only apply changes for available joints
+        if joint_name in self._available_joints_cache:
+            self.apply_pose_to_character(joint_name, pose)
+        self.update_pose_display()
+
+    def on_pose_reset(self):
+        """Handle pose reset."""
         for editor in self.joint_editors.values():
-            editor.reset_values()
-        self.log_message("Reset all HPR values to zero")
+            editor.load_current_pose()
+        self.update_pose_display()
 
-    def copy_values_to_clipboard(self):
-        """Copy current HPR values as Python code to clipboard."""
-        import json
-
-        values = {}
+    def reset_all_poses(self):
+        """Reset all poses to neutral."""
+        self.pose_manager.reset_to_neutral()
+        # Update existing joint editors
         for joint_name, editor in self.joint_editors.items():
-            h, p, r = editor.get_hpr()
-            values[joint_name] = [h, p, r]
+            editor.load_current_pose()
+        self.update_pose_display()
 
-        code = f"""# HPR Values for Character Joints
-# Generated by Interactive HPR Editor
+    def apply_to_character(self):
+        """Apply all poses to the character."""
+        poses = self.pose_manager.get_all_poses()
+        # Only apply poses for available joints
+        for joint_name, pose in poses.items():
+            if joint_name in self._available_joints_cache:
+                self.apply_pose_to_character(joint_name, pose)
 
-joint_hpr_values = {json.dumps(values, indent=2)}
+    def apply_pose_to_character(self, joint_name: str, pose: JointPose):
+        """Apply a single pose to the character."""
+        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
+            return
 
-# Apply to character:
-for joint_name, (h, p, r) in joint_hpr_values.items():
-    joint = actor.controlJoint(None, "modelRoot", joint_name)
-    if joint is not None:
-        joint.setHpr(h, p, r)
-actor.update()
-"""
+        # Validate that this joint is available
+        if joint_name not in self._available_joints_cache:
+            return
 
-        from PySide6.QtWidgets import QApplication
+        try:
+            actor = self.animate_panel._actor
+            if actor is None:
+                return
 
-        QApplication.clipboard().setText(code)
-        self.log_message("Copied HPR values to clipboard as Python code")
+            joint = actor.controlJoint(None, "modelRoot", joint_name)
+            if joint is not None:
+                joint.setHpr(pose.heading, pose.pitch, pose.roll)
+                actor.update()
 
-    def update_values_display(self):
-        """Update the current values display."""
-        text = "Current HPR Values:\n\n"
-        for joint_name, editor in self.joint_editors.items():
-            h, p, r = editor.get_hpr()
-            text += f"{joint_name}:\n"
-            text += f"  H: {h:6.1f}°\n"
-            text += f"  P: {p:6.1f}°\n"
-            text += f"  R: {r:6.1f}°\n\n"
+        except Exception as e:
+            print(f"Error applying pose to {joint_name}: {e}")
 
-        self.values_display.setText(text)
+    def update_pose_display(self):
+        """Update the pose information display."""
+        poses = self.pose_manager.get_all_poses()
+        text = "Current Poses:\n\n"
+
+        # Get available joints from cache
+        available_joints = self._available_joints_cache
+
+        # Show only joints that have editors (are being actively edited)
+        active_joints = list(self.joint_editors.keys())
+
+        if active_joints:
+            # Show active joints first
+            text += "=== Active Joint Editors ===\n\n"
+            for joint_name in active_joints:
+                if joint_name in poses:
+                    pose = poses[joint_name]
+                    text += f"{joint_name}:\n"
+                    text += f"  H: {pose.heading:6.1f}°\n"
+                    text += f"  P: {pose.pitch:6.1f}°\n"
+                    text += f"  R: {pose.roll:6.1f}°\n\n"
+
+        # Show only available joints
+        text += f"=== Available Joints ({len(available_joints)}) ===\n\n"
+        for joint_name, pose in poses.items():
+            if joint_name in available_joints:
+                text += f"{joint_name}:\n"
+                text += f"  H: {pose.heading:6.1f}°\n"
+                text += f"  P: {pose.pitch:6.1f}°\n"
+                text += f"  R: {pose.roll:6.1f}°\n\n"
+
+        self.pose_display.setText(text)
+
+    def export_poses(self):
+        """Export poses to clipboard."""
+        poses_json = self.pose_manager.export_poses()
+        QApplication.clipboard().setText(poses_json)
+        print("Poses exported to clipboard")
+
+    def import_poses(self):
+        """Import poses from clipboard."""
+        clipboard_text = QApplication.clipboard().text()
+        if clipboard_text:
+            self.pose_manager.import_poses(clipboard_text)
+            self.on_pose_reset()
+            print("Poses imported from clipboard")
 
     def change_character_color(self, color_name: str):
-        """Change the character's color."""
+        """Change character color."""
         if not self.animate_panel or not hasattr(self.animate_panel, "_model_np"):
             return
 
         try:
-            VBase4
-
-            # Color mapping
             color_map = {
                 "Default (Light Brown)": VBase4(0.8, 0.6, 0.4, 1.0),
                 "Blue": VBase4(0.2, 0.4, 0.8, 1.0),
@@ -666,242 +855,35 @@ actor.update()
             }
 
             if color_name in color_map:
-                color = color_map[color_name]
                 model_np = self.animate_panel._model_np
                 if model_np is not None:
-                    # Apply color to the model
-                    model_np.setColor(color)
-                    self.log_message(f"Changed character color to: {color_name}")
-                else:
-                    self.log_message("No model loaded to change color")
-            else:
-                self.log_message(f"Unknown color: {color_name}")
+                    model_np.setColor(color_map[color_name])
+                    print(f"Changed character color to: {color_name}")
 
         except Exception as e:
-            self.log_message(f"Error changing character color: {e}")
+            print(f"Error changing character color: {e}")
 
-    def update_rgb_color(self):
-        """Update character color using RGB sliders."""
-        if not self.animate_panel or not hasattr(self.animate_panel, "_model_np"):
-            return
-
+    def shutdown(self):
+        """Gracefully shutdown the HPR editor."""
         try:
-            VBase4
+            # Clear all joint editors
+            for editor in self.joint_editors.values():
+                if editor.parent():
+                    editor.setParent(None)
+            self.joint_editors.clear()
 
-            # Get RGB values from sliders
-            r = self.red_slider.value() / 255.0
-            g = self.green_slider.value() / 255.0
-            b = self.blue_slider.value() / 255.0
+            # Clear cache
+            self._available_joints_cache = []
 
-            # Update labels
-            self.red_label.setText(str(self.red_slider.value()))
-            self.green_label.setText(str(self.green_slider.value()))
-            self.blue_label.setText(str(self.blue_slider.value()))
+            # Clear pose manager
+            if hasattr(self, "pose_manager"):
+                self.pose_manager = None
 
-            # Apply color
-            color = VBase4(r, g, b, 1.0)
-            model_np = self.animate_panel._model_np
-            if model_np is not None:
-                model_np.setColor(color)
-                self.log_message(
-                    f"RGB Color: R={self.red_slider.value()}, G={self.green_slider.value()}, B={self.blue_slider.value()}"
-                )
+            print("HPR editor shutdown completed")
 
         except Exception as e:
-            self.log_message(f"Error updating RGB color: {e}")
+            print(f"Error during HPR editor shutdown: {e}")
 
-    def log_message(self, message: str):
-        """Add a message to the log display."""
-        from datetime import datetime
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        self.log_display.append(f"[{timestamp}] {message}")
-
-        # Keep only last 100 lines
-        lines = self.log_display.toPlainText().split("\n")
-        if len(lines) > 100:
-            self.log_display.setPlainText("\n".join(lines[-100:]))
-
-    def showEvent(self, event):
-        """Handle show event."""
-        super().showEvent(event)
-        self.update_values_display()
-        self.log_message("HPR Editor opened - adjust sliders to position character")
-
-    def apply_body_preset(self, preset_name: str):
-        """Apply a body rotation preset."""
-        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
-            return
-
-        try:
-            actor = self.animate_panel._actor
-            if actor is None:
-                return
-
-            # Preset configurations
-            presets = {
-                "Neutral (T-Pose)": {
-                    "mixamorig:Hips": [0, 0, 0],
-                    "mixamorig:Spine": [0, 0, 0],
-                    "mixamorig:Spine1": [0, 0, 0],
-                    "mixamorig:Spine2": [0, 0, 0],
-                },
-                "Forward Lean": {
-                    "mixamorig:Hips": [0, -15, 0],
-                    "mixamorig:Spine": [0, -10, 0],
-                    "mixamorig:Spine1": [0, -5, 0],
-                    "mixamorig:Spine2": [0, -5, 0],
-                },
-                "Backward Lean": {
-                    "mixamorig:Hips": [0, 15, 0],
-                    "mixamorig:Spine": [0, 10, 0],
-                    "mixamorig:Spine1": [0, 5, 0],
-                    "mixamorig:Spine2": [0, 5, 0],
-                },
-                "Left Turn": {
-                    "mixamorig:Hips": [-45, 0, 0],
-                    "mixamorig:Spine": [-30, 0, 0],
-                    "mixamorig:Spine1": [-15, 0, 0],
-                    "mixamorig:Spine2": [-5, 0, 0],
-                },
-                "Right Turn": {
-                    "mixamorig:Hips": [45, 0, 0],
-                    "mixamorig:Spine": [30, 0, 0],
-                    "mixamorig:Spine1": [15, 0, 0],
-                    "mixamorig:Spine2": [5, 0, 0],
-                },
-                "Sitting Pose": {
-                    "mixamorig:Hips": [0, -30, 0],
-                    "mixamorig:Spine": [0, -20, 0],
-                    "mixamorig:Spine1": [0, -10, 0],
-                    "mixamorig:Spine2": [0, -5, 0],
-                    "mixamorig:RightUpLeg": [0, -45, 0],
-                    "mixamorig:LeftUpLeg": [0, -45, 0],
-                },
-                "Signing Pose (Arms Forward)": {
-                    "mixamorig:Hips": [0, -10, 0],
-                    "mixamorig:Spine": [0, -5, 0],
-                    "mixamorig:Spine1": [0, 0, 0],
-                    "mixamorig:Spine2": [0, 5, 0],
-                },
-            }
-
-            if preset_name in presets:
-                preset = presets[preset_name]
-                for joint_name, hpr in preset.items():
-                    joint = actor.controlJoint(None, "modelRoot", joint_name)
-                    if joint is not None:
-                        h, p, r = hpr
-                        joint.setHpr(h, p, r)
-
-                actor.update()
-                self.log_message(f"Applied body preset: {preset_name}")
-
-                # Update sliders to match preset
-                if preset_name != "Custom":
-                    if "mixamorig:Hips" in preset:
-                        h, p, r = preset["mixamorig:Hips"]
-                        self.hips_h_slider.setValue(int(h))
-                    if "mixamorig:Spine" in preset:
-                        h, p, r = preset["mixamorig:Spine"]
-                        self.spine_h_slider.setValue(int(h))
-                    if "mixamorig:Spine" in preset:
-                        h, p, r = preset["mixamorig:Spine"]
-                        self.body_p_slider.setValue(int(p))
-
-        except Exception as e:
-            self.log_message(f"Error applying body preset: {e}")
-
-    def quick_body_rotation(self, joint_name: str, axis: str, value: float):
-        """Quick rotation of body joints."""
-        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
-            return
-
-        try:
-            actor = self.animate_panel._actor
-            if actor is None:
-                return
-
-            joint = actor.controlJoint(None, "modelRoot", joint_name)
-            if joint is not None:
-                current_h, current_p, current_r = joint.getHpr()
-
-                if axis == "H":
-                    joint.setHpr(value, current_p, current_r)
-                elif axis == "P":
-                    joint.setHpr(current_h, value, current_r)
-                elif axis == "R":
-                    joint.setHpr(current_h, current_p, value)
-
-                actor.update()
-                self.log_message(f"Rotated {joint_name} {axis}-axis to {value}°")
-
-        except Exception as e:
-            self.log_message(f"Error rotating {joint_name}: {e}")
-
-    def body_lean(self, value: float):
-        """Apply body lean (pitch) to spine joints."""
-        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
-            return
-
-        try:
-            actor = self.animate_panel._actor
-            if actor is None:
-                return
-
-            # Apply lean to spine joints
-            spine_joints = ["mixamorig:Spine", "mixamorig:Spine1", "mixamorig:Spine2"]
-
-            for joint_name in spine_joints:
-                joint = actor.controlJoint(None, "modelRoot", joint_name)
-                if joint is not None:
-                    current_h, current_p, current_r = joint.getHpr()
-                    # Distribute lean across spine joints
-                    lean_factor = 0.3 if joint_name == "mixamorig:Spine" else 0.2
-                    new_pitch = value * lean_factor
-                    joint.setHpr(current_h, new_pitch, current_r)
-
-            actor.update()
-            self.log_message(f"Applied body lean: {value}°")
-
-        except Exception as e:
-            self.log_message(f"Error applying body lean: {e}")
-
-    def reset_body_position(self):
-        """Reset all body joints to neutral position."""
-        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
-            return
-
-        try:
-            actor = self.animate_panel._actor
-            if actor is None:
-                return
-
-            # Reset body joints
-            body_joints = [
-                "mixamorig:Hips",
-                "mixamorig:Spine",
-                "mixamorig:Spine1",
-                "mixamorig:Spine2",
-                "mixamorig:RightUpLeg",
-                "mixamorig:LeftUpLeg",
-                "mixamorig:RightLeg",
-                "mixamorig:LeftLeg",
-            ]
-
-            for joint_name in body_joints:
-                joint = actor.controlJoint(None, "modelRoot", joint_name)
-                if joint is not None:
-                    joint.setHpr(0, 0, 0)
-
-            actor.update()
-
-            # Reset sliders
-            self.hips_h_slider.setValue(0)
-            self.spine_h_slider.setValue(0)
-            self.body_p_slider.setValue(0)
-
-            self.log_message("Reset body position to neutral")
-
-        except Exception as e:
-            self.log_message(f"Error resetting body position: {e}")
+# Legacy compatibility - keep the old class name for existing code
+HPRInteractiveEditor = SignLanguagePoseEditor

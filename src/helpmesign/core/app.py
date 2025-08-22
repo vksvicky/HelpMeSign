@@ -211,6 +211,32 @@ class HelpMeSignApp:
             except Exception as e:
                 self.logger.debug(f"Error cleaning up status bar: {e}")
 
+            # Clean up animate panel and HPR editor
+            try:
+                if hasattr(self, "main_window") and self.main_window:
+                    if (
+                        hasattr(self.main_window, "mode_manager")
+                        and self.main_window.mode_manager
+                    ):
+                        # Find and shutdown learn mode components
+                        learn_mode = self.main_window.mode_manager.get_mode("learn")
+                        if learn_mode:
+                            # Shutdown animate panel
+                            if (
+                                hasattr(learn_mode, "animate_panel")
+                                and learn_mode.animate_panel
+                            ):
+                                learn_mode.animate_panel.shutdown()
+
+                            # Shutdown HPR editor if it exists
+                            if (
+                                hasattr(learn_mode, "hpr_editor")
+                                and learn_mode.hpr_editor
+                            ):
+                                learn_mode.hpr_editor.shutdown()
+            except Exception as e:
+                self.logger.debug(f"Error cleaning up learn mode components: {e}")
+
             # Disconnect all signals to prevent callbacks during shutdown
             try:
                 if hasattr(self, "main_window") and self.main_window:
@@ -603,47 +629,6 @@ class HelpMeSignApp:
                     self.main_window.output_frame.text_output.setStyleSheet(input_style)
         except Exception as e:
             self.logger.error(f"Error updating input fields theme with font size: {e}")
-
-    def _update_buttons_theme_with_font_size(
-        self, primary_style: str, secondary_style: str
-    ) -> None:
-        """Update button styling with font size"""
-        try:
-            if hasattr(self.main_window, "text_input_frame"):
-                if hasattr(self.main_window.text_input_frame, "process_button"):
-                    self.main_window.text_input_frame.process_button.setStyleSheet(
-                        primary_style
-                    )
-                if hasattr(self.main_window.text_input_frame, "clear_button"):
-                    self.main_window.text_input_frame.clear_button.setStyleSheet(
-                        secondary_style
-                    )
-        except Exception as e:
-            self.logger.error(f"Error updating buttons theme with font size: {e}")
-
-    def _update_input_fields_font_size(self, font: QFont) -> None:
-        """Update input field font sizes (legacy method - kept for compatibility)"""
-        try:
-            if hasattr(self.main_window, "text_input_frame"):
-                if hasattr(self.main_window.text_input_frame, "text_input"):
-                    self.main_window.text_input_frame.text_input.setFont(font)
-
-            if hasattr(self.main_window, "output_frame"):
-                if hasattr(self.main_window.output_frame, "text_output"):
-                    self.main_window.output_frame.text_output.setFont(font)
-        except Exception as e:
-            self.logger.error(f"Error updating input fields font size: {e}")
-
-    def _update_buttons_font_size(self, font: QFont) -> None:
-        """Update button font sizes (legacy method - kept for compatibility)"""
-        try:
-            if hasattr(self.main_window, "text_input_frame"):
-                if hasattr(self.main_window.text_input_frame, "process_button"):
-                    self.main_window.text_input_frame.process_button.setFont(font)
-                if hasattr(self.main_window.text_input_frame, "clear_button"):
-                    self.main_window.text_input_frame.clear_button.setFont(font)
-        except Exception as e:
-            self.logger.error(f"Error updating buttons font size: {e}")
 
     def _update_main_window_theme(self) -> None:
         """Update main window styling to match current theme"""

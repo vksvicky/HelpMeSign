@@ -151,7 +151,7 @@ class AnimateGesturePanel(QWidget):
         self._current_animation: Optional[_AnimState] = None
         # Sign.mt animation state
         self._is_animating = False
-        self._current_pose_sequence = None
+        self._current_pose_sequence: Optional[PoseSequence] = None
         self._current_frame_index = 0
         # Actor for skinned control (preferred when available)
         self._actor: Optional[Any] = None
@@ -228,7 +228,8 @@ class AnimateGesturePanel(QWidget):
             return
         if not self._panda_ready:
             return
-        self._play_clip_internal(char_code, hand)
+            # TODO: Implement clip playing functionality
+            pass
 
     def play_phrase(
         self, phrase: str, language: str = "ASL", hand: str = "right"
@@ -245,15 +246,13 @@ class AnimateGesturePanel(QWidget):
             self._is_animating = True
             self._log.info("Starting sign.mt phrase animation")
 
-            # Zoom in for signing
-            self._log.info("Phrase starting - zooming in")
-            self._zoom_camera_for_signing(True)
+            # Camera positioning handled by _frame_model
 
             # Generate pose sequence using sign.mt pipeline
             pose_sequence = self._sign_mt_pipeline.text_to_pose_sequence(phrase)
 
             if pose_sequence and pose_sequence.frames:
-                self._current_pose_sequence = pose_sequence  # type: ignore[assignment]
+                self._current_pose_sequence = pose_sequence
                 self._current_frame_index = 0
 
                 # Start animation timer
@@ -297,9 +296,7 @@ class AnimateGesturePanel(QWidget):
                 self._log.info(
                     f"Sign.mt animation completed: {self._current_frame_index} frames"
                 )
-                # Zoom out at the end
-                self._log.info("Phrase completed - zooming out")
-                self._zoom_camera_for_signing(False)
+                # Animation completed
 
         except Exception as e:
             self._log.error(f"Error in sign.mt animation frame: {e}")
@@ -316,9 +313,7 @@ class AnimateGesturePanel(QWidget):
                 self._log.info(
                     "Word-based phrase animation ended - resetting _is_animating flag"
                 )
-                # Zoom out ONCE at the end of the entire phrase
-                self._log.info("Phrase completed - zooming out")
-                self._zoom_camera_for_signing(False)
+                # Phrase animation completed
                 return
 
             word = self._phrase_queue.pop(0)
@@ -349,7 +344,7 @@ class AnimateGesturePanel(QWidget):
             elif pose:
                 # Apply static word pose
                 self._log.info(f"Applying word '{word}' with static pose")
-                # Apply pose (zoom is handled at phrase level)
+                # Apply pose
                 self._apply_pose(pose)
                 # Set timer for next word
                 if self._phrase_timer:
@@ -371,8 +366,7 @@ class AnimateGesturePanel(QWidget):
                 self._log.info(
                     "Word-based phrase animation error - resetting _is_animating flag"
                 )
-                # Zoom out camera on error
-                self._zoom_camera_for_signing(False)
+                # Error handling completed
             except Exception:
                 pass
 
@@ -411,7 +405,7 @@ class AnimateGesturePanel(QWidget):
             if symbols:
                 pose = self._sign_mt_pipeline._get_pose_for_symbol(symbols[0])
                 self._log.info(
-                    f"✅ Generated sign.mt pose for '{word}' using symbol {symbols[0].code}"
+                    f"✅ Generated sign.mt pose for '{word}' using symbol {symbols[0]}"
                 )
                 return pose
             else:
@@ -433,13 +427,14 @@ class AnimateGesturePanel(QWidget):
 
             if symbols:
                 pose_sequence = self._sign_mt_pipeline.signwriting_to_pose_sequence(
-                    symbols
+                    " ".join(symbols)
                 )
 
                 # Convert pose sequence to animation format
                 animation = []
-                for i, pose in enumerate(pose_sequence.frames):
-                    animation.append({"frame": i, "pose": pose.pose})
+                if pose_sequence and pose_sequence.frames:
+                    for i, pose in enumerate(pose_sequence.frames):
+                        animation.append({"frame": i, "pose": pose.pose})
 
                 self._log.info(
                     f"✅ Generated sign.mt animation for '{word}' with {len(animation)} frames"
@@ -462,7 +457,7 @@ class AnimateGesturePanel(QWidget):
             symbols = self._sign_mt_pipeline.text_to_signwriting(word.upper())
 
             if symbols:
-                duration = symbols[0].duration_ms
+                duration = 1000  # Default duration for symbols
                 self._log.info(f"✅ Found sign.mt duration for '{word}': {duration}ms")
                 return duration
             else:
@@ -520,7 +515,7 @@ class AnimateGesturePanel(QWidget):
                 if self._animation_timer is not None:
                     self._animation_timer.stop()
 
-                # Animation complete - clean up (zoom is handled at phrase level)
+                # Animation complete - clean up
                 self._log.info("Word animation completed")
                 self._current_animation = None
                 return
@@ -884,191 +879,162 @@ class AnimateGesturePanel(QWidget):
                 pass
 
     def _load_model_internal(self, model_path: str) -> None:
+        """Load 3D model with default neutral pose."""
         try:
             if not self._panda_ready:
                 return
+
             # Clear existing model
             for child in list(self._scene.getChildren()):
                 child.removeNode()
 
             self._log.info(f"Loading 3D model: {model_path}")
-            node = None
-            self._actor = None
-            # Prefer Actor for skeletal control
+
+            # Load model as Actor (preferred for skeletal control)
             try:
                 from direct.actor.Actor import Actor
 
                 self._actor = Actor(model_path)
                 node = self._actor
-                self._log.info(
-                    "Loaded model as Actor for skeletal control (supports FBX, GLB, etc.)"
-                )
+                self._log.info("Loaded model as Actor for skeletal control")
             except Exception as e:
-                self._actor = None
-                self._log.info(f"Actor loading failed: {e}, trying as static model")
-                try:
-                    node = self._showbase.loader.loadModel(model_path)
-                    self._log.info(
-                        "Loaded model as static NodePath (no skeletal control)"
-                    )
-                except Exception as e2:
-                    self._log.error(f"Static model loading also failed: {e2}")
-                    node = None
-            if node is None:
+                self._log.error(f"Failed to load model as Actor: {e}")
                 self._display.setText("Failed to load model")
                 return
+
+            # Add to scene and prepare
             node.reparentTo(self._scene)
-            try:
-                # Bake model-space transforms so bounds are accurate
-                node.clearModelNodes()
-                node.flattenStrong()
-            except Exception:
-                pass
             self._model_np = node
-            # Normalize orientation to face camera (Y forward). Many tools export Z-up.
-            try:
-                # Rotate to face camera (front view), adjust yaw as needed for this asset
-                # Try different orientations to get proper front view
-                # Rotate to stand upright and face camera
-                node.setHpr(
-                    -180, 0, 0
-                )  # Rotate 180 to face front, then pitch -90 to stand upright
-            except Exception:
-                pass
 
-            # Reset character to neutral pose (arms down) instead of T-pose
-            try:
-                if self._actor is not None:
-                    # Stop any playing animations first
-                    try:
-                        if hasattr(self._actor, "stop"):
-                            self._actor.stop()
-                            self._log.info("Stopped any playing animations")
-                    except Exception as e:
-                        self._log.info(f"Could not stop animations: {e}")
+            # Apply default neutral pose
+            self._apply_default_neutral_pose()
 
-                    # Reset to neutral pose first
-                    try:
-                        if hasattr(self._actor, "pose"):
-                            self._actor.pose("", 0)  # Reset to frame 0
-                            self._log.info("Reset Actor to neutral pose")
-                    except Exception as e:
-                        self._log.info(f"Could not reset pose: {e}")
+            # Set up lighting
+            self._setup_lighting()
 
-                    # Try to rotate the character to face forward
-                    try:
-                        if self._model_np is not None:
-                            # Rotate the entire model to face forward
-                            self._model_np.setH(180)  # Turn 180 degrees to face forward
-                            self._log.info("Rotated model to face forward")
-                        if self._actor is not None:
-                            # Also try rotating the actor's root
-                            actor_root = self._actor.getParent()
-                            if actor_root is not None:
-                                actor_root.setH(180)
-                                self._log.info("Rotated actor root to face forward")
-                    except Exception as e:
-                        self._log.info(f"Could not rotate model: {e}")
+            # Frame and center the model
+            self._frame_model(node, fill_fraction=0.75)
+            self._current_model = str(model_path)
 
-                    # Position arms in front of face for sign language with minimal values
-                    try:
-                        # Position arms in front of face for sign language
-                        arm_joints = [
-                            "mixamorig:RightArm",
-                            "mixamorig:LeftArm",
-                            "mixamorig:RightForeArm",
-                            "mixamorig:LeftForeArm",
-                        ]
-
-                        for joint_name in arm_joints:
-                            joint = self._actor.controlJoint(
-                                None, "modelRoot", joint_name
-                            )
-                            if joint is not None:
-                                if "RightArm" in joint_name:
-                                    # Right upper arm: bring down to face level
-                                    joint.setHpr(100, 90, 0)
-                                    self._log.info(
-                                        f"Set {joint_name} to optimized position (H=100, P=90, R=0)"
-                                    )
-                                elif "LeftArm" in joint_name:
-                                    # Left upper arm: optimized position from HPR editor
-                                    joint.setHpr(-100, 90, 0)
-                                    self._log.info(
-                                        f"Set {joint_name} to optimized position (H=-100, P=90, R=0)"
-                                    )
-                                elif "RightForeArm" in joint_name:
-                                    # Right forearm: optimized position from HPR editor
-                                    joint.setHpr(0, 0, 0)
-                                    self._log.info(
-                                        f"Set {joint_name} to optimized position (H=0, P=0, R=0)"
-                                    )
-                                elif "LeftForeArm" in joint_name:
-                                    # Left forearm: optimized position from HPR editor
-                                    joint.setHpr(0, 0, 0)
-                                    self._log.info(
-                                        f"Set {joint_name} to optimized position (H=0, P=0, R=0)"
-                                    )
-                            else:
-                                self._log.warning(f"Could not find joint: {joint_name}")
-
-                        # Force Actor skeleton update multiple times to ensure it takes effect
-                        self._actor.update()
-                        self._actor.update()
-                        self._actor.update()
-                        self._log.info("Forced Actor skeleton update (3 times)")
-
-                    except Exception as e:
-                        self._log.info(f"Error setting sign language pose: {e}")
-
-                    # Hand positioning for sign language
-                    try:
-                        hand_joints = ["mixamorig:RightHand", "mixamorig:LeftHand"]
-
-                        for joint_name in hand_joints:
-                            joint = self._actor.controlJoint(
-                                None, "modelRoot", joint_name
-                            )
-                            if joint is not None:
-                                joint.setHpr(0, 0, 0)  # Neutral hand position
-                                self._log.info(f"Set {joint_name} to neutral position")
-
-                    except Exception as e:
-                        self._log.info(f"Error setting hand position: {e}")
-                else:
-                    # For non-Actor models, try to rotate arms down
-                    self._reset_to_neutral_pose()
-            except Exception:
-                pass
+        except Exception as e:
+            self._log.error(f"Error loading model: {e}")
+            self._display.setText("Failed to load model")
             # Frame and center the model to a comfortable, fully visible size
             self._frame_model(node, fill_fraction=0.75)
             self._current_model = str(model_path)
 
-            # Enhanced lighting for better character appearance
-            try:
-                from panda3d.core import AmbientLight, DirectionalLight
+    def _apply_default_neutral_pose(self):
+        """Apply default neutral pose to the character and pause all animations."""
+        if not self._actor:
+            return
 
-                # Warmer ambient light for better skin tone
-                amb = AmbientLight("amb")
-                amb.setColor((0.3, 0.3, 0.3, 1))  # Reduced ambient to avoid washing out
-                amb_np = self._scene.attachNewNode(amb)
-                self._scene.setLight(amb_np)
+        try:
+            # Stop any playing animations
+            if hasattr(self._actor, "stop"):
+                self._actor.stop()
 
-                # Main directional light for definition
-                key = DirectionalLight("key")
-                key.setColor((1.2, 1.1, 1.0, 1))  # More intense, warm light
-                key_np = self._scene.attachNewNode(key)
-                key_np.setHpr(-45, -30, 0)  # Better angle for character lighting
-                self._scene.setLight(key_np)
+            # Reset to frame 0 (neutral pose)
+            if hasattr(self._actor, "pose"):
+                self._actor.pose("", 0)
 
-                # Fill light from opposite side
-                fill = DirectionalLight("fill")
-                fill.setColor((0.5, 0.6, 0.7, 1))  # Slightly stronger fill light
-                fill_np = self._scene.attachNewNode(fill)
-                fill_np.setHpr(45, -20, 0)
-                self._scene.setLight(fill_np)
-            except Exception:
-                pass
+            # Set model orientation to face forward
+            if self._model_np:
+                self._model_np.setH(0)  # Face forward
+                self._model_np.setP(0)  # No pitch rotation
+                self._model_np.setR(0)  # No roll rotation
+
+            # Pause all animation timers
+            self._is_animating = False
+            if hasattr(self, "_animation_timer") and self._animation_timer:
+                self._animation_timer.stop()
+            if hasattr(self, "_phrase_timer") and self._phrase_timer:
+                self._phrase_timer.stop()
+
+            # Stop any active animations
+            self._wave_active = False
+            self._intro_active = False
+
+            # Get neutral pose from sign.mt pipeline (character's default posture)
+            neutral_pose = self._sign_mt_pipeline.get_neutral_pose()
+            # Handle both PoseData objects and direct joint dictionaries
+            if hasattr(neutral_pose, "joints"):
+                pose_joints = neutral_pose.joints
+            else:
+                pose_joints = neutral_pose
+
+                # Don't apply pose joints to character - let it use its natural model pose
+            # But keep the joints available for HPR editor
+            self._log.info(
+                "Using model's natural pose - joints available for HPR editor"
+            )
+
+            # Update skeleton
+            self._actor.update()
+
+            # Set camera to optimal viewing angle
+            self._set_camera_for_default_pose()
+
+            self._log.info(
+                "Applied model's natural pose and positioned camera for optimal viewing"
+            )
+
+        except Exception as e:
+            self._log.error(f"Error applying default neutral pose: {e}")
+
+    def _set_camera_for_default_pose(self) -> None:
+        """Set camera to front-facing view for sign language model pose."""
+        try:
+            if not self._camera or not self._model_np:
+                return
+
+            # Get model bounds for proper positioning
+            min_pt, max_pt = self._model_np.getTightBounds()
+            if not min_pt or not max_pt:
+                return
+
+            size = max_pt - min_pt
+            radius = max(1e-3, max(size.x, size.y, size.z) * 0.5)
+
+            # Position camera for front-facing model pose viewing
+            # Front view for sign language - character facing camera
+            distance = radius * 2.5  # Good distance for front view
+            self._camera.setPos(
+                0, -distance, radius * 0.2
+            )  # Front view, slightly elevated
+            self._camera.lookAt(0, 0, radius * 0.2)  # Look directly at character center
+
+            self._log.info("Camera positioned for front-facing model pose view")
+
+        except Exception as e:
+            self._log.error(f"Error setting camera for T-pose: {e}")
+
+    def _setup_lighting(self):
+        """Set up enhanced lighting for better character appearance."""
+        try:
+            from panda3d.core import AmbientLight, DirectionalLight
+
+            # Warmer ambient light for better skin tone
+            amb = AmbientLight("amb")
+            amb.setColor((0.3, 0.3, 0.3, 1))  # Reduced ambient to avoid washing out
+            amb_np = self._scene.attachNewNode(amb)
+            self._scene.setLight(amb_np)
+
+            # Main directional light for definition
+            key = DirectionalLight("key")
+            key.setColor((1.2, 1.1, 1.0, 1))  # More intense, warm light
+            key_np = self._scene.attachNewNode(key)
+            key_np.setHpr(-45, -30, 0)  # Better angle for character lighting
+            self._scene.setLight(key_np)
+
+            # Fill light from opposite side
+            fill = DirectionalLight("fill")
+            fill.setColor((0.5, 0.6, 0.7, 1))  # Slightly stronger fill light
+            fill_np = self._scene.attachNewNode(fill)
+            fill_np.setHpr(45, -20, 0)
+            self._scene.setLight(fill_np)
+
+        except Exception as e:
+            self._log.error(f"Error setting up lighting: {e}")
 
             # Set character color for better visibility during signing
             try:
@@ -1142,54 +1108,38 @@ class AnimateGesturePanel(QWidget):
         except Exception as e:
             self._log.error(f"Error resetting to neutral pose: {e}")
 
-    # REMOVED: _ensure_arm_position function - now using HPR editor for manual control
-
-    def _zoom_camera_for_signing(self, is_signing: bool) -> None:
-        """Dynamically adjust camera position based on signing state."""
+    def pause_animation_and_reset_to_default(self) -> None:
+        """Pause all animations and reset character to default posture."""
         try:
-            import math
+            # Stop all animation timers
+            self._is_animating = False
+            if hasattr(self, "_animation_timer") and self._animation_timer:
+                self._animation_timer.stop()
+            if hasattr(self, "_phrase_timer") and self._phrase_timer:
+                self._phrase_timer.stop()
 
-            if self._camera is None or self._model_np is None:
-                return
+            # Stop any active animations
+            self._wave_active = False
+            self._intro_active = False
 
-            # Get current model bounds for distance calculation
-            min_pt, max_pt = self._model_np.getTightBounds()
-            if not min_pt or not max_pt:
-                return
+            # Stop actor animations
+            if self._actor and hasattr(self._actor, "stop"):
+                self._actor.stop()
 
-            size = max_pt - min_pt
-            radius = max(1e-3, max(size.x, size.y, size.z) * 0.5)
+            # Reset to frame 0 (default pose)
+            if self._actor and hasattr(self._actor, "pose"):
+                self._actor.pose("", 0)
 
-            # Calculate base distance
-            lens = self._showbase.camLens
-            fov_v_deg = 40.0
-            try:
-                fov = lens.getFov()
-                if len(fov) == 2:
-                    fov_v_deg = float(fov[1])
-            except Exception:
-                pass
-            fov_v = math.radians(max(1.0, fov_v_deg))
-            base_distance = (radius / math.tan(fov_v * 0.5)) / 0.75
-            base_distance = base_distance * 2.0  # Full body view
+            # Apply default posture
+            self._apply_default_neutral_pose()
 
-            if is_signing:
-                # Zoom in for close-up view of hands and face
-                distance = base_distance * 0.6  # 60% of full body distance
-                height = radius * 0.4  # Lower to focus on upper body - moved up
-                self._camera.setPos(0, -distance, height)
-                self._camera.lookAt(0, 0, height)
-                self._log.info("Camera zoomed in for sign language")
-            else:
-                # Zoom out for full body view
-                distance = base_distance
-                height = radius * 0.2  # Lower to show full body - moved up
-                self._camera.setPos(0, -distance, height)
-                self._camera.lookAt(0, 0, height)
-                self._log.info("Camera zoomed out for full body view")
+            # Set camera to optimal viewing angle
+            self._set_camera_for_default_pose()
+
+            self._log.info("Paused all animations and reset to model's natural pose")
 
         except Exception as e:
-            self._log.info(f"Error adjusting camera: {e}")
+            self._log.error(f"Error pausing animation and resetting to default: {e}")
 
     def _frame_model(self, node, fill_fraction: float = 0.55) -> None:
         """Center the model and set camera distance so it fills the view.
@@ -1252,16 +1202,45 @@ class AnimateGesturePanel(QWidget):
             except Exception:
                 pass
 
-    def _play_clip_internal(self, char_code: str, hand: str) -> None:
-        # Placeholder: in a follow-up pass we will map clip names and advance animations
-        # based on (self._language, char_code, hand). For now, no-op to keep panel stable.
-        pass
+    def shutdown(self):
+        """Gracefully shutdown the animate panel."""
+        try:
+            self._shutdown_requested = True
+
+            # Stop all timers
+            if hasattr(self, "_animation_timer") and self._animation_timer:
+                self._animation_timer.stop()
+            if hasattr(self, "_phrase_timer") and self._phrase_timer:
+                self._phrase_timer.stop()
+            if hasattr(self, "_frame_timer") and self._frame_timer:
+                self._frame_timer.stop()
+
+            # Stop animations
+            self._is_animating = False
+            self._wave_active = False
+            self._intro_active = False
+
+            # Clear references
+            self._actor = None
+            self._model_np = None
+            self._camera = None
+            self._showbase = None
+
+            print("Animate panel shutdown completed")
+
+        except Exception as e:
+            print(f"Error during animate panel shutdown: {e}")
 
     # ---------- Frame pump ----------
     def _on_frame(self) -> None:
         try:
             if not self._panda_ready:
                 return
+
+            # Check if we should stop the frame loop
+            if hasattr(self, "_shutdown_requested") and self._shutdown_requested:
+                return
+
             self._showbase.taskMgr.step()
 
             # Attempt RAM image first

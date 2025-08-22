@@ -11,6 +11,8 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 from .resource_manager import ResourceManager
+from .sign_mt_real.asset_manager import AssetManager
+from .sign_mt_real.pose_data_service import PoseDataService
 
 
 class HandSide(Enum):
@@ -57,345 +59,16 @@ class SignMTPipeline:
         self.current_language = default_language
         self.resource_manager = ResourceManager()
 
-        # SignWriting dictionary (word -> symbols)
-        self.signwriting_dictionary = self._load_signwriting_dictionary()
+        # Initialize pose data service for neutral pose
+        asset_manager = AssetManager()
+        self.pose_data_service = PoseDataService(asset_manager)
 
-        # Pose templates (symbol -> pose data)
-        self.pose_templates = self._load_pose_templates()
-
-        # Neutral pose
-        self.neutral_pose = self._get_neutral_pose()
-
-    def _load_signwriting_dictionary(self) -> Dict[str, List[SignWritingSymbol]]:
-        """Load SignWriting dictionary for text-to-symbol conversion"""
-        dictionary = {}
-
-        # ASL SignWriting mappings (following sign.mt approach)
-        dictionary["WELCOME"] = [
-            SignWritingSymbol("S10000", HandSide.BOTH, 1000, "Welcome sign")
-        ]
-
-        dictionary["TO"] = [SignWritingSymbol("S20500", HandSide.RIGHT, 500, "To sign")]
-
-        dictionary["HELP"] = [
-            SignWritingSymbol("S30000", HandSide.BOTH, 800, "Help sign")
-        ]
-
-        dictionary["ME"] = [SignWritingSymbol("S40000", HandSide.RIGHT, 600, "Me sign")]
-
-        dictionary["SIGN"] = [
-            SignWritingSymbol("S50000", HandSide.BOTH, 1000, "Sign language")
-        ]
-
-        dictionary["HELPMESIGN"] = [
-            SignWritingSymbol("S10000", HandSide.BOTH, 800, "Help"),
-            SignWritingSymbol("S50000", HandSide.BOTH, 800, "Sign"),
-        ]
-
-        return dictionary
-
-    def _load_pose_templates(self) -> Dict[str, Dict[str, List[float]]]:
-        """Load pose templates for SignWriting symbols"""
-        templates: Dict[str, Dict[str, List[float]]] = {}
-
-        # S10000 - Welcome sign (open hands, arms forward)
-        templates["S10000"] = {
-            "mixamorig:RightArm": [0, 90, 0],
-            "mixamorig:LeftArm": [0, 90, 0],
-            "mixamorig:RightForeArm": [0, 0, 0],
-            "mixamorig:LeftForeArm": [0, 0, 0],
-            "mixamorig:RightHand": [0, 0, 0],
-            "mixamorig:LeftHand": [0, 0, 0],
-            # Fingers extended
-            "mixamorig:RightHandIndex1": [0, 0, 0],
-            "mixamorig:RightHandIndex2": [0, 0, 0],
-            "mixamorig:RightHandIndex3": [0, 0, 0],
-            "mixamorig:RightHandMiddle1": [0, 0, 0],
-            "mixamorig:RightHandMiddle2": [0, 0, 0],
-            "mixamorig:RightHandMiddle3": [0, 0, 0],
-            "mixamorig:RightHandRing1": [0, 0, 0],
-            "mixamorig:RightHandRing2": [0, 0, 0],
-            "mixamorig:RightHandRing3": [0, 0, 0],
-            "mixamorig:RightHandPinky1": [0, 0, 0],
-            "mixamorig:RightHandPinky2": [0, 0, 0],
-            "mixamorig:RightHandPinky3": [0, 0, 0],
-            "mixamorig:LeftHandIndex1": [0, 0, 0],
-            "mixamorig:LeftHandIndex2": [0, 0, 0],
-            "mixamorig:LeftHandIndex3": [0, 0, 0],
-            "mixamorig:LeftHandMiddle1": [0, 0, 0],
-            "mixamorig:LeftHandMiddle2": [0, 0, 0],
-            "mixamorig:LeftHandMiddle3": [0, 0, 0],
-            "mixamorig:LeftHandRing1": [0, 0, 0],
-            "mixamorig:LeftHandRing2": [0, 0, 0],
-            "mixamorig:LeftHandRing3": [0, 0, 0],
-            "mixamorig:LeftHandPinky1": [0, 0, 0],
-            "mixamorig:LeftHandPinky2": [0, 0, 0],
-            "mixamorig:LeftHandPinky3": [0, 0, 0],
-        }
-
-        # S20500 - Pointing sign (index finger extended)
-        templates["S20500"] = {
-            "mixamorig:RightArm": [0, 90, 0],
-            "mixamorig:LeftArm": [0, 0, 0],  # Left arm down
-            "mixamorig:RightForeArm": [0, 0, 0],
-            "mixamorig:LeftForeArm": [0, 0, 0],
-            "mixamorig:RightHand": [0, 0, 0],
-            "mixamorig:LeftHand": [0, 0, 0],
-            # Right hand - index pointing, others closed
-            "mixamorig:RightHandIndex1": [0, 0, 0],
-            "mixamorig:RightHandIndex2": [0, 0, 0],
-            "mixamorig:RightHandIndex3": [0, 0, 0],
-            "mixamorig:RightHandMiddle1": [0, -45, 0],
-            "mixamorig:RightHandMiddle2": [0, -45, 0],
-            "mixamorig:RightHandMiddle3": [0, -45, 0],
-            "mixamorig:RightHandRing1": [0, -45, 0],
-            "mixamorig:RightHandRing2": [0, -45, 0],
-            "mixamorig:RightHandRing3": [0, -45, 0],
-            "mixamorig:RightHandPinky1": [0, -45, 0],
-            "mixamorig:RightHandPinky2": [0, -45, 0],
-            "mixamorig:RightHandPinky3": [0, -45, 0],
-            # Left hand - neutral
-            "mixamorig:LeftHandIndex1": [0, -10, 0],
-            "mixamorig:LeftHandIndex2": [0, -10, 0],
-            "mixamorig:LeftHandIndex3": [0, -10, 0],
-            "mixamorig:LeftHandMiddle1": [0, -10, 0],
-            "mixamorig:LeftHandMiddle2": [0, -10, 0],
-            "mixamorig:LeftHandMiddle3": [0, -10, 0],
-            "mixamorig:LeftHandRing1": [0, -10, 0],
-            "mixamorig:LeftHandRing2": [0, -10, 0],
-            "mixamorig:LeftHandRing3": [0, -10, 0],
-            "mixamorig:LeftHandPinky1": [0, -10, 0],
-            "mixamorig:LeftHandPinky2": [0, -10, 0],
-            "mixamorig:LeftHandPinky3": [0, -10, 0],
-        }
-
-        # S30000 - Help sign (open hands, palms up)
-        templates["S30000"] = {
-            "mixamorig:RightArm": [0, 90, 0],
-            "mixamorig:LeftArm": [0, 90, 0],
-            "mixamorig:RightForeArm": [0, 0, 0],
-            "mixamorig:LeftForeArm": [0, 0, 0],
-            "mixamorig:RightHand": [0, 0, 90],  # Palm up
-            "mixamorig:LeftHand": [0, 0, 90],  # Palm up
-            # Fingers extended
-            "mixamorig:RightHandIndex1": [0, 0, 0],
-            "mixamorig:RightHandIndex2": [0, 0, 0],
-            "mixamorig:RightHandIndex3": [0, 0, 0],
-            "mixamorig:RightHandMiddle1": [0, 0, 0],
-            "mixamorig:RightHandMiddle2": [0, 0, 0],
-            "mixamorig:RightHandMiddle3": [0, 0, 0],
-            "mixamorig:RightHandRing1": [0, 0, 0],
-            "mixamorig:RightHandRing2": [0, 0, 0],
-            "mixamorig:RightHandRing3": [0, 0, 0],
-            "mixamorig:RightHandPinky1": [0, 0, 0],
-            "mixamorig:RightHandPinky2": [0, 0, 0],
-            "mixamorig:RightHandPinky3": [0, 0, 0],
-            "mixamorig:LeftHandIndex1": [0, 0, 0],
-            "mixamorig:LeftHandIndex2": [0, 0, 0],
-            "mixamorig:LeftHandIndex3": [0, 0, 0],
-            "mixamorig:LeftHandMiddle1": [0, 0, 0],
-            "mixamorig:LeftHandMiddle2": [0, 0, 0],
-            "mixamorig:LeftHandMiddle3": [0, 0, 0],
-            "mixamorig:LeftHandRing1": [0, 0, 0],
-            "mixamorig:LeftHandRing2": [0, 0, 0],
-            "mixamorig:LeftHandRing3": [0, 0, 0],
-            "mixamorig:LeftHandPinky1": [0, 0, 0],
-            "mixamorig:LeftHandPinky2": [0, 0, 0],
-            "mixamorig:LeftHandPinky3": [0, 0, 0],
-        }
-
-        # S40000 - Me sign (point to chest)
-        templates["S40000"] = {
-            "mixamorig:RightArm": [0, 45, 0],  # Arm pointing to chest
-            "mixamorig:LeftArm": [0, 0, 0],
-            "mixamorig:RightForeArm": [0, 0, 0],
-            "mixamorig:LeftForeArm": [0, 0, 0],
-            "mixamorig:RightHand": [0, 0, 0],
-            "mixamorig:LeftHand": [0, 0, 0],
-            # Index pointing
-            "mixamorig:RightHandIndex1": [0, 0, 0],
-            "mixamorig:RightHandIndex2": [0, 0, 0],
-            "mixamorig:RightHandIndex3": [0, 0, 0],
-            "mixamorig:RightHandMiddle1": [0, -45, 0],
-            "mixamorig:RightHandMiddle2": [0, -45, 0],
-            "mixamorig:RightHandMiddle3": [0, -45, 0],
-            "mixamorig:RightHandRing1": [0, -45, 0],
-            "mixamorig:RightHandRing2": [0, -45, 0],
-            "mixamorig:RightHandRing3": [0, -45, 0],
-            "mixamorig:RightHandPinky1": [0, -45, 0],
-            "mixamorig:RightHandPinky2": [0, -45, 0],
-            "mixamorig:RightHandPinky3": [0, -45, 0],
-            # Left hand neutral
-            "mixamorig:LeftHandIndex1": [0, -10, 0],
-            "mixamorig:LeftHandIndex2": [0, -10, 0],
-            "mixamorig:LeftHandIndex3": [0, -10, 0],
-            "mixamorig:LeftHandMiddle1": [0, -10, 0],
-            "mixamorig:LeftHandMiddle2": [0, -10, 0],
-            "mixamorig:LeftHandMiddle3": [0, -10, 0],
-            "mixamorig:LeftHandRing1": [0, -10, 0],
-            "mixamorig:LeftHandRing2": [0, -10, 0],
-            "mixamorig:LeftHandRing3": [0, -10, 0],
-            "mixamorig:LeftHandPinky1": [0, -10, 0],
-            "mixamorig:LeftHandPinky2": [0, -10, 0],
-            "mixamorig:LeftHandPinky3": [0, -10, 0],
-        }
-
-        # S50000 - Sign language (V hand)
-        templates["S50000"] = {
-            "mixamorig:RightArm": [0, 90, 0],
-            "mixamorig:LeftArm": [0, 90, 0],
-            "mixamorig:RightForeArm": [0, 0, 0],
-            "mixamorig:LeftForeArm": [0, 0, 0],
-            "mixamorig:RightHand": [0, 0, 0],
-            "mixamorig:LeftHand": [0, 0, 0],
-            # V hand - index and middle extended
-            "mixamorig:RightHandIndex1": [0, 0, 0],
-            "mixamorig:RightHandIndex2": [0, 0, 0],
-            "mixamorig:RightHandIndex3": [0, 0, 0],
-            "mixamorig:RightHandMiddle1": [0, 0, 0],
-            "mixamorig:RightHandMiddle2": [0, 0, 0],
-            "mixamorig:RightHandMiddle3": [0, 0, 0],
-            "mixamorig:RightHandRing1": [0, -45, 0],
-            "mixamorig:RightHandRing2": [0, -45, 0],
-            "mixamorig:RightHandRing3": [0, -45, 0],
-            "mixamorig:RightHandPinky1": [0, -45, 0],
-            "mixamorig:RightHandPinky2": [0, -45, 0],
-            "mixamorig:RightHandPinky3": [0, -45, 0],
-            "mixamorig:LeftHandIndex1": [0, 0, 0],
-            "mixamorig:LeftHandIndex2": [0, 0, 0],
-            "mixamorig:LeftHandIndex3": [0, 0, 0],
-            "mixamorig:LeftHandMiddle1": [0, 0, 0],
-            "mixamorig:LeftHandMiddle2": [0, 0, 0],
-            "mixamorig:LeftHandMiddle3": [0, 0, 0],
-            "mixamorig:LeftHandRing1": [0, -45, 0],
-            "mixamorig:LeftHandRing2": [0, -45, 0],
-            "mixamorig:LeftHandRing3": [0, -45, 0],
-            "mixamorig:LeftHandPinky1": [0, -45, 0],
-            "mixamorig:LeftHandPinky2": [0, -45, 0],
-            "mixamorig:LeftHandPinky3": [0, -45, 0],
-        }
-
-        return templates
-
-    def _get_neutral_pose(self) -> Dict[str, List[float]]:
-        """Get neutral pose with arms at sides"""
-        return {
-            "mixamorig:RightArm": [0, 0, 0],
-            "mixamorig:LeftArm": [0, 0, 0],
-            "mixamorig:RightForeArm": [0, 0, 0],
-            "mixamorig:LeftForeArm": [0, 0, 0],
-            "mixamorig:RightHand": [0, 0, 0],
-            "mixamorig:LeftHand": [0, 0, 0],
-            # Fingers slightly curved
-            "mixamorig:RightHandIndex1": [0, -10, 0],
-            "mixamorig:RightHandIndex2": [0, -10, 0],
-            "mixamorig:RightHandIndex3": [0, -10, 0],
-            "mixamorig:RightHandMiddle1": [0, -10, 0],
-            "mixamorig:RightHandMiddle2": [0, -10, 0],
-            "mixamorig:RightHandMiddle3": [0, -10, 0],
-            "mixamorig:RightHandRing1": [0, -10, 0],
-            "mixamorig:RightHandRing2": [0, -10, 0],
-            "mixamorig:RightHandRing3": [0, -10, 0],
-            "mixamorig:RightHandPinky1": [0, -10, 0],
-            "mixamorig:RightHandPinky2": [0, -10, 0],
-            "mixamorig:RightHandPinky3": [0, -10, 0],
-            "mixamorig:LeftHandIndex1": [0, -10, 0],
-            "mixamorig:LeftHandIndex2": [0, -10, 0],
-            "mixamorig:LeftHandIndex3": [0, -10, 0],
-            "mixamorig:LeftHandMiddle1": [0, -10, 0],
-            "mixamorig:LeftHandMiddle2": [0, -10, 0],
-            "mixamorig:LeftHandMiddle3": [0, -10, 0],
-            "mixamorig:LeftHandRing1": [0, -10, 0],
-            "mixamorig:LeftHandRing2": [0, -10, 0],
-            "mixamorig:LeftHandRing3": [0, -10, 0],
-            "mixamorig:LeftHandPinky1": [0, -10, 0],
-            "mixamorig:LeftHandPinky2": [0, -10, 0],
-            "mixamorig:LeftHandPinky3": [0, -10, 0],
-        }
-
-    def text_to_pose_sequence(self, text: str) -> PoseSequence:
-        """Main pipeline: Text → SignWriting → Pose Sequence"""
-        # Step 1: Normalize text
-        normalized_text = self._normalize_text(text)
-
-        # Step 2: Convert to SignWriting symbols
-        symbols = self._text_to_signwriting(normalized_text)
-
-        # Step 3: Convert symbols to pose sequence
-        pose_sequence = self._signwriting_to_pose_sequence(symbols)
-
-        return pose_sequence
+        # Neutral pose from pose_data_service
+        self.neutral_pose = self.pose_data_service.get_neutral_pose().joints
 
     def _normalize_text(self, text: str) -> str:
         """Normalize input text"""
         return text.strip().upper()
-
-    def _text_to_signwriting(self, text: str) -> List[SignWritingSymbol]:
-        """Convert text to SignWriting symbols"""
-        words = text.split()
-        symbols = []
-
-        for word in words:
-            if word in self.signwriting_dictionary:
-                symbols.extend(self.signwriting_dictionary[word])
-            else:
-                # Fallback: spell out unknown words
-                for letter in word:
-                    if letter in self.signwriting_dictionary:
-                        symbols.extend(self.signwriting_dictionary[letter])
-
-        return symbols
-
-    def _signwriting_to_pose_sequence(
-        self, symbols: List[SignWritingSymbol]
-    ) -> PoseSequence:
-        """Convert SignWriting symbols to pose sequence"""
-        frames: List[PoseFrame] = []
-        current_time = 0
-        fps = 30
-
-        for symbol in symbols:
-            # Get pose for this symbol
-            pose = self._get_pose_for_symbol(symbol)
-
-            # Calculate frames for this symbol
-            frame_count = int((symbol.duration_ms / 1000.0) * fps)
-
-            for i in range(frame_count):
-                frame = PoseFrame(
-                    frame_number=len(frames), pose=pose, timestamp_ms=current_time
-                )
-                frames.append(frame)
-                current_time += int(1000 / fps)
-
-        return PoseSequence(frames=frames, total_duration_ms=current_time, fps=fps)
-
-    # Public wrappers to avoid accessing private methods in callers
-    def text_to_signwriting(self, text: str) -> List[SignWritingSymbol]:
-        return self._text_to_signwriting(self._normalize_text(text))
-
-    def signwriting_to_pose_sequence(
-        self, symbols: List[SignWritingSymbol]
-    ) -> PoseSequence:
-        return self._signwriting_to_pose_sequence(symbols)
-
-    def _get_pose_for_symbol(self, symbol: SignWritingSymbol) -> Dict[str, List[float]]:
-        """Get pose data for a SignWriting symbol"""
-        if symbol.code in self.pose_templates:
-            base_pose = self.pose_templates[symbol.code].copy()
-
-            # Apply hand-side specific modifications
-            if symbol.hand_side == HandSide.LEFT:
-                # Mirror right hand poses to left hand
-                base_pose = self._mirror_pose_to_left(base_pose)
-            elif symbol.hand_side == HandSide.RIGHT:
-                # Keep right hand only, set left to neutral
-                base_pose = self._set_left_hand_neutral(base_pose)
-
-            return base_pose
-
-        # Fallback to neutral pose
-        return self.neutral_pose.copy()
 
     def _mirror_pose_to_left(
         self, pose: Dict[str, List[float]]
@@ -485,11 +158,59 @@ class SignMTPipeline:
         return pose
 
     def get_neutral_pose(self) -> Dict[str, List[float]]:
-        """Get neutral pose"""
-        return self.neutral_pose.copy()
+        """Get neutral pose from pose_data_service"""
+        return self.pose_data_service.get_neutral_pose().joints
 
     def set_language(self, language: str):
         """Set the current sign language"""
         # For now, we only have ASL mappings
         # In the future, this would load different SignWriting dictionaries
         self.current_language = language if language == "ASL" else self.default_language
+
+    def text_to_pose_sequence(self, text: str) -> Optional[PoseSequence]:
+        """Convert text to pose sequence"""
+        try:
+            # For now, return a simple pose sequence with neutral pose
+            # This is a placeholder - in the real implementation, this would:
+            # 1. Convert text to SignWriting
+            # 2. Convert SignWriting to pose sequence
+            neutral_pose = self.get_neutral_pose()
+
+            frame = PoseFrame(frame_number=0, pose=neutral_pose, timestamp_ms=0)
+
+            return PoseSequence(frames=[frame], total_duration_ms=1000, fps=30)
+        except Exception as e:
+            print(f"Error in text_to_pose_sequence: {e}")
+            return None
+
+    def text_to_signwriting(self, text: str) -> List[str]:
+        """Convert text to SignWriting symbols"""
+        try:
+            # Placeholder implementation
+            # In the real implementation, this would use a translation model
+            return ["S5000"]  # Default hand shape
+        except Exception as e:
+            print(f"Error in text_to_signwriting: {e}")
+            return []
+
+    def signwriting_to_pose_sequence(self, signwriting: str) -> Optional[PoseSequence]:
+        """Convert SignWriting to pose sequence"""
+        try:
+            # Placeholder implementation
+            neutral_pose = self.get_neutral_pose()
+
+            frame = PoseFrame(frame_number=0, pose=neutral_pose, timestamp_ms=0)
+
+            return PoseSequence(frames=[frame], total_duration_ms=1000, fps=30)
+        except Exception as e:
+            print(f"Error in signwriting_to_pose_sequence: {e}")
+            return None
+
+    def _get_pose_for_symbol(self, symbol: str) -> Optional[Dict[str, List[float]]]:
+        """Get pose for a SignWriting symbol"""
+        try:
+            # Placeholder implementation
+            return self.get_neutral_pose()
+        except Exception as e:
+            print(f"Error in _get_pose_for_symbol: {e}")
+            return None
