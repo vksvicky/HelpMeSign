@@ -232,7 +232,9 @@ class ThemeManager:
 
                         # Limit the number of widgets to prevent crashes
                         if i > 1000:
-                            self.logger.warning(f"Too many child widgets ({len(all_children)}), stopping at 1000")
+                            self.logger.warning(
+                                f"Too many child widgets ({len(all_children)}), stopping at 1000"
+                            )
                             break
 
                         child_type = child.__class__.__name__
@@ -243,6 +245,7 @@ class ThemeManager:
                         if i % 100 == 0 and i > 0:
                             try:
                                 from PySide6.QtCore import QCoreApplication
+
                                 QCoreApplication.processEvents()
                             except Exception:
                                 # Ignore processEvents errors in test environment

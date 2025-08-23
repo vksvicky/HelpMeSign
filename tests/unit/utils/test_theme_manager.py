@@ -1187,14 +1187,14 @@ class TestThemeManagerAdvancedWidgetTreeApplication:
 
         # Test that the method completes without crashing
         manager.apply_font_size_to_widget_tree(mock_root)
-        
+
         # Verify that setStyleSheet was called on the root widget
         mock_root.setStyleSheet.assert_called()
-        
+
         # Verify that setStyleSheet was called on child widgets
         for child in mock_children:
             child.setStyleSheet.assert_called()
-        
+
         # Verify that findChildren was called
         mock_root.findChildren.assert_called()
 

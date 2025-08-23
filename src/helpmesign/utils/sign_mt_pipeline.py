@@ -12,9 +12,9 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 from .resource_manager import ResourceManager
+from .sign_mt_integration import SignLanguageType, SignMTTranslator, SignSequence
 from .sign_mt_real.asset_manager import AssetManager
 from .sign_mt_real.pose_data_service import PoseDataService
-from .sign_mt_integration import SignMTTranslator, SignLanguageType, SignSequence
 
 
 class HandSide(Enum):
@@ -67,7 +67,7 @@ class SignMTPipeline:
 
         # Neutral pose from pose_data_service
         self.neutral_pose = self.pose_data_service.get_neutral_pose().joints
-        
+
         # Initialize sign.mt translator
         self.sign_translator = SignMTTranslator(SignLanguageType.ASL)
 
@@ -183,21 +183,19 @@ class SignMTPipeline:
         try:
             # Use sign.mt translator to convert text to sign sequence
             sign_sequence = self.sign_translator.translate_text_to_signs(text)
-            
+
             # Convert SignSequence to PoseSequence format
             frames = []
             for sign_frame in sign_sequence.frames:
                 pose_frame = PoseFrame(
                     frame_number=sign_frame.frame_number,
                     pose=sign_frame.to_pose_dict(),
-                    timestamp_ms=sign_frame.timestamp_ms
+                    timestamp_ms=sign_frame.timestamp_ms,
                 )
                 frames.append(pose_frame)
-            
+
             return PoseSequence(
-                frames=frames,
-                total_duration_ms=sign_sequence.total_duration_ms,
-                fps=30
+                frames=frames, total_duration_ms=sign_sequence.total_duration_ms, fps=30
             )
         except Exception as e:
             print(f"Error in text_to_pose_sequence: {e}")

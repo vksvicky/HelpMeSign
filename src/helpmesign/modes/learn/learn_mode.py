@@ -35,10 +35,14 @@ class _CornerButtonPositioner(QObject):
                 margin = 8
                 if self._anchor == "top-right":
                     # Handle case where parent/widget might be mocks in tests
-                    parent_width = getattr(self._parent, 'width', lambda: 200)()
-                    widget_width = getattr(self._widget, 'width', lambda: 100)()
-                    if (hasattr(parent_width, '_mock_name') or hasattr(widget_width, '_mock_name') or
-                        str(type(parent_width)).find('Mock') != -1 or str(type(widget_width)).find('Mock') != -1):
+                    parent_width = getattr(self._parent, "width", lambda: 200)()
+                    widget_width = getattr(self._widget, "width", lambda: 100)()
+                    if (
+                        hasattr(parent_width, "_mock_name")
+                        or hasattr(widget_width, "_mock_name")
+                        or str(type(parent_width)).find("Mock") != -1
+                        or str(type(widget_width)).find("Mock") != -1
+                    ):
                         # In test environment with mocks, skip positioning
                         return False
                     x = parent_width - widget_width - margin
@@ -318,8 +322,12 @@ class LearnMode(BaseMode):
         self._update_hand_icon_visibility_from_pref()
 
         # Connect hand preference buttons
-        self.right_hand_btn.clicked.connect(lambda checked: self._set_hand_preference("right"))
-        self.left_hand_btn.clicked.connect(lambda checked: self._set_hand_preference("left"))
+        self.right_hand_btn.clicked.connect(
+            lambda checked: self._set_hand_preference("right")
+        )
+        self.left_hand_btn.clicked.connect(
+            lambda checked: self._set_hand_preference("left")
+        )
 
         hand_selector_layout.addWidget(self.right_hand_btn)
         hand_selector_layout.addWidget(self.left_hand_btn)
@@ -769,9 +777,12 @@ class LearnMode(BaseMode):
                 else 600
             )
             # Handle case where width might be a Mock object in tests
-            if hasattr(available_width, '_mock_name') or str(type(available_width)).find('Mock') != -1:
+            if (
+                hasattr(available_width, "_mock_name")
+                or str(type(available_width)).find("Mock") != -1
+            ):
                 available_width = 600  # Default width for tests
-            
+
             scrollbar_width = 16  # Approximate scrollbar width
             effective_width = available_width - scrollbar_width
 
@@ -1498,9 +1509,7 @@ class LearnMode(BaseMode):
             font_size = max(10, self.current_font_size - 2)
         except (TypeError, AttributeError):
             font_size = 14  # Default font size for tests
-        title_font = QFont(
-            self.current_font_family, font_size
-        )
+        title_font = QFont(self.current_font_family, font_size)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setStyleSheet(f"color: {text_color}; font-weight: bold;")
@@ -1596,14 +1605,14 @@ class LearnMode(BaseMode):
         layout.addSpacing(8)
 
     def on_text_to_sign_play(self) -> None:
-        """Handle text-to-sign translation and animation (sign.mt architecture)"""
+        """Handle text-to-sign translation using proper sign.mt architecture"""
         try:
             text = self.text_input.text().strip()
             if not text:
                 self.logger.warning("No text entered for translation")
                 return
 
-            self.logger.info(f"Starting text-to-sign translation for: '{text}'")
+            self.logger.info(f"Starting sign.mt text-to-sign translation for: '{text}'")
 
             # Disable play button during translation
             self.play_button.setEnabled(False)
@@ -1614,13 +1623,13 @@ class LearnMode(BaseMode):
             self.current_char_type = None
             self._hide_clear_button()
 
-            # Use the animate panel's sign.mt pipeline for translation
+            # Use proper sign.mt pipeline for all translations
             if hasattr(self, "animate_gesture_panel") and self.animate_gesture_panel:
-                # Set the language for the pipeline
                 current_language = getattr(self, "current_language", "ASL")
 
-                # Trigger the sign animation using the sign.mt pipeline
-                self.animate_gesture_panel.play_phrase(text, current_language, "right")
+                # Use sign.mt pipeline for proper Text → SignWriting → Pose Sequence
+                self.logger.info(f"Using sign.mt pipeline for text: '{text}'")
+                self.animate_gesture_panel.play_phrase(text, current_language, "both")
 
                 # Update the instructions to show we're playing text
                 self._show_text_translation_message(text)
@@ -1629,7 +1638,7 @@ class LearnMode(BaseMode):
                 self.logger.error("Animation panel not available for text translation")
 
         except Exception as e:
-            self.logger.error(f"Error in text-to-sign translation: {e}")
+            self.logger.error(f"Error in sign.mt text-to-sign translation: {e}")
         finally:
             # Re-enable play button
             self.play_button.setEnabled(True)
@@ -1751,13 +1760,17 @@ class LearnMode(BaseMode):
                         margin = 8
                         container_width = self.sign_display_container.width()
                         btn_width = self.clear_sign_btn.width()
-                        
+
                         # Handle case where widths might be Mock objects in tests
-                        if (hasattr(container_width, '_mock_name') or hasattr(btn_width, '_mock_name') or 
-                            str(type(container_width)).find('Mock') != -1 or str(type(btn_width)).find('Mock') != -1):
+                        if (
+                            hasattr(container_width, "_mock_name")
+                            or hasattr(btn_width, "_mock_name")
+                            or str(type(container_width)).find("Mock") != -1
+                            or str(type(btn_width)).find("Mock") != -1
+                        ):
                             # Skip positioning in test environment
                             return super().eventFilter(obj, event)
-                            
+
                         x = container_width - btn_width - margin
                         y = margin
                         self.clear_sign_btn.move(x, y)

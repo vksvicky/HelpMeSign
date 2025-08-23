@@ -64,13 +64,26 @@ def test_bergamot_translator():
     model_registry = ModelRegistry(asset_manager)
     translator = BergamotTranslator(asset_manager, model_registry)
 
-    # Test SignWriting generation
-    signwriting = translator._simulate_bergamot_translation("hello world", "en", "ase")
+    # Test online translation (fallback when models aren't available)
+    signwriting = translator._simulate_online_translation("hello world", "en", "ase")
     print(f"  Generated SignWriting: {signwriting}")
 
     # Test post-processing
     processed = translator._post_process_signwriting(signwriting)
     print(f"  Post-processed: {processed}")
+
+    # Test translation response structure
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        response = loop.run_until_complete(
+            translator.translate_offline("spoken-to-signed", "hello", "en", "ase")
+        )
+        print(f"  Offline translation response: {response.text}")
+    finally:
+        loop.close()
 
 
 def test_signwriting_service():

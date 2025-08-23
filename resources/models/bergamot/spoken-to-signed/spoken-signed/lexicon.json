@@ -1,0 +1,71 @@
+{
+  "lexicon": {
+    "hello": {
+      "signwriting": "S5000",
+      "gloss": "HELLO",
+      "confidence": 0.95,
+      "frequency": 100
+    },
+    "goodbye": {
+      "signwriting": "S7000",
+      "gloss": "GOODBYE",
+      "confidence": 0.92,
+      "frequency": 85
+    },
+    "thank": {
+      "signwriting": "S6000",
+      "gloss": "THANK",
+      "confidence": 0.88,
+      "frequency": 90
+    },
+    "you": {
+      "signwriting": "S3000",
+      "gloss": "YOU",
+      "confidence": 0.85,
+      "frequency": 95
+    },
+    "welcome": {
+      "signwriting": "S8000",
+      "gloss": "WELCOME",
+      "confidence": 0.9,
+      "frequency": 70
+    },
+    "yes": {
+      "signwriting": "S4000",
+      "gloss": "YES",
+      "confidence": 0.87,
+      "frequency": 80
+    },
+    "no": {
+      "signwriting": "S2000",
+      "gloss": "NO",
+      "confidence": 0.89,
+      "frequency": 75
+    },
+    "please": {
+      "signwriting": "S9000",
+      "gloss": "PLEASE",
+      "confidence": 0.86,
+      "frequency": 65
+    },
+    "sorry": {
+      "signwriting": "S10000",
+      "gloss": "SORRY",
+      "confidence": 0.84,
+      "frequency": 60
+    },
+    "help": {
+      "signwriting": "S11000",
+      "gloss": "HELP",
+      "confidence": 0.83,
+      "frequency": 55
+    }
+  },
+  "metadata": {
+    "source_language": "spoken",
+    "target_language": "signed",
+    "total_entries": 10,
+    "version": "1.0.0",
+    "created": "2024-01-01"
+  }
+}

@@ -34,10 +34,12 @@ def test_safe_import():
             print("[OK] Safe import working correctly - PySide6 available")
             # Verify that the function returns a callable class when PySide6 is available
             assert callable(app_class), "Expected callable class when PySide6 available"
-            assert hasattr(app_class, '__name__'), "Expected class to have __name__ attribute"
+            assert hasattr(
+                app_class, "__name__"
+            ), "Expected class to have __name__ attribute"
 
         # Verify the import was successful
-        assert hasattr(get_app, '__call__'), "get_app should be callable"
+        assert hasattr(get_app, "__call__"), "get_app should be callable"
 
     except ImportError as e:
         print(f"[ERROR] Import error: {e}")
@@ -65,12 +67,14 @@ def test_utility_imports():
         # Test basic functionality
         logger = get_logger("test")
         assert logger is not None, "Logger should not be None"
-        assert hasattr(logger, 'info'), "Logger should have info method"
+        assert hasattr(logger, "info"), "Logger should have info method"
 
         # Test ResourceManager instantiation
         rm = ResourceManager()
         assert rm is not None, "ResourceManager should not be None"
-        assert hasattr(rm, 'get_data_path'), "ResourceManager should have get_data_path method"
+        assert hasattr(
+            rm, "get_data_path"
+        ), "ResourceManager should have get_data_path method"
 
         print("[OK] Utility modules import successfully and work correctly")
 

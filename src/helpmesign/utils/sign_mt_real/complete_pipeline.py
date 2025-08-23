@@ -168,6 +168,17 @@ class CompleteSignMTPipeline:
                 )
 
                 if pose_data:
+                    # Skip disruptive neutral poses in the middle of phrases
+                    metadata = pose_data.metadata or {}
+                    is_neutral_return = metadata.get("sign_type") == "neutral_return"
+                    is_middle_of_phrase = i > 0 and i < len(signs) - 1
+
+                    if is_neutral_return and is_middle_of_phrase:
+                        self.logger.info(
+                            f"Skipping disruptive neutral pose {sign} in middle of phrase"
+                        )
+                        continue
+
                     # Create multiple frames for this pose to make animation longer and smoother
                     num_frames = max(
                         3, pose_data.duration_ms // 500

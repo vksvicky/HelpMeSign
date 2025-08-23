@@ -11,7 +11,8 @@ Notes:
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from ...utils.logger import get_logger
-from ...utils.sign_mt_pipeline import PoseSequence, SignMTPipeline
+from ...utils.sign_mt_pipeline import PoseSequence
+from ...utils.sign_mt_real.complete_pipeline import CompleteSignMTPipeline
 
 try:
     from PySide6.QtCore import Qt, QTimer
@@ -171,8 +172,8 @@ class AnimateGesturePanel(QWidget):
         self._phrase_hand: str = "right"
         self._joint_cache: Dict[str, Any] = {}
 
-        # Initialize sign.mt pipeline
-        self._sign_mt_pipeline = SignMTPipeline()
+        # Initialize complete sign.mt pipeline following their architecture
+        self._sign_mt_pipeline = CompleteSignMTPipeline()
 
     # No-op overrides in headless mode so callers can still set properties safely
     def setObjectName(self, name: str) -> None:
@@ -232,9 +233,9 @@ class AnimateGesturePanel(QWidget):
             pass
 
     def play_phrase(
-        self, phrase: str, language: str = "ASL", hand: str = "right"
+        self, phrase: str, language: str = "ASL", hand: str = "both"
     ) -> None:
-        """Sign a phrase using the sign.mt pipeline."""
+        """Sign a phrase using the complete sign.mt pipeline following their architecture."""
         try:
             if getattr(self, "_headless", False):
                 return
@@ -244,12 +245,27 @@ class AnimateGesturePanel(QWidget):
 
             # Set animation flag
             self._is_animating = True
-            self._log.info("Starting sign.mt phrase animation")
+            self._log.info("Starting complete sign.mt phrase animation")
 
-            # Camera positioning handled by _frame_model
+            # Use async pipeline for proper Text → SignWriting → Pose Sequence
+            import asyncio
+            import concurrent.futures
 
-            # Generate pose sequence using sign.mt pipeline
-            pose_sequence = self._sign_mt_pipeline.text_to_pose_sequence(phrase)
+            # Run async pipeline in a thread to avoid blocking UI
+            def run_async_pipeline():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(
+                        self._sign_mt_pipeline.text_to_pose_sequence(phrase)
+                    )
+                finally:
+                    loop.close()
+
+            # Execute in thread pool
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_async_pipeline)
+                pose_sequence = future.result(timeout=10)  # 10 second timeout
 
             if pose_sequence and pose_sequence.frames:
                 self._current_pose_sequence = pose_sequence
@@ -268,14 +284,14 @@ class AnimateGesturePanel(QWidget):
                 self._animation_timer.start(frame_duration)
 
                 self._log.info(
-                    f"Started sign.mt animation: {len(pose_sequence.frames)} frames, {pose_sequence.total_duration_ms}ms"
+                    f"Started complete sign.mt animation: {len(pose_sequence.frames)} frames, {pose_sequence.total_duration_ms}ms"
                 )
             else:
                 self._log.error(f"No pose sequence generated for phrase: {phrase}")
                 self._is_animating = False
 
         except Exception as e:
-            self._log.error(f"Error playing phrase: {e}")
+            self._log.error(f"Error playing phrase with complete sign.mt pipeline: {e}")
             self._is_animating = False
 
     def _on_sign_mt_animation_frame(self) -> None:
@@ -302,74 +318,6 @@ class AnimateGesturePanel(QWidget):
             self._log.error(f"Error in sign.mt animation frame: {e}")
             self._is_animating = False
 
-    def _on_phrase_step(self) -> None:
-        """Handle each step of the word-based phrase animation."""
-        try:
-            if not self._phrase_queue:
-                if self._phrase_timer:
-                    self._phrase_timer.stop()
-                # Reset animation flag
-                self._is_animating = False
-                self._log.info(
-                    "Word-based phrase animation ended - resetting _is_animating flag"
-                )
-                # Phrase animation completed
-                return
-
-            word = self._phrase_queue.pop(0)
-            self._log.info(f"Signing word: {word}")
-
-            # Try to get word pose and animation
-            pose = self._get_word_pose_from_signs(
-                self._phrase_language, self._phrase_hand, word
-            )
-            animation = self._get_word_animation_from_signs(
-                self._phrase_language, self._phrase_hand, word
-            )
-            duration = self._get_word_duration_from_signs(
-                self._phrase_language, self._phrase_hand, word
-            )
-
-            self._log.info(
-                f"Word '{word}' - pose: {pose is not None}, animation: {animation is not None}, duration: {duration}"
-            )
-
-            if pose and animation:
-                # Apply word with smooth animation
-                self._log.info(f"Applying word '{word}' with animation")
-                self._apply_word_with_animation(pose, animation, duration)
-                # Set timer for next word after animation completes
-                if self._phrase_timer:
-                    self._phrase_timer.setInterval(duration)
-            elif pose:
-                # Apply static word pose
-                self._log.info(f"Applying word '{word}' with static pose")
-                # Apply pose
-                self._apply_pose(pose)
-                # Set timer for next word
-                if self._phrase_timer:
-                    self._phrase_timer.setInterval(duration)
-            else:
-                # Fallback to letter-by-letter for unknown words
-                self._log.info(
-                    f"No word data found for '{word}', falling back to letter spelling"
-                )
-                self._spell_word_letters(word)
-
-        except Exception as e:
-            self._log.error(f"Error in word-based phrase step: {e}")
-            try:
-                if self._phrase_timer:
-                    self._phrase_timer.stop()
-                # Reset animation flag on error
-                self._is_animating = False
-                self._log.info(
-                    "Word-based phrase animation error - resetting _is_animating flag"
-                )
-                # Error handling completed
-            except Exception:
-                pass
-
     def _get_letter_pose_from_signs(
         self, language: str, hand: str, letter: str
     ) -> Optional[Dict[str, List[float]]]:
@@ -393,81 +341,6 @@ class AnimateGesturePanel(QWidget):
         except Exception:
             return None
         return None
-
-    def _get_word_pose_from_signs(
-        self, language: str, hand: str, word: str
-    ) -> Optional[Dict[str, List[float]]]:
-        """Get pose data for a specific word using sign.mt pipeline."""
-        try:
-            # Use sign.mt pipeline
-            symbols = self._sign_mt_pipeline.text_to_signwriting(word.upper())
-
-            if symbols:
-                pose = self._sign_mt_pipeline._get_pose_for_symbol(symbols[0])
-                self._log.info(
-                    f"✅ Generated sign.mt pose for '{word}' using symbol {symbols[0]}"
-                )
-                return pose
-            else:
-                self._log.warning(
-                    f"⚠️ No sign.mt symbols found for '{word}', using neutral pose"
-                )
-                return self._sign_mt_pipeline.get_neutral_pose()
-        except Exception as e:
-            self._log.error(f"Error getting word pose for '{word}': {e}")
-            return None
-
-    def _get_word_animation_from_signs(
-        self, language: str, hand: str, word: str
-    ) -> Optional[List[Dict]]:
-        """Get animation data for a specific word using sign.mt pipeline."""
-        try:
-            # Use sign.mt pipeline
-            symbols = self._sign_mt_pipeline.text_to_signwriting(word.upper())
-
-            if symbols:
-                pose_sequence = self._sign_mt_pipeline.signwriting_to_pose_sequence(
-                    " ".join(symbols)
-                )
-
-                # Convert pose sequence to animation format
-                animation = []
-                if pose_sequence and pose_sequence.frames:
-                    for i, pose in enumerate(pose_sequence.frames):
-                        animation.append({"frame": i, "pose": pose.pose})
-
-                self._log.info(
-                    f"✅ Generated sign.mt animation for '{word}' with {len(animation)} frames"
-                )
-                return animation
-            else:
-                self._log.warning(
-                    f"⚠️ No sign.mt animation found for '{word}', using neutral pose"
-                )
-                neutral_pose = self._sign_mt_pipeline.get_neutral_pose()
-                return [{"frame": 0, "pose": neutral_pose}]
-        except Exception as e:
-            self._log.error(f"Error getting word animation for '{word}': {e}")
-            return None
-
-    def _get_word_duration_from_signs(self, language: str, hand: str, word: str) -> int:
-        """Get duration for a specific word animation using sign.mt pipeline."""
-        try:
-            # Use sign.mt pipeline
-            symbols = self._sign_mt_pipeline.text_to_signwriting(word.upper())
-
-            if symbols:
-                duration = 1000  # Default duration for symbols
-                self._log.info(f"✅ Found sign.mt duration for '{word}': {duration}ms")
-                return duration
-            else:
-                self._log.warning(
-                    f"⚠️ No sign.mt duration found for '{word}', using default"
-                )
-                return 1000
-        except Exception as e:
-            self._log.error(f"Error getting word duration for '{word}': {e}")
-            return 1000
 
     def _apply_word_with_animation(
         self, pose: Dict[str, List[float]], animation: List[Dict], duration: int
@@ -801,7 +674,8 @@ class AnimateGesturePanel(QWidget):
             # Check if ShowBase already exists
             try:
                 from direct.showbase.ShowBaseGlobal import base
-                if hasattr(base, 'render'):
+
+                if hasattr(base, "render"):
                     self._showbase = base
                     self._log.info("Using existing ShowBase instance")
                 else:
@@ -1261,6 +1135,7 @@ class AnimateGesturePanel(QWidget):
                         height = tex.getYSize()
                         stride = width * 4
                         import warnings
+
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", DeprecationWarning)
                             img = QImage(
@@ -1288,6 +1163,7 @@ class AnimateGesturePanel(QWidget):
                         data = pimg.getRamImageAs("RGBA")
                         stride = width * 4
                         import warnings
+
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", DeprecationWarning)
                             img = QImage(

@@ -1226,7 +1226,7 @@ class TestLearnMode:
         mode.main_window.set_mode.assert_called_once()
         # Since the exception is caught and logged, other methods may not be called
         # The key test is that the method doesn't crash and handles the exception
-        assert hasattr(mode, 'activate'), "activate method should exist"
+        assert hasattr(mode, "activate"), "activate method should exist"
 
     def test_deactivate_with_widget_exception(self):
         """Test deactivate with widget exception"""
@@ -1234,7 +1234,9 @@ class TestLearnMode:
         mode = self.mode
         mode.learning_widget = Mock()
         # Mock content_area.removeWidget to raise exception
-        mode.main_window.content_area.removeWidget = Mock(side_effect=Exception("Widget removal error"))
+        mode.main_window.content_area.removeWidget = Mock(
+            side_effect=Exception("Widget removal error")
+        )
 
         # Act
         mode.deactivate()
@@ -1242,7 +1244,9 @@ class TestLearnMode:
         # Assert
         # Should handle the exception gracefully and log it
         # Verify that removeWidget was attempted despite the exception
-        mode.main_window.content_area.removeWidget.assert_called_once_with(mode.learning_widget)
+        mode.main_window.content_area.removeWidget.assert_called_once_with(
+            mode.learning_widget
+        )
         # Verify that the learning_widget is still accessible (not None)
         assert mode.learning_widget is not None
 

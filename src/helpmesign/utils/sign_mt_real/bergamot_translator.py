@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 from .asset_manager import AssetManager
+from .bergamot_wasm import BergamotWASM
 from .model_registry import ModelInfo, ModelRegistry
 
 
@@ -36,6 +37,9 @@ class BergamotTranslator:
         self._loaded_model: Optional[str] = None
         self._worker_initialized = False
 
+        # Initialize WebAssembly integration
+        self.bergamot_wasm = BergamotWASM(asset_manager)
+
     async def init_worker(self) -> bool:
         """
         Initialize bergamot worker following sign.mt patterns
@@ -46,9 +50,9 @@ class BergamotTranslator:
             if self._worker_initialized:
                 return True
 
-            # TODO: Implement actual bergamot worker initialization
-            # This would load the bergamot-translator-worker.js and .wasm files
-            # For now, we'll simulate the worker initialization
+            # Initialize WebAssembly integration
+            if not await self.bergamot_wasm.initialize():
+                raise Exception("Failed to initialize Bergamot WebAssembly")
 
             self.logger.info("Initializing bergamot worker")
             self._worker_initialized = True
@@ -119,18 +123,14 @@ class BergamotTranslator:
             if not await self.init_worker():
                 raise Exception("Failed to initialize bergamot worker")
 
-            # TODO: Implement actual bergamot translation
-            # This would call the bergamot worker with the loaded model
-            # For now, we'll simulate the translation
-
             self.logger.info(
                 f"Translating offline: '{text}' ({from_lang} -> {to_lang})"
             )
 
-            # Simulate bergamot translation
-            # In reality, this would call: await this.worker.translate(from_lang, to_lang, [text], [{isHtml: false}])
-            translated_text = self._simulate_bergamot_translation(
-                text, from_lang, to_lang
+            # Use WebAssembly integration for real translation
+            model_name = f"{from_lang}-{to_lang}"
+            translated_text = await self.bergamot_wasm.translate(
+                model_name, text, from_lang, to_lang
             )
 
             # Post-process SignWriting
@@ -141,50 +141,6 @@ class BergamotTranslator:
         except Exception as e:
             self.logger.error(f"Error in offline translation: {e}")
             return TranslationResponse(text="")
-
-    def _simulate_bergamot_translation(
-        self, text: str, from_lang: str, to_lang: str
-    ) -> str:
-        """
-        Simulate bergamot translation following sign.mt patterns
-
-        This is a placeholder - in reality, this would use the actual bergamot model
-        """
-        # Use proper ASL word mappings instead of word length
-        words = text.lower().split()
-        signwriting_parts = []
-
-        for word in words:
-            # Use proper ASL SignWriting mappings
-            if word in ["welcome"]:
-                # ASL Welcome sign sequence: Initial pose -> Movement -> Final
-                signwriting_parts.append("S7000S2000S10000")
-            elif word in ["hello", "hi", "hey"]:
-                signwriting_parts.append("S5000")  # Greeting sign
-            elif word in ["goodbye", "bye"]:
-                signwriting_parts.append("S8000")  # Farewell sign (changed from S7000)
-            elif word in ["thank", "thanks"]:
-                signwriting_parts.append("S6000")  # Thank you sign
-            elif word in ["yes"]:
-                signwriting_parts.append("S4000")  # Yes sign
-            elif word in ["no"]:
-                signwriting_parts.append("S2000")  # No sign
-            elif word in ["please"]:
-                signwriting_parts.append("S9000")  # Please sign
-            elif word in ["sorry"]:
-                signwriting_parts.append("S10000")  # Sorry sign
-            elif word in ["help"]:
-                signwriting_parts.append("S11000")  # Help sign
-            elif word in ["to", "of", "the", "a", "an"]:
-                # Skip common words that don't have ASL signs
-                continue
-            else:
-                # For other words, use a reasonable default
-                signwriting_parts.append("S5000")  # Default to greeting-like sign
-
-        return "".join(
-            signwriting_parts
-        )  # Join without spaces for continuous SignWriting
 
     def _post_process_signwriting(self, text: str) -> str:
         """

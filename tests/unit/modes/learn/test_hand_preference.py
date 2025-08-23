@@ -2,8 +2,9 @@
 Tests for hand preference functionality in LearnMode
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -120,12 +121,12 @@ class TestHandPreference:
         # Check that buttons exist and have proper text
         assert self.learn_mode.right_hand_btn.text() == "🖐️"
         assert self.learn_mode.left_hand_btn.text() == "🤚"
-        
+
         # Check that buttons are created (parent check is optional in test environment)
         # In test environment, buttons might not be added to a parent widget
         # but they should still be created and functional
-        assert hasattr(self.learn_mode.right_hand_btn, 'parent')
-        assert hasattr(self.learn_mode.left_hand_btn, 'parent')
+        assert hasattr(self.learn_mode.right_hand_btn, "parent")
+        assert hasattr(self.learn_mode.left_hand_btn, "parent")
 
     def test_hand_preference_button_styling(self):
         """Test hand preference button styling"""
