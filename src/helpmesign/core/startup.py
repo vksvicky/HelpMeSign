@@ -303,7 +303,7 @@ class StartupScreen(QDialog):
 class SecureConfigManager:
     """Secure configuration manager with system-derived key protection"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config_dir = Path.home() / ".helpmesign"
         self.config_file = self.config_dir / "user_config.secure"
         self.logger = get_logger("helpmesign.config")

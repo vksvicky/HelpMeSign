@@ -90,11 +90,9 @@ class PoseManager(QObject):
     def _create_neutral_pose(self) -> Dict[str, JointPose]:
         """Create neutral pose using pose data service, with fallback for editing."""
         # Use the same pose data service as the main pipeline
-        from ...utils.sign_mt_real.asset_manager import AssetManager
-        from ...utils.sign_mt_real.pose_data_service import PoseDataService
+        from ...utils.pose_data_service import PoseDataService
 
-        asset_manager = AssetManager()
-        pose_data_service = PoseDataService(asset_manager)
+        pose_data_service = PoseDataService()
         neutral_pose_data = pose_data_service.get_neutral_pose()
 
         # Convert PoseData to JointPose format
@@ -173,7 +171,7 @@ class PoseManager(QObject):
 
         return neutral_poses
 
-    def _initialize_poses(self):
+    def _initialize_poses(self) -> None:
         """Initialize poses with neutral values."""
         self._poses = {name: pose for name, pose in self._neutral_pose.items()}
 
@@ -390,7 +388,7 @@ class SignLanguagePoseEditor(QWidget):
         self.setup_ui()
         self.setup_connections()
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
         self.setWindowTitle("Sign Language Pose Editor - sign.mt Style")
         self.setMinimumSize(1000, 800)
         self.resize(1000, 800)
@@ -401,8 +399,8 @@ class SignLanguagePoseEditor(QWidget):
         header_layout = QHBoxLayout()
 
         header = QLabel("Sign Language Pose Editor")
-        header.setFont(QFont("Arial", 16, QFont.Bold))
-        header.setAlignment(Qt.AlignCenter)
+        header.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(header)
 
         # Close button
@@ -432,11 +430,11 @@ class SignLanguagePoseEditor(QWidget):
             "Real-time 3D character pose management for sign language applications.\n"
             "H=Heading (left/right), P=Pitch (forward/back), R=Roll (side tilt)"
         )
-        instructions.setAlignment(Qt.AlignCenter)
+        instructions.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(instructions)
 
         # Main splitter
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter)
 
         # Left panel - Joint editors
@@ -670,11 +668,9 @@ class SignLanguagePoseEditor(QWidget):
         """Load the current pose from pose_data_service into the pose manager."""
         try:
             # Import and get the pose from pose_data_service
-            from ...utils.sign_mt_real.asset_manager import AssetManager
-            from ...utils.sign_mt_real.pose_data_service import PoseDataService
+            from ...utils.pose_data_service import PoseDataService
 
-            asset_manager = AssetManager()
-            pose_service = PoseDataService(asset_manager)
+            pose_service = PoseDataService()
             current_pose_data = pose_service.get_neutral_pose()
 
             # Temporarily disconnect pose_changed signal to prevent applying to character

@@ -15,7 +15,7 @@ from ..base_mode import BaseMode
 class SignTranslateMode(BaseMode):
     """Sign & Translate mode - converts text to sign language"""
 
-    def __init__(self, main_window):
+    def __init__(self, main_window) -> None:
         super().__init__(main_window)
         self.conversion_history: List[Dict[str, str]] = []
 

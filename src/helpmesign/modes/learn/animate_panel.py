@@ -11,8 +11,9 @@ Notes:
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from ...utils.logger import get_logger
-from ...utils.sign_mt_pipeline import PoseSequence
-from ...utils.sign_mt_real.complete_pipeline import CompleteSignMTPipeline
+
+# from ...utils.pose_data_service import PoseDataService
+# from ...utils.signing_service import PoseFrame, PoseSequence, SigningService
 
 try:
     from PySide6.QtCore import Qt, QTimer
@@ -152,7 +153,7 @@ class AnimateGesturePanel(QWidget):
         self._current_animation: Optional[_AnimState] = None
         # Sign.mt animation state
         self._is_animating = False
-        self._current_pose_sequence: Optional[PoseSequence] = None
+        self._current_pose_sequence: Optional[Any] = None
         self._current_frame_index = 0
         # Actor for skinned control (preferred when available)
         self._actor: Optional[Any] = None
@@ -173,7 +174,9 @@ class AnimateGesturePanel(QWidget):
         self._joint_cache: Dict[str, Any] = {}
 
         # Initialize complete sign.mt pipeline following their architecture
-        self._sign_mt_pipeline = CompleteSignMTPipeline()
+        # Signing services temporarily disabled
+        # self._signing_service = SigningService()
+        # self._pose_data_service = PoseDataService()
 
     # No-op overrides in headless mode so callers can still set properties safely
     def setObjectName(self, name: str) -> None:
@@ -235,74 +238,28 @@ class AnimateGesturePanel(QWidget):
     def play_phrase(
         self, phrase: str, language: str = "ASL", hand: str = "both"
     ) -> None:
-        """Sign a phrase using the complete sign.mt pipeline following their architecture."""
+        """Sign a phrase using the clean signing service."""
         try:
             if getattr(self, "_headless", False):
                 return
 
-            # Set language for the sign.mt pipeline
-            self._sign_mt_pipeline.set_language(language)
-
-            # Set animation flag
-            self._is_animating = True
-            self._log.info("Starting complete sign.mt phrase animation")
-
-            # Use async pipeline for proper Text → SignWriting → Pose Sequence
-            import asyncio
-            import concurrent.futures
-
-            # Run async pipeline in a thread to avoid blocking UI
-            def run_async_pipeline():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    return loop.run_until_complete(
-                        self._sign_mt_pipeline.text_to_pose_sequence(phrase)
-                    )
-                finally:
-                    loop.close()
-
-            # Execute in thread pool
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(run_async_pipeline)
-                pose_sequence = future.result(timeout=10)  # 10 second timeout
-
-            if pose_sequence and pose_sequence.frames:
-                self._current_pose_sequence = pose_sequence
-                self._current_frame_index = 0
-
-                # Start animation timer
-                if self._animation_timer is None:
-                    self._animation_timer = QTimer(self)
-                    self._animation_timer.timeout.connect(
-                        self._on_sign_mt_animation_frame
-                    )
-
-                frame_duration = int(
-                    1000 / pose_sequence.fps
-                )  # Convert to milliseconds
-                self._animation_timer.start(frame_duration)
-
-                self._log.info(
-                    f"Started complete sign.mt animation: {len(pose_sequence.frames)} frames, {pose_sequence.total_duration_ms}ms"
-                )
-            else:
-                self._log.error(f"No pose sequence generated for phrase: {phrase}")
-                self._is_animating = False
-
-        except Exception as e:
-            self._log.error(f"Error playing phrase with complete sign.mt pipeline: {e}")
+            # Temporarily disabled signing functionality
+            self._log.info(f"Signing temporarily disabled. Phrase: '{phrase}'")
             self._is_animating = False
 
-    def _on_sign_mt_animation_frame(self) -> None:
-        """Handle sign.mt animation frame updates."""
+        except Exception as e:
+            self._log.error(f"Error in play_phrase: {e}")
+            self._is_animating = False
+
+    def _on_signing_animation_frame(self) -> None:
+        """Handle clean signing animation frame updates."""
         try:
             if not self._is_animating or not self._current_pose_sequence:
                 return
 
             if self._current_frame_index < len(self._current_pose_sequence.frames):
                 frame = self._current_pose_sequence.frames[self._current_frame_index]
-                self._apply_pose(frame.pose)
+                self._apply_pose(frame.joints)
                 self._current_frame_index += 1
             else:
                 # Animation complete
@@ -310,13 +267,34 @@ class AnimateGesturePanel(QWidget):
                 if self._animation_timer:
                     self._animation_timer.stop()
                 self._log.info(
-                    f"Sign.mt animation completed: {self._current_frame_index} frames"
+                    f"Clean signing animation completed: {self._current_frame_index} frames"
                 )
                 # Animation completed
 
         except Exception as e:
-            self._log.error(f"Error in sign.mt animation frame: {e}")
+            self._log.error(f"Error in clean signing animation frame: {e}")
             self._is_animating = False
+
+    # def _convert_to_pose_sequence(self, pose_data: List[Dict]) -> PoseSequence:
+    #     """Convert pose data to PoseSequence format"""
+    #     frames = []
+    #     total_duration = 0
+    #
+    #     for i, pose_frame in enumerate(pose_data):
+    #         time_ms = pose_frame.get("time", i * 500)  # Default 500ms per frame
+    #         total_duration = max(total_duration, time_ms)
+    #
+    #         # Get pose data from pose data service
+    #         pose_name = pose_frame.get("pose", "neutral")
+    #         pose = self._pose_data_service.get_pose(pose_name)
+    #
+    #         if pose:
+    #             frame = PoseFrame(
+    #                 time_ms=time_ms, joints=pose.joints, metadata=pose.metadata
+    #             )
+    #             frames.append(frame)
+    #
+    #     return PoseSequence(frames=frames, fps=30, total_duration_ms=total_duration)
 
     def _get_letter_pose_from_signs(
         self, language: str, hand: str, letter: str
@@ -838,15 +816,12 @@ class AnimateGesturePanel(QWidget):
             self._wave_active = False
             self._intro_active = False
 
-            # Get neutral pose from sign.mt pipeline (character's default posture)
-            neutral_pose = self._sign_mt_pipeline.get_neutral_pose()
-            # Handle both PoseData objects and direct joint dictionaries
-            if hasattr(neutral_pose, "joints"):
-                pose_joints = neutral_pose.joints
-            else:
-                pose_joints = neutral_pose
+            # Get neutral pose from pose data service (temporarily disabled)
+            # neutral_pose = self._pose_data_service.get_neutral_pose()
+            # pose_joints = neutral_pose.joints if neutral_pose else {}
+            pose_joints = {}
 
-                # Don't apply any pose - let character use its natural model pose
+            # Don't apply any pose - let character use its natural model pose
             self._log.info(
                 "Using character's natural model pose - no joint modifications applied"
             )
@@ -980,12 +955,15 @@ class AnimateGesturePanel(QWidget):
                 pass
 
     def _reset_to_neutral_pose(self) -> None:
-        """Reset character to neutral pose using sign.mt pipeline."""
+        """Reset character to neutral pose using pose data service."""
         try:
-            if self._sign_mt_pipeline:
-                neutral_pose = self._sign_mt_pipeline.get_neutral_pose()
-                self._apply_pose(neutral_pose)
-                self._log.info("Reset to neutral pose using sign.mt pipeline")
+            # Temporarily disabled pose data service
+            # if self._pose_data_service:
+            #     neutral_pose = self._pose_data_service.get_neutral_pose()
+            #     if neutral_pose:
+            #         self._apply_pose(neutral_pose.joints)
+            #     self._log.info("Reset to neutral pose using pose data service")
+            self._log.info("Reset to neutral pose (temporarily disabled)")
         except Exception as e:
             self._log.error(f"Error resetting to neutral pose: {e}")
 
