@@ -605,9 +605,7 @@ class TestAppCoverage:
         """Test font size application methods success case"""
         app = HelpMeSignApp()
 
-        # Test all font size methods
-        app._apply_font_size_to_current_window(14)
-        app._apply_font_size_setting(14)
+        # Test remaining font size methods
         app._apply_font_size_directly(14)
 
         # Should not raise exceptions
@@ -616,12 +614,8 @@ class TestAppCoverage:
         """Test theme update methods success case"""
         app = HelpMeSignApp()
 
-        # Test all theme update methods
-        app._update_input_fields_theme_with_font_size("input-style")
-        # app._update_buttons_theme_with_font_size("primary", "secondary")  # Removed during cleanup
-        app._update_main_window_theme()
-        app._update_input_fields_theme()
-        app._update_buttons_theme()
+        # Note: Theme update methods were removed during refactoring as they were only used in tests
+        # The actual theme application is handled by the theme manager and applied during initialization
 
         # Should not raise exceptions
 
@@ -670,7 +664,6 @@ class TestAppCoverage:
 
     def test_set_user_mode_from_settings(self):
         """Test set_user_mode_from_settings method"""
-        app = HelpMeSignApp()
-
-        app.set_user_mode_from_settings("Learn")
-        assert app.user_mode == "Learn"
+        # Note: This method was removed during refactoring as it was only used in tests
+        # The functionality is handled by handle_settings_changed method
+        pass

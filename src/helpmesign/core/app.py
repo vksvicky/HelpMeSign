@@ -1,5 +1,4 @@
 import sys
-from datetime import datetime
 from typing import Any, Dict, Optional
 
 from PySide6.QtCore import QTimer
@@ -254,11 +253,6 @@ class HelpMeSignApp:
         except Exception as e:
             self.logger.error(f"Error during shutdown cleanup: {e}")
 
-    def _check_shutdown_state(self):
-        """Check if application is in shutdown state"""
-        # Removed to prevent segmentation faults
-        pass
-
     def setup_application(self) -> None:
         """Set up the application configuration and appearance"""
         # Set app icon if available
@@ -476,74 +470,6 @@ class HelpMeSignApp:
             self.logger.error(f"Error handling settings change: {e}")
             self._settings_save_in_progress = False
 
-    def _apply_font_size_to_current_window(self, font_size: int) -> None:
-        """C) Only update fonts in the currently visible window"""
-        try:
-            # Check if app is shutting down
-            if hasattr(self, "_shutting_down") and self._shutting_down:
-                self.logger.debug("App shutting down, skipping font application")
-                return
-
-            # Check if main window is still valid
-            if not hasattr(self, "main_window") or self.main_window is None:
-                self.logger.debug(
-                    "Main window not available, skipping font application"
-                )
-                return
-
-            from PySide6.QtGui import QFont
-
-            from ..utils.theme_manager import set_font_size
-
-            # Set the font size in the theme manager for consistency
-            set_font_size(font_size)
-            self.logger.debug(f"Font size set in theme manager: {font_size}px")
-
-            # Only apply fonts to the currently visible/active window
-            # This prevents unnecessary font updates to hidden windows
-            if hasattr(self.main_window, "isVisible") and self.main_window.isVisible():
-                self._apply_font_size_directly(font_size)
-                self.logger.info(
-                    f"Font size applied to visible main window: {font_size}px"
-                )
-            else:
-                self.logger.debug("Main window not visible, skipping font application")
-
-        except Exception as e:
-            self.logger.error(f"Error applying font size to current window: {e}")
-
-    def _apply_font_size_setting(self, font_size: int) -> None:
-        """Apply font size setting to the main window using centralized system"""
-        try:
-            # Check if app is shutting down
-            if hasattr(self, "_shutting_down") and self._shutting_down:
-                self.logger.debug("App shutting down, skipping font size application")
-                return
-
-            from ..utils.theme_manager import (
-                apply_font_size_to_widget_tree,
-                set_font_size,
-            )
-
-            # Set the font size in the theme manager FIRST
-            set_font_size(font_size)
-            self.logger.debug(f"Font size set in theme manager: {font_size}px")
-
-            # Apply font size to the entire main window widget tree
-            apply_font_size_to_widget_tree(self.main_window)
-
-            # Apply font size directly to specific components for immediate effect
-            self._apply_font_size_directly(font_size)
-
-            # Force a small delay to ensure all components are updated
-            from PySide6.QtCore import QCoreApplication
-
-            QCoreApplication.processEvents()
-
-            self.logger.info(f"Font size applied to main window: {font_size}px")
-        except Exception as e:
-            self.logger.error(f"Error applying font size setting: {e}")
-
     def _apply_font_size_directly(self, font_size: int) -> None:
         """Apply font size directly to specific UI components for immediate effect"""
         # DEBUG: Commented out direct font application to debug hand preference override issue
@@ -614,99 +540,6 @@ class HelpMeSignApp:
         self.logger.debug(
             "Direct font application disabled for debugging hand preference issue"
         )
-
-    def _update_input_fields_theme_with_font_size(self, input_style: str) -> None:
-        """Update input field styling with font size"""
-        try:
-            if hasattr(self.main_window, "text_input_frame"):
-                if hasattr(self.main_window.text_input_frame, "text_input"):
-                    self.main_window.text_input_frame.text_input.setStyleSheet(
-                        input_style
-                    )
-
-            if hasattr(self.main_window, "output_frame"):
-                if hasattr(self.main_window.output_frame, "text_output"):
-                    self.main_window.output_frame.text_output.setStyleSheet(input_style)
-        except Exception as e:
-            self.logger.error(f"Error updating input fields theme with font size: {e}")
-
-    def _update_main_window_theme(self) -> None:
-        """Update main window styling to match current theme"""
-        try:
-            from ..utils.theme_manager import get_theme_color, get_theme_style
-
-            # Apply theme styles to main window
-            main_window_style = get_theme_style("main_window")
-            if main_window_style:
-                self.main_window.setStyleSheet(main_window_style)
-
-            # Update specific components
-            self._update_input_fields_theme()
-            self._update_buttons_theme()
-
-            # Force update of the main window
-            self.main_window.update()
-            self.main_window.repaint()
-
-            self.logger.info("Main window theme updated")
-
-        except Exception as e:
-            self.logger.error(f"Error updating main window theme: {e}")
-
-    def _update_input_fields_theme(self) -> None:
-        """Update input field styling to match current theme"""
-        try:
-            from ..utils.theme_manager import get_theme_style
-
-            input_style = get_theme_style("input_field")
-            if input_style:
-                # Apply to text input and output areas
-                if hasattr(self.main_window, "text_input_frame"):
-                    if hasattr(self.main_window.text_input_frame, "text_input"):
-                        self.main_window.text_input_frame.text_input.setStyleSheet(
-                            input_style
-                        )
-
-                if hasattr(self.main_window, "output_frame"):
-                    if hasattr(self.main_window.output_frame, "text_output"):
-                        self.main_window.output_frame.text_output.setStyleSheet(
-                            input_style
-                        )
-
-        except Exception as e:
-            self.logger.error(f"Error updating input fields theme: {e}")
-
-    def _update_buttons_theme(self) -> None:
-        """Update button styling to match current theme"""
-        try:
-            from ..utils.theme_manager import get_theme_style
-
-            primary_button_style = get_theme_style("button_primary")
-            secondary_button_style = get_theme_style("button_secondary")
-
-            if primary_button_style and hasattr(self.main_window, "text_input_frame"):
-                if hasattr(self.main_window.text_input_frame, "process_button"):
-                    self.main_window.text_input_frame.process_button.setStyleSheet(
-                        primary_button_style
-                    )
-
-            if secondary_button_style and hasattr(self.main_window, "text_input_frame"):
-                if hasattr(self.main_window.text_input_frame, "clear_button"):
-                    self.main_window.text_input_frame.clear_button.setStyleSheet(
-                        secondary_button_style
-                    )
-
-        except Exception as e:
-            self.logger.error(f"Error updating buttons theme: {e}")
-
-    def set_user_mode_from_settings(self, mode: str) -> None:
-        """Set user mode from settings dialog"""
-        try:
-            self.user_mode = mode
-            set_user_mode(mode)
-            self.logger.info(f"User mode set from settings: {mode}")
-        except Exception as e:
-            self.logger.error(f"Error setting user mode from settings: {e}")
 
     def get_user_mode(self) -> Optional[str]:
         """Get the current user mode"""
