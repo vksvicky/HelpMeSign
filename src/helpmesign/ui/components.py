@@ -1215,13 +1215,25 @@ class MainWindow(QMainWindow):
         try:
             # Disconnect all signals first to prevent late callbacks
             try:
-                if hasattr(self, "process_requested"):
+                if (
+                    hasattr(self, "process_requested")
+                    and self.process_requested.receivers() > 0
+                ):
                     self.process_requested.disconnect()
-                if hasattr(self, "clear_requested"):
+                if (
+                    hasattr(self, "clear_requested")
+                    and self.clear_requested.receivers() > 0
+                ):
                     self.clear_requested.disconnect()
-                if hasattr(self, "settings_requested"):
+                if (
+                    hasattr(self, "settings_requested")
+                    and self.settings_requested.receivers() > 0
+                ):
                     self.settings_requested.disconnect()
-                if hasattr(self, "update_hand_preference"):
+                if (
+                    hasattr(self, "update_hand_preference")
+                    and self.update_hand_preference.receivers() > 0
+                ):
                     self.update_hand_preference.disconnect()
             except Exception as e:
                 self.logger.debug(f"Error disconnecting signals: {e}")
