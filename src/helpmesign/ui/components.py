@@ -1169,10 +1169,59 @@ class MainWindow(QMainWindow):
             # Set shutdown flag to prevent further operations
             self._shutting_down = True
 
-            # Don't do any cleanup - just accept the close event
-            # This prevents memory corruption from any cleanup operations
+            # Remove any widgets that contain Panda3D resources to prevent Qt from destroying them
+            # This prevents malloc corruption during Qt's widget destruction
+            try:
+                # Find and remove the AnimateGesturePanel widget if it exists
+                panda_widgets_found = 0
+                for child in self.findChildren(QWidget):
+                    if hasattr(child, "_panda_ready") and child._panda_ready:
+                        # Stop the timer first to prevent it from accessing Panda3D resources
+                        if hasattr(child, "_timer") and child._timer:
+                            try:
+                                child._timer.stop()
+                                self.logger.debug("Stopped Panda3D timer")
+                            except Exception as e:
+                                self.logger.debug(f"Error stopping timer: {e}")
 
-            self.logger.info("MainWindow closing - no cleanup")
+                        # Mark Panda3D as not ready to prevent further access
+                        child._panda_ready = False
+                        self.logger.debug("Marked Panda3D as not ready")
+
+                        # Clear all Panda3D references to prevent garbage collection issues
+                        if hasattr(child, "_actor"):
+                            child._actor = None
+                        if hasattr(child, "_model_np"):
+                            child._model_np = None
+                        if hasattr(child, "_camera"):
+                            child._camera = None
+                        if hasattr(child, "_showbase"):
+                            child._showbase = None
+                        if hasattr(child, "_color_tex"):
+                            child._color_tex = None
+                        if hasattr(child, "_scene"):
+                            child._scene = None
+                        self.logger.debug("Cleared all Panda3D references")
+
+                        # This is a widget with Panda3D resources - remove it from parent
+                        if child.parent():
+                            child.setParent(None)
+                            panda_widgets_found += 1
+                            self.logger.debug(
+                                f"Removed Panda3D widget {panda_widgets_found} from Qt hierarchy"
+                            )
+
+                if panda_widgets_found == 0:
+                    self.logger.debug("No Panda3D widgets found to remove")
+                else:
+                    self.logger.debug(
+                        f"Total Panda3D widgets removed: {panda_widgets_found}"
+                    )
+
+            except Exception as e:
+                self.logger.debug(f"Error removing Panda3D widgets: {e}")
+
+            self.logger.info("MainWindow closing - Panda3D widgets removed")
 
         except Exception as e:
             self.logger.error(f"Error in closeEvent: {e}")
