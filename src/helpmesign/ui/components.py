@@ -888,52 +888,6 @@ class StatusBar(QFrame):
                 self.logger.error(f"Error setting up system monitor: {e}")
             self.system_monitor = None
 
-    def cleanup(self):
-        """Clean up system monitor resources"""
-        if self._is_cleaned_up:
-            return
-
-        self._is_cleaned_up = True
-        self._shutting_down = True
-
-        try:
-            # Stop status update timer immediately and disconnect signals
-            if hasattr(self, "status_update_timer") and self.status_update_timer:
-                try:
-                    self.status_update_timer.timeout.disconnect()
-                except:
-                    pass  # Signal might already be disconnected
-                self.status_update_timer.stop()
-                self.status_update_timer = None
-
-            # Stop system monitor
-            if hasattr(self, "system_monitor") and self.system_monitor:
-                try:
-                    self.system_monitor.stop_monitoring()
-                except:
-                    pass  # System monitor might already be stopped
-                self.system_monitor = None
-
-            # Clean up panel if exists
-            main_window = self.window()
-            if (
-                main_window
-                and hasattr(main_window, "system_monitor_panel")
-                and main_window.system_monitor_panel
-            ):
-                try:
-                    main_window.system_monitor_panel.cleanup()
-                    # Avoid deleteLater during shutdown to prevent double-free
-                    main_window.system_monitor_panel.hide()
-                    main_window.system_monitor_panel = None
-                except:
-                    pass  # Panel might already be cleaned up
-
-        except Exception as e:
-            if hasattr(self, "logger"):
-                self.logger.error(f"Error during cleanup: {e}")
-            else:
-                print(f"Error during cleanup: {e}")
 
     def set_status(self, message: str) -> None:
         """Set status message"""
@@ -1213,56 +1167,13 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Handle window close event"""
         try:
-            # Disconnect all signals first to prevent late callbacks
-            try:
-                if (
-                    hasattr(self, "process_requested")
-                    and self.process_requested.receivers() > 0
-                ):
-                    self.process_requested.disconnect()
-                if (
-                    hasattr(self, "clear_requested")
-                    and self.clear_requested.receivers() > 0
-                ):
-                    self.clear_requested.disconnect()
-                if (
-                    hasattr(self, "settings_requested")
-                    and self.settings_requested.receivers() > 0
-                ):
-                    self.settings_requested.disconnect()
-                if (
-                    hasattr(self, "update_hand_preference")
-                    and self.update_hand_preference.receivers() > 0
-                ):
-                    self.update_hand_preference.disconnect()
-            except Exception as e:
-                self.logger.debug(f"Error disconnecting signals: {e}")
-
-            # Clean up mode manager first (includes learn mode cleanup)
-            if hasattr(self, "mode_manager") and self.mode_manager:
-                try:
-                    # Get current mode and deactivate it
-                    current_mode = self.mode_manager.get_current_mode()
-                    if current_mode and hasattr(current_mode, "deactivate"):
-                        current_mode.deactivate()
-
-                    # Clean up learn mode specifically
-                    learn_mode = self.mode_manager.get_mode("learn")
-                    if learn_mode and hasattr(learn_mode, "cleanup"):
-                        learn_mode.cleanup()
-                except Exception as e:
-                    self.logger.debug(f"Error cleaning up mode manager: {e}")
-
-            # Clean up status bar (includes system monitor)
-            if hasattr(self, "status_bar"):
-                self.status_bar.cleanup()
-
-            # Force garbage collection to help prevent memory issues
-            import gc
-
-            gc.collect()
-
-            self.logger.info("MainWindow closing - cleanup completed")
+            # Set shutdown flag to prevent further operations
+            self._shutting_down = True
+            
+            # Don't do any cleanup - just accept the close event
+            # This prevents memory corruption from any cleanup operations
+            
+            self.logger.info("MainWindow closing - no cleanup")
 
         except Exception as e:
             self.logger.error(f"Error in closeEvent: {e}")
@@ -1636,16 +1547,3 @@ class SystemMonitorPanel(QWidget):
     def _close_panel(self):
         """Close the panel"""
         self.hide()
-
-    def cleanup(self):
-        """Clean up resources"""
-        if hasattr(self, "update_timer") and self.update_timer:
-            try:
-                self.update_timer.timeout.disconnect()
-            except Exception:
-                pass
-            self.update_timer.stop()
-            # Avoid deleteLater during app shutdown to prevent allocator issues
-            self.update_timer = None
-        if hasattr(self, "system_monitor") and self.system_monitor:
-            self.system_monitor.stop_monitoring()

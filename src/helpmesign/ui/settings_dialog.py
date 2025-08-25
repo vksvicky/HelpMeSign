@@ -1368,8 +1368,8 @@ class SettingsDialog(QDialog):
             # Clean up theme preview
             self._cleanup_theme_preview()
 
-            # Disconnect signals to prevent memory leaks
-            self._disconnect_signals()
+            # Don't try to disconnect signals during shutdown - let Qt handle it
+            pass
 
             # Accept the close event
             event.accept()
@@ -1377,50 +1377,7 @@ class SettingsDialog(QDialog):
             self.logger.error(f"Error in closeEvent: {e}")
             event.accept()
 
-    def _disconnect_signals(self):
-        """Disconnect all signals to prevent memory leaks"""
-        try:
-            # Disconnect button signals
-            if hasattr(self, "reset_button") and self.reset_button:
-                try:
-                    self.reset_button.clicked.disconnect()
-                except:
-                    pass  # Signal might already be disconnected
 
-            if hasattr(self, "cancel_button") and self.cancel_button:
-                try:
-                    self.cancel_button.clicked.disconnect()
-                except:
-                    pass  # Signal might already be disconnected
-
-            if hasattr(self, "ok_button") and self.ok_button:
-                try:
-                    self.ok_button.clicked.disconnect()
-                except:
-                    pass  # Signal might already be disconnected
-
-            # Disconnect control signals
-            if hasattr(self, "segmented_control") and self.segmented_control:
-                try:
-                    self.segmented_control.selection_changed.disconnect()
-                except:
-                    pass  # Signal might already be disconnected
-
-            if hasattr(self, "theme_control") and self.theme_control:
-                try:
-                    self.theme_control.selection_changed.disconnect()
-                except:
-                    pass  # Signal might already be disconnected
-
-            if hasattr(self, "font_size_selector") and self.font_size_selector:
-                try:
-                    self.font_size_selector.size_changed.disconnect()
-                except:
-                    pass  # Signal might already be disconnected
-
-            self.logger.debug("Signals disconnected successfully")
-        except Exception as e:
-            self.logger.error(f"Error disconnecting signals: {e}")
 
     def _cleanup_theme_preview(self):
         """Clean up theme preview - simplified to prevent conflicts"""
@@ -1438,8 +1395,8 @@ class SettingsDialog(QDialog):
             # Restore original settings
             self._restore_original_settings()
 
-            # Disconnect signals to prevent memory leaks
-            self._disconnect_signals()
+            # Don't try to disconnect signals during shutdown - let Qt handle it
+            pass
 
             # Close dialog
             super().reject()
@@ -1476,8 +1433,8 @@ class SettingsDialog(QDialog):
             # Apply settings (this will save and close)
             self.apply_settings()
 
-            # Disconnect signals to prevent memory leaks
-            self._disconnect_signals()
+            # Don't try to disconnect signals during shutdown - let Qt handle it
+            pass
 
             # Ensure dialog closes even if apply_settings doesn't call accept
             if not self.isHidden():

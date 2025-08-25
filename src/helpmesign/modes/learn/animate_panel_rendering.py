@@ -204,11 +204,12 @@ class RenderingManager:
             if hasattr(self.parent_panel, "_color_tex"):
                 self.parent_panel._color_tex = None
 
-            # Clear display widget
+            # Clear display widget safely (avoid deleteLater during shutdown)
             if hasattr(self.parent_panel, "_display") and self.parent_panel._display:
                 try:
                     self.parent_panel._display.clear()
-                    self.parent_panel._display.deleteLater()
+                    # Don't call deleteLater during shutdown to prevent double-free
+                    self.parent_panel._display.hide()
                 except Exception:
                     pass
                 self.parent_panel._display = None

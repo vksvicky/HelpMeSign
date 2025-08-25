@@ -922,27 +922,6 @@ class SignLanguagePoseEditor(QWidget):
         except Exception as e:
             print(f"Error changing character color: {e}")
 
-    def shutdown(self):
-        """Gracefully shutdown the HPR editor."""
-        try:
-            # Clear all joint editors
-            for editor in self.joint_editors.values():
-                if editor.parent():
-                    editor.setParent(None)
-            self.joint_editors.clear()
-
-            # Clear cache
-            self._available_joints_cache = []
-
-            # Clear pose manager
-            if hasattr(self, "pose_manager"):
-                self.pose_manager = None
-
-            print("HPR editor shutdown completed")
-
-        except Exception as e:
-            print(f"Error during HPR editor shutdown: {e}")
-
 
 # Legacy compatibility - keep the old class name for existing code
 HPRInteractiveEditor = SignLanguagePoseEditor

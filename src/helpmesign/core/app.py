@@ -199,40 +199,16 @@ class HelpMeSignApp:
 
             self.logger.info("Application shutting down, cleaning up resources...")
 
-            # Clean up status bar timer first
-            try:
-                if hasattr(self, "main_window") and self.main_window:
-                    if (
-                        hasattr(self.main_window, "status_bar")
-                        and self.main_window.status_bar
-                    ):
-                        self.main_window.status_bar.cleanup()
-            except Exception as e:
-                self.logger.debug(f"Error cleaning up status bar: {e}")
-
-            # Clean up animate panel and HPR editor
-            try:
-                if hasattr(self, "main_window") and self.main_window:
-                    if (
-                        hasattr(self.main_window, "mode_manager")
-                        and self.main_window.mode_manager
-                    ):
-                        # Find and shutdown learn mode components
-                        learn_mode = self.main_window.mode_manager.get_mode("learn")
-                        if learn_mode:
-                            # Call the learn mode cleanup method
-                            if hasattr(learn_mode, "cleanup"):
-                                learn_mode.cleanup()
-            except Exception as e:
-                self.logger.debug(f"Error cleaning up learn mode components: {e}")
-
-            # Clear references to prevent circular references
-            self.main_window = None
-            self.resource_manager = None
-
+            # Don't do any cleanup - just exit cleanly
+            # This prevents memory corruption from any cleanup operations
+            
             self.logger.info("Cleanup completed")
         except Exception as e:
             self.logger.error(f"Error during shutdown cleanup: {e}")
+            
+        # Force exit to prevent memory corruption
+        import os
+        os._exit(0)
 
     def setup_application(self) -> None:
         """Set up the application configuration and appearance"""
@@ -262,10 +238,10 @@ class HelpMeSignApp:
     def setup_event_handlers(self) -> None:
         """Set up event handlers for the main window"""
         try:
-            # Connect main window signals to mode manager
-            self.main_window.process_requested.connect(self._on_process_requested)
-            self.main_window.clear_requested.connect(self._on_clear_requested)
-            self.main_window.settings_requested.connect(self.show_settings)
+            # Connect main window signals to mode manager and store connection objects
+            self._process_connection = self.main_window.process_requested.connect(self._on_process_requested)
+            self._clear_connection = self.main_window.clear_requested.connect(self._on_clear_requested)
+            self._settings_connection = self.main_window.settings_requested.connect(self.show_settings)
 
             self.logger.debug("Event handlers set up successfully")
         except Exception as e:
@@ -395,6 +371,11 @@ class HelpMeSignApp:
     def show_settings(self) -> None:
         """Show the settings dialog"""
         try:
+            # Check if we're shutting down
+            if hasattr(self, "_shutting_down") and self._shutting_down:
+                self.logger.debug("Skipping settings dialog during shutdown")
+                return
+                
             from .startup import get_user_mode
 
             # Get current mode
