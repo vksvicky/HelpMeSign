@@ -226,15 +226,6 @@ class HelpMeSignApp:
             except Exception as e:
                 self.logger.debug(f"Error cleaning up learn mode components: {e}")
 
-            # Disconnect all signals to prevent callbacks during shutdown
-            try:
-                if hasattr(self, "main_window") and self.main_window:
-                    self.main_window.process_requested.disconnect()
-                    self.main_window.clear_requested.disconnect()
-                    self.main_window.settings_requested.disconnect()
-            except Exception as e:
-                self.logger.debug(f"Error disconnecting signals: {e}")
-
             # Clear references to prevent circular references
             self.main_window = None
             self.resource_manager = None

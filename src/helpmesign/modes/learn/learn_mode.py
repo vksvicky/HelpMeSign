@@ -95,6 +95,9 @@ class LearnMode(BaseMode):
         # Initialize animate panel (will be set up in setup_ui)
         self.animate_panel: Optional["AnimateGesturePanel"] = None
 
+        # Initialize learning widget (will be set up in setup_ui)
+        self.learning_widget: Optional["QWidget"] = None
+
         # Now call parent __init__ which will call setup_ui()
         super().__init__(main_window)
 
@@ -2533,7 +2536,7 @@ class LearnMode(BaseMode):
     def cleanup(self) -> None:
         """Clean up resources to prevent memory corruption"""
         try:
-            # Stop any active animations
+            # Stop any active animations first
             if hasattr(self, "animate_panel") and self.animate_panel:
                 try:
                     self.animate_panel.shutdown()
@@ -2549,16 +2552,23 @@ class LearnMode(BaseMode):
                     pass
                 self._resize_timer = None
 
-            # Disconnect all signals
-            try:
-                if hasattr(self.main_window, "clear_requested"):
-                    self.main_window.clear_requested.disconnect()
-                if hasattr(self.main_window, "process_requested"):
-                    self.main_window.process_requested.disconnect()
-                if hasattr(self.main_window, "update_hand_preference"):
-                    self.main_window.update_hand_preference.disconnect()
-            except Exception as e:
-                self.logger.debug(f"Error disconnecting signals: {e}")
+            # Clear UI references
+            if hasattr(self, "learning_widget") and self.learning_widget:
+                try:
+                    self.learning_widget.deleteLater()
+                except Exception:
+                    pass
+                self.learning_widget = None
+
+            # Clear other UI references
+            for attr in [
+                "sign_title",
+                "text_input",
+                "display_container",
+                "selection_container",
+            ]:
+                if hasattr(self, attr):
+                    setattr(self, attr, None)
 
             # Clear references to prevent circular references
             self.sign_loader = None

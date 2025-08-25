@@ -1213,21 +1213,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Handle window close event"""
         try:
-            # Clean up mode manager first (includes learn mode cleanup)
-            if hasattr(self, "mode_manager") and self.mode_manager:
-                try:
-                    # Get current mode and deactivate it
-                    current_mode = self.mode_manager.get_current_mode()
-                    if current_mode and hasattr(current_mode, "deactivate"):
-                        current_mode.deactivate()
-                except Exception as e:
-                    self.logger.debug(f"Error deactivating current mode: {e}")
-
-            # Clean up status bar (includes system monitor)
-            if hasattr(self, "status_bar"):
-                self.status_bar.cleanup()
-
-            # Disconnect all signals to prevent late callbacks
+            # Disconnect all signals first to prevent late callbacks
             try:
                 if hasattr(self, "process_requested"):
                     self.process_requested.disconnect()
@@ -1239,6 +1225,25 @@ class MainWindow(QMainWindow):
                     self.update_hand_preference.disconnect()
             except Exception as e:
                 self.logger.debug(f"Error disconnecting signals: {e}")
+
+            # Clean up mode manager first (includes learn mode cleanup)
+            if hasattr(self, "mode_manager") and self.mode_manager:
+                try:
+                    # Get current mode and deactivate it
+                    current_mode = self.mode_manager.get_current_mode()
+                    if current_mode and hasattr(current_mode, "deactivate"):
+                        current_mode.deactivate()
+
+                    # Clean up learn mode specifically
+                    learn_mode = self.mode_manager.get_mode("learn")
+                    if learn_mode and hasattr(learn_mode, "cleanup"):
+                        learn_mode.cleanup()
+                except Exception as e:
+                    self.logger.debug(f"Error cleaning up mode manager: {e}")
+
+            # Clean up status bar (includes system monitor)
+            if hasattr(self, "status_bar"):
+                self.status_bar.cleanup()
 
             # Force garbage collection to help prevent memory issues
             import gc

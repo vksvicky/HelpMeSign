@@ -1115,9 +1115,15 @@ class AnimateGesturePanel(QWidget):
             if hasattr(self, "_display") and self._display:
                 try:
                     self._display.clear()
+                    self._display.deleteLater()
                 except Exception:
                     pass
                 self._display = None
+
+            # Clear any remaining Panda3D references
+            for attr in ["_color_tex", "_model_np", "_camera", "_showbase", "_actor"]:
+                if hasattr(self, attr):
+                    setattr(self, attr, None)
 
             # Force garbage collection
             import gc
