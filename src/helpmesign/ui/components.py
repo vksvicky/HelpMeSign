@@ -888,7 +888,6 @@ class StatusBar(QFrame):
                 self.logger.error(f"Error setting up system monitor: {e}")
             self.system_monitor = None
 
-
     def set_status(self, message: str) -> None:
         """Set status message"""
         # Show mode and status together on the left
@@ -1169,10 +1168,10 @@ class MainWindow(QMainWindow):
         try:
             # Set shutdown flag to prevent further operations
             self._shutting_down = True
-            
+
             # Don't do any cleanup - just accept the close event
             # This prevents memory corruption from any cleanup operations
-            
+
             self.logger.info("MainWindow closing - no cleanup")
 
         except Exception as e:

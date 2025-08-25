@@ -2512,6 +2512,28 @@ class LearnMode(BaseMode):
             # Restore hand preference visual state
             self._restore_hand_preference_visual_state()
 
+            # Reload the character when reactivating the mode
+            if hasattr(self, "animate_gesture_panel") and self.animate_gesture_panel:
+                try:
+                    import os
+
+                    from ...utils.resource_manager import ResourceManager
+
+                    rm = ResourceManager()
+                    default_model = rm.get_model_path("arivo.glb")
+
+                    if default_model and os.path.exists(default_model):
+                        self.animate_gesture_panel.load_character(default_model)
+                        self.logger.debug("Character reloaded on mode activation")
+                    else:
+                        self.logger.warning(
+                            "Default character model not found for reload"
+                        )
+                except Exception as e:
+                    self.logger.error(
+                        f"Error reloading character on mode activation: {e}"
+                    )
+
         except Exception as e:
             self.logger.error(f"Error activating learn mode: {e}")
 
@@ -2745,4 +2767,3 @@ class LearnMode(BaseMode):
         except Exception as e:
             self.logger.error(f"Error getting gesture data for '{character}': {e}")
             return None
-

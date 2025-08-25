@@ -201,14 +201,10 @@ class HelpMeSignApp:
 
             # Don't do any cleanup - just exit cleanly
             # This prevents memory corruption from any cleanup operations
-            
+
             self.logger.info("Cleanup completed")
         except Exception as e:
             self.logger.error(f"Error during shutdown cleanup: {e}")
-            
-        # Force exit to prevent memory corruption
-        import os
-        os._exit(0)
 
     def setup_application(self) -> None:
         """Set up the application configuration and appearance"""
@@ -239,9 +235,15 @@ class HelpMeSignApp:
         """Set up event handlers for the main window"""
         try:
             # Connect main window signals to mode manager and store connection objects
-            self._process_connection = self.main_window.process_requested.connect(self._on_process_requested)
-            self._clear_connection = self.main_window.clear_requested.connect(self._on_clear_requested)
-            self._settings_connection = self.main_window.settings_requested.connect(self.show_settings)
+            self._process_connection = self.main_window.process_requested.connect(
+                self._on_process_requested
+            )
+            self._clear_connection = self.main_window.clear_requested.connect(
+                self._on_clear_requested
+            )
+            self._settings_connection = self.main_window.settings_requested.connect(
+                self.show_settings
+            )
 
             self.logger.debug("Event handlers set up successfully")
         except Exception as e:
@@ -375,7 +377,7 @@ class HelpMeSignApp:
             if hasattr(self, "_shutting_down") and self._shutting_down:
                 self.logger.debug("Skipping settings dialog during shutdown")
                 return
-                
+
             from .startup import get_user_mode
 
             # Get current mode

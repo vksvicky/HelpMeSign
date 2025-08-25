@@ -1377,8 +1377,6 @@ class SettingsDialog(QDialog):
             self.logger.error(f"Error in closeEvent: {e}")
             event.accept()
 
-
-
     def _cleanup_theme_preview(self):
         """Clean up theme preview - simplified to prevent conflicts"""
         try:

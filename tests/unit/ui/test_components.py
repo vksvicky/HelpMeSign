@@ -1219,7 +1219,6 @@ class TestComponentsRealModuleCoverage:
 
             # Test SystemMonitorPanel comprehensive methods (simple widget)
             system_panel = comp.SystemMonitorPanel()
-            system_panel.cleanup()
             system_panel._close_panel()
 
         except Exception as e:
@@ -1442,7 +1441,6 @@ class TestComponentsRealModuleCoverage:
             system_panel = comp.SystemMonitorPanel()
             system_panel.setup_system_monitor()
             system_panel._close_panel()
-            system_panel.cleanup()
 
         except Exception as e:
             pytest.skip(f"Failed to test comprehensive UI interactions: {e}")

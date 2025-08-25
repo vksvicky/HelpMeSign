@@ -1197,15 +1197,15 @@ class ThemeManager:
                     # Check if widget is valid and visible
                     if widget is None or not widget.isVisible():
                         continue
-                        
+
                     # Check if widget is being destroyed
                     if hasattr(widget, "isDestroyed") and widget.isDestroyed():
                         continue
-                        
+
                     # Check if widget has required methods
                     if not hasattr(widget, "update") or not hasattr(widget, "repaint"):
                         continue
-                        
+
                     widget.update()
                     widget.repaint()
 
@@ -1215,19 +1215,26 @@ class ThemeManager:
                         # Limit the number of children to prevent memory issues
                         max_children = 500
                         if len(children) > max_children:
-                            self.logger.warning(f"Too many child widgets ({len(children)}), limiting to {max_children}")
+                            self.logger.warning(
+                                f"Too many child widgets ({len(children)}), limiting to {max_children}"
+                            )
                             children = children[:max_children]
-                            
+
                         for child in children:
                             try:
                                 # Check if child is valid and not being destroyed
                                 if child is None:
                                     continue
-                                if hasattr(child, "isDestroyed") and child.isDestroyed():
+                                if (
+                                    hasattr(child, "isDestroyed")
+                                    and child.isDestroyed()
+                                ):
                                     continue
-                                if not hasattr(child, "update") or not hasattr(child, "repaint"):
+                                if not hasattr(child, "update") or not hasattr(
+                                    child, "repaint"
+                                ):
                                     continue
-                                    
+
                                 child.update()
                                 child.repaint()
                             except Exception as child_error:
@@ -1236,11 +1243,11 @@ class ThemeManager:
                     except Exception as children_error:
                         # Skip problematic widget trees
                         continue
-                        
+
                 except Exception as widget_error:
                     # Skip problematic top-level widgets
                     continue
-                    
+
         except Exception as e:
             self.logger.error(f"Error refreshing widgets: {e}")
 
@@ -1264,16 +1271,16 @@ class ThemeManager:
             # Clear theme cache to prevent memory leaks
             if hasattr(self, "themes"):
                 self.themes.clear()
-            
+
             # Clear any cached styles
             if hasattr(self, "_cached_styles"):
                 self._cached_styles.clear()
-                
+
             # Reset current theme
             self.current_theme = "Light"
             self.current_font_size = 12
             self.current_font_family = "Roboto"
-            
+
             self.logger.debug("Theme manager cleanup completed")
         except Exception as e:
             self.logger.error(f"Error during theme manager cleanup: {e}")
