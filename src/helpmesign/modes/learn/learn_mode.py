@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QVBoxLayout, QWidget, QLabel, QPushButton, QHBoxLayout
     from PySide6.QtGui import QFont
+    from .animate_panel import AnimateGesturePanel
 
 from PySide6.QtCore import QEvent, QObject
 
@@ -90,6 +91,9 @@ class LearnMode(BaseMode):
         self.sign_loader = get_sign_language_loader()
         self.current_language = "ASL"  # Default to ASL
         self.current_category = "all"  # Track current category
+
+        # Initialize animate panel (will be set up in setup_ui)
+        self.animate_panel: Optional["AnimateGesturePanel"] = None
 
         # Now call parent __init__ which will call setup_ui()
         super().__init__(main_window)
@@ -2525,3 +2529,49 @@ class LearnMode(BaseMode):
     def _force_layout_stability(self) -> None:
         """Force layout stability to prevent flickering"""
         pass
+
+    def cleanup(self) -> None:
+        """Clean up resources to prevent memory corruption"""
+        try:
+            # Stop any active animations
+            if hasattr(self, "animate_panel") and self.animate_panel:
+                try:
+                    self.animate_panel.shutdown()
+                except Exception as e:
+                    self.logger.debug(f"Error shutting down animate panel: {e}")
+                self.animate_panel = None
+
+            # Stop any timers
+            if hasattr(self, "_resize_timer") and self._resize_timer:
+                try:
+                    self._resize_timer.stop()
+                except Exception:
+                    pass
+                self._resize_timer = None
+
+            # Disconnect all signals
+            try:
+                if hasattr(self.main_window, "clear_requested"):
+                    self.main_window.clear_requested.disconnect()
+                if hasattr(self.main_window, "process_requested"):
+                    self.main_window.process_requested.disconnect()
+                if hasattr(self.main_window, "update_hand_preference"):
+                    self.main_window.update_hand_preference.disconnect()
+            except Exception as e:
+                self.logger.debug(f"Error disconnecting signals: {e}")
+
+            # Clear references to prevent circular references
+            self.sign_loader = None
+            self.current_character = None
+            self.current_char_type = None
+            self.learning_progress = {}
+            self.lesson_history = []
+            self.current_lesson = None
+
+            # Force garbage collection
+            import gc
+
+            gc.collect()
+
+        except Exception as e:
+            self.logger.error(f"Error during learn mode cleanup: {e}")

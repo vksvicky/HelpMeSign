@@ -220,19 +220,9 @@ class HelpMeSignApp:
                         # Find and shutdown learn mode components
                         learn_mode = self.main_window.mode_manager.get_mode("learn")
                         if learn_mode:
-                            # Shutdown animate panel
-                            if (
-                                hasattr(learn_mode, "animate_panel")
-                                and learn_mode.animate_panel
-                            ):
-                                learn_mode.animate_panel.shutdown()
-
-                            # Shutdown HPR editor if it exists
-                            if (
-                                hasattr(learn_mode, "hpr_editor")
-                                and learn_mode.hpr_editor
-                            ):
-                                learn_mode.hpr_editor.shutdown()
+                            # Call the learn mode cleanup method
+                            if hasattr(learn_mode, "cleanup"):
+                                learn_mode.cleanup()
             except Exception as e:
                 self.logger.debug(f"Error cleaning up learn mode components: {e}")
 

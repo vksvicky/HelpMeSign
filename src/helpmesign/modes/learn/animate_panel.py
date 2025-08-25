@@ -1069,26 +1069,65 @@ class AnimateGesturePanel(QWidget):
             # Stop all timers
             if hasattr(self, "_animation_timer") and self._animation_timer:
                 self._animation_timer.stop()
+                self._animation_timer = None
             if hasattr(self, "_phrase_timer") and self._phrase_timer:
                 self._phrase_timer.stop()
+                self._phrase_timer = None
             if hasattr(self, "_frame_timer") and self._frame_timer:
                 self._frame_timer.stop()
+                self._frame_timer = None
 
             # Stop animations
             self._is_animating = False
             self._wave_active = False
             self._intro_active = False
 
-            # Clear references
-            self._actor = None
-            self._model_np = None
-            self._camera = None
-            self._showbase = None
+            # Clear Panda3D references
+            if hasattr(self, "_actor") and self._actor:
+                try:
+                    self._actor.cleanup()
+                except Exception:
+                    pass
+                self._actor = None
 
-            print("Animate panel shutdown completed")
+            if hasattr(self, "_model_np") and self._model_np:
+                try:
+                    self._model_np.removeNode()
+                except Exception:
+                    pass
+                self._model_np = None
+
+            if hasattr(self, "_camera") and self._camera:
+                self._camera = None
+
+            if hasattr(self, "_showbase") and self._showbase:
+                try:
+                    self._showbase.destroy()
+                except Exception:
+                    pass
+                self._showbase = None
+
+            # Clear texture references
+            if hasattr(self, "_color_tex"):
+                self._color_tex = None
+
+            # Clear display widget
+            if hasattr(self, "_display") and self._display:
+                try:
+                    self._display.clear()
+                except Exception:
+                    pass
+                self._display = None
+
+            # Force garbage collection
+            import gc
+
+            gc.collect()
+
+            self._log.info("Animate panel shutdown completed")
 
         except Exception as e:
-            print(f"Error during animate panel shutdown: {e}")
+            self._log.error(f"Error during animate panel shutdown: {e}")
 
     # ---------- Frame pump ----------
     def _on_frame(self) -> None:
