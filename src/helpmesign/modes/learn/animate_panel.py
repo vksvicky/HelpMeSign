@@ -10,6 +10,7 @@ Notes:
 
 from typing import Any, Dict, List, Optional, TypedDict, cast
 
+from ...utils.joint_constraints import joint_validator
 from ...utils.logger import get_logger
 
 # from ...utils.pose_data_service import PoseDataService
@@ -398,15 +399,18 @@ class AnimateGesturePanel(QWidget):
             self._log.error(f"Error spelling word letters: {e}")
 
     def _apply_pose(self, pose: Dict[str, List[float]]) -> None:
-        """Apply HPR to joints by name for sign.mt pipeline."""
+        """Apply HPR to joints by name for sign.mt pipeline with joint constraints."""
         try:
             if self._actor is None:
                 return
 
+            # Validate and constrain the pose to human anatomical limits
+            constrained_pose = joint_validator.validate_and_constrain_pose(pose)
+
             # Track if any joints were successfully moved
             joints_moved = False
 
-            for joint_name, hpr in pose.items():
+            for joint_name, hpr in constrained_pose.items():
                 try:
                     if len(hpr) >= 3:
                         h, p, r = float(hpr[0]), float(hpr[1]), float(hpr[2])
@@ -430,12 +434,75 @@ class AnimateGesturePanel(QWidget):
                     continue
 
             if joints_moved:
-                self._log.debug(f"Applied pose to {len(pose)} joints")
+                self._log.debug(
+                    f"Applied constrained pose to {len(constrained_pose)} joints"
+                )
             else:
                 self._log.warning("No joints were moved in pose application")
 
         except Exception as e:
             self._log.error(f"Error applying pose: {e}")
+
+    def validate_pose_before_application(
+        self, pose: Dict[str, List[float]]
+    ) -> Dict[str, List[float]]:
+        """
+        Validate a pose against human anatomical constraints before applying
+
+        Args:
+            pose: Dictionary mapping joint names to [h, p, r] values
+
+        Returns:
+            Constrained pose with values within human limits
+        """
+        try:
+            return joint_validator.validate_and_constrain_pose(pose)
+        except Exception as e:
+            self._log.error(f"Error validating pose: {e}")
+            return pose
+
+    def is_pose_anatomically_valid(self, pose: Dict[str, List[float]]) -> bool:
+        """
+        Check if a pose is within human anatomical limits
+
+        Args:
+            pose: Dictionary mapping joint names to [h, p, r] values
+
+        Returns:
+            True if pose is valid, False otherwise
+        """
+        try:
+            return joint_validator.is_pose_valid(pose)
+        except Exception as e:
+            self._log.error(f"Error checking pose validity: {e}")
+            return False
+
+    def get_joint_constraint_info(self, joint_name: str) -> Optional[Dict]:
+        """
+        Get constraint information for a specific joint
+
+        Args:
+            joint_name: Name of the joint
+
+        Returns:
+            Dictionary with constraint information or None if not found
+        """
+        try:
+            constraint = joint_validator.get_joint_constraint(joint_name)
+            if constraint:
+                return {
+                    "min_h": constraint.min_h,
+                    "max_h": constraint.max_h,
+                    "min_p": constraint.min_p,
+                    "max_p": constraint.max_p,
+                    "min_r": constraint.min_r,
+                    "max_r": constraint.max_r,
+                    "description": constraint.description,
+                }
+            return None
+        except Exception as e:
+            self._log.error(f"Error getting joint constraint info: {e}")
+            return None
 
     def _get_joint_node(self, name: str) -> Optional[Any]:
         """Find and cache a joint/nodepath by exact or partial name match (case-insensitive)."""

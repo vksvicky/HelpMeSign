@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 from PySide6.QtCore import QEvent, QObject
 
+from ...utils.joint_constraints import joint_validator
 from ...utils.language_manager import get_text
 from ...utils.sign_language_loader import get_sign_language_loader
 from ...utils.theme_manager import get_theme_style
@@ -1800,12 +1801,37 @@ class LearnMode(BaseMode):
         try:
             if hasattr(self, "animate_gesture_panel"):
                 hand = getattr(self, "current_hand_preference", "right")
-                self.animate_gesture_panel.set_language(
-                    getattr(self, "current_language", "ASL")
-                )
-                self.animate_gesture_panel.play_gesture(letter, hand)
-        except Exception:
-            pass
+
+                # Get gesture data and validate it before playing
+                gesture_data = self._get_gesture_data(letter, "letter", hand)
+                if gesture_data:
+                    validated_gesture = self.validate_gesture_before_play(gesture_data)
+
+                    # Check for violations and log them
+                    violations = self.get_gesture_constraint_violations(gesture_data)
+                    if violations:
+                        self.logger.warning(
+                            f"Gesture '{letter}' has {len(violations)} constraint violations"
+                        )
+                        for violation in violations:
+                            self.logger.debug(
+                                f"Joint '{violation['joint']}' ({violation['description']}) "
+                                f"violates constraints: {violation['original_values']}"
+                            )
+
+                    # Play the validated gesture
+                    self.animate_gesture_panel.set_language(
+                        getattr(self, "current_language", "ASL")
+                    )
+                    self.animate_gesture_panel.play_gesture(letter, hand)
+                else:
+                    # Fallback to direct gesture playing if no data available
+                    self.animate_gesture_panel.set_language(
+                        getattr(self, "current_language", "ASL")
+                    )
+                    self.animate_gesture_panel.play_gesture(letter, hand)
+        except Exception as e:
+            self.logger.error(f"Error playing alphabet gesture '{letter}': {e}")
 
     def on_number_selected(self, number: str) -> None:
         """Handle number selection"""
@@ -1819,12 +1845,37 @@ class LearnMode(BaseMode):
         try:
             if hasattr(self, "animate_gesture_panel"):
                 hand = getattr(self, "current_hand_preference", "right")
-                self.animate_gesture_panel.set_language(
-                    getattr(self, "current_language", "ASL")
-                )
-                self.animate_gesture_panel.play_gesture(number, hand)
-        except Exception:
-            pass
+
+                # Get gesture data and validate it before playing
+                gesture_data = self._get_gesture_data(number, "number", hand)
+                if gesture_data:
+                    validated_gesture = self.validate_gesture_before_play(gesture_data)
+
+                    # Check for violations and log them
+                    violations = self.get_gesture_constraint_violations(gesture_data)
+                    if violations:
+                        self.logger.warning(
+                            f"Gesture '{number}' has {len(violations)} constraint violations"
+                        )
+                        for violation in violations:
+                            self.logger.debug(
+                                f"Joint '{violation['joint']}' ({violation['description']}) "
+                                f"violates constraints: {violation['original_values']}"
+                            )
+
+                    # Play the validated gesture
+                    self.animate_gesture_panel.set_language(
+                        getattr(self, "current_language", "ASL")
+                    )
+                    self.animate_gesture_panel.play_gesture(number, hand)
+                else:
+                    # Fallback to direct gesture playing if no data available
+                    self.animate_gesture_panel.set_language(
+                        getattr(self, "current_language", "ASL")
+                    )
+                    self.animate_gesture_panel.play_gesture(number, hand)
+        except Exception as e:
+            self.logger.error(f"Error playing number gesture '{number}': {e}")
 
     def update_button_selection(self, selected: str, button_dict: dict) -> None:
         """Update button styling to show selection using property, not stylesheet"""
@@ -2532,6 +2583,168 @@ class LearnMode(BaseMode):
     def _force_layout_stability(self) -> None:
         """Force layout stability to prevent flickering"""
         pass
+
+    def validate_gesture_before_play(
+        self, gesture_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validate gesture data against human anatomical constraints before playing
+
+        Args:
+            gesture_data: Dictionary containing gesture information including pose data
+
+        Returns:
+            Validated and constrained gesture data
+        """
+        try:
+            if not gesture_data or "pose" not in gesture_data:
+                self.logger.warning("Invalid gesture data: missing pose information")
+                return gesture_data
+
+            pose = gesture_data["pose"]
+            if not isinstance(pose, dict):
+                self.logger.warning("Invalid pose data: expected dictionary")
+                return gesture_data
+
+            # Validate and constrain the pose
+            constrained_pose = joint_validator.validate_and_constrain_pose(pose)
+
+            # Create validated gesture data
+            validated_gesture = gesture_data.copy()
+            validated_gesture["pose"] = constrained_pose
+            validated_gesture["validated"] = True
+
+            # Log validation results
+            if constrained_pose != pose:
+                self.logger.info(
+                    f"Gesture pose constrained: {len(pose)} joints validated"
+                )
+
+            return validated_gesture
+
+        except Exception as e:
+            self.logger.error(f"Error validating gesture: {e}")
+            return gesture_data
+
+    def is_gesture_anatomically_valid(self, gesture_data: Dict[str, Any]) -> bool:
+        """
+        Check if a gesture is within human anatomical limits
+
+        Args:
+            gesture_data: Dictionary containing gesture information including pose data
+
+        Returns:
+            True if gesture is valid, False otherwise
+        """
+        try:
+            if not gesture_data or "pose" not in gesture_data:
+                return False
+
+            pose = gesture_data["pose"]
+            if not isinstance(pose, dict):
+                return False
+
+            return joint_validator.is_pose_valid(pose)
+
+        except Exception as e:
+            self.logger.error(f"Error checking gesture validity: {e}")
+            return False
+
+    def get_gesture_constraint_violations(
+        self, gesture_data: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Get detailed information about constraint violations in a gesture
+
+        Args:
+            gesture_data: Dictionary containing gesture information including pose data
+
+        Returns:
+            List of violation details
+        """
+        try:
+            violations: List[Dict[str, Any]] = []
+
+            if not gesture_data or "pose" not in gesture_data:
+                return violations
+
+            pose = gesture_data["pose"]
+            if not isinstance(pose, dict):
+                return violations
+
+            for joint_name, hpr in pose.items():
+                if len(hpr) >= 3:
+                    h, p, r = float(hpr[0]), float(hpr[1]), float(hpr[2])
+                    constraint = joint_validator.get_joint_constraint(joint_name)
+
+                    if constraint:
+                        # Check for violations
+                        if (
+                            h < constraint.min_h
+                            or h > constraint.max_h
+                            or p < constraint.min_p
+                            or p > constraint.max_p
+                            or r < constraint.min_r
+                            or r > constraint.max_r
+                        ):
+
+                            violations.append(
+                                {
+                                    "joint": joint_name,
+                                    "description": constraint.description,
+                                    "original_values": [h, p, r],
+                                    "constraints": {
+                                        "h": (constraint.min_h, constraint.max_h),
+                                        "p": (constraint.min_p, constraint.max_p),
+                                        "r": (constraint.min_r, constraint.max_r),
+                                    },
+                                }
+                            )
+
+            return violations
+
+        except Exception as e:
+            self.logger.error(f"Error getting gesture violations: {e}")
+            return []
+
+    def _get_gesture_data(
+        self, character: str, char_type: str, hand: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get gesture data for a character from the sign language loader
+
+        Args:
+            character: The character (letter or number)
+            char_type: Type of character ("letter" or "number")
+            hand: Hand preference ("left" or "right")
+
+        Returns:
+            Gesture data dictionary or None if not found
+        """
+        try:
+            if not hasattr(self, "sign_loader") or not self.sign_loader:
+                return None
+
+            # Try to get gesture data from the sign loader
+            if char_type == "letter":
+                data = self.sign_loader.get_letter_data(
+                    self.current_language, character, hand
+                )
+            elif char_type == "number":
+                data = self.sign_loader.get_number_data(
+                    self.current_language, character, hand
+                )
+            else:
+                return None
+
+            if data and isinstance(data, dict):
+                return data
+
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Error getting gesture data for '{character}': {e}")
+            return None
 
     def cleanup(self) -> None:
         """Clean up resources to prevent memory corruption"""
