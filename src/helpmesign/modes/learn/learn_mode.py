@@ -17,7 +17,9 @@ from ...utils.language_manager import get_text
 from ...utils.sign_language_loader import get_sign_language_loader
 from ...utils.theme_manager import get_theme_style
 from ..base_mode import BaseMode
-from .animate_panel import AnimateGesturePanel
+
+# Lazy import to avoid Qt widget creation during module import
+# from .animate_panel import AnimateGesturePanel
 
 
 class _CornerButtonPositioner(QObject):
@@ -1228,11 +1230,14 @@ class LearnMode(BaseMode):
 
     def create_sign_display_panel(self):
         """Create the right panel for sign display with language selector"""
+        # Lazy import to avoid Qt widget creation during module import
         import os
         import sys
 
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QFont
+
+        from .animate_panel import AnimateGesturePanel
 
         testing_env = ("pytest" in sys.modules) or os.environ.get(
             "TESTING", ""
