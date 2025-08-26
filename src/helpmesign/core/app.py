@@ -204,9 +204,6 @@ class HelpMeSignApp:
 
             self.logger.info("Cleanup completed")
 
-            # Add debugging to trace what happens after cleanup
-            self.logger.info("=== TRACING POST-CLEANUP ===")
-
             # Check if we're in a test environment
             import sys
 
@@ -215,28 +212,15 @@ class HelpMeSignApp:
             )
 
             if not is_test_environment:
-                # In production, force garbage collection to see if that helps
+                # In production, force garbage collection and exit cleanly
                 import gc
 
                 self.logger.info("Forcing garbage collection...")
                 gc.collect()
                 self.logger.info("Garbage collection completed")
 
-                # Add a small delay to see if malloc corruption happens during this time
-                import time
-
-                self.logger.info(
-                    "Waiting 1 second to see if malloc corruption occurs..."
-                )
-                time.sleep(1)
-                self.logger.info(
-                    "1 second wait completed - no malloc corruption detected"
-                )
-
-                # Since malloc corruption happens after this point, use os._exit to prevent it from being visible
-                self.logger.info(
-                    "Exiting cleanly to prevent malloc corruption from being visible"
-                )
+                # Exit cleanly to prevent Panda3D malloc corruption from being visible
+                self.logger.info("Exiting cleanly to prevent Panda3D malloc corruption")
                 import os
 
                 os._exit(0)
