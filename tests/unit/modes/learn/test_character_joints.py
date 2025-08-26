@@ -13,11 +13,19 @@ from helpmesign.utils.resource_manager import ResourceManager
 def test_character_joints():
     """Test character joint structure and basic control"""
 
-    # Setup Panda3D
-    loadPrcFileData("", "window-type offscreen")
-    loadPrcFileData("", "sync-video 0")
+    # Check if ShowBase already exists (from other tests)
+    import builtins
 
-    base = ShowBase(windowType="offscreen")
+    created_showbase = False
+    if hasattr(builtins, "base"):
+        # Use existing ShowBase instance
+        base = builtins.base
+    else:
+        # Setup Panda3D
+        loadPrcFileData("", "window-type offscreen")
+        loadPrcFileData("", "sync-video 0")
+        base = ShowBase(windowType="offscreen")
+        created_showbase = True
 
     # Load character
     resource_manager = ResourceManager()
@@ -141,7 +149,9 @@ def test_character_joints():
         print(f"❌ Error loading character: {e}")
 
     finally:
-        base.destroy()
+        # Only destroy ShowBase if we created it
+        if created_showbase:
+            base.destroy()
 
 
 if __name__ == "__main__":
