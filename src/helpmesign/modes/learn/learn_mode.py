@@ -95,6 +95,13 @@ class LearnMode(BaseMode):
         # Set up behavior and event handlers
         self.mode_lifecycle_manager.setup_behavior()
 
+        # Set initial placeholder text using the behavior manager
+        if hasattr(self, "ui_behavior_manager"):
+            self.ui_behavior_manager._set_placeholder_text()
+            self.logger.debug("Initial placeholder text set via behavior manager")
+        else:
+            self.logger.warning("ui_behavior_manager not available during setup_ui")
+
     def setup_behavior(self) -> None:
         """Set up behavior and event handlers"""
         self.mode_lifecycle_manager.setup_behavior()

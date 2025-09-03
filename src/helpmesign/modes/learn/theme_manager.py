@@ -5,6 +5,7 @@ Theme and font management for LearnMode
 import logging
 from typing import Optional
 
+from ...core.startup import get_theme
 from ...utils.theme_manager import get_font_family, get_theme_manager
 
 
@@ -46,9 +47,13 @@ class LearnModeThemeManager:
 
         except Exception as e:
             self.logger.error(f"Error initializing theme and font info: {e}")
-            # Fallback to defaults
-            self.learn_mode.current_theme = "Light"
-            self.learn_mode.effective_theme = "Light"
+            # Fallback to system theme instead of hardcoded Light
+            try:
+                fallback_theme = get_theme()
+            except Exception:
+                fallback_theme = "Light"
+            self.learn_mode.current_theme = fallback_theme
+            self.learn_mode.effective_theme = fallback_theme
             self.learn_mode.current_font_size = 16
             self.learn_mode.current_font_family = "Roboto"
 
@@ -72,4 +77,8 @@ class LearnModeThemeManager:
         elif theme == "Dark":
             return "Dark"
         else:
-            return "Light"
+            # Instead of hardcoded Light, get from system
+            try:
+                return get_theme()
+            except Exception:
+                return "Light"  # Final fallback

@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget, QLabel
     from PySide6.QtCore import QEvent
 
+from ...core.startup import get_theme
 from ...utils.language_manager import get_text
 from ...utils.sign_language_loader import get_sign_language_loader
 
@@ -16,9 +17,33 @@ from ...utils.sign_language_loader import get_sign_language_loader
 class LearnModeUIBehaviorManager:
     """Manages UI behavior and text processing for Learn Mode"""
 
+    # Consistent styling for placeholder text (font-size will be set dynamically)
+    PLACEHOLDER_STYLE = (
+        "text-align: center; color: #6b7b8c; font-style: italic; padding: 20px;"
+    )
+
     def __init__(self, learn_mode):
         self.learn_mode = learn_mode
         self.sign_loader = get_sign_language_loader()
+
+    def _set_placeholder_text(self) -> None:
+        """Set the placeholder text with consistent styling"""
+        try:
+            if hasattr(self.learn_mode, "sign_instructions_label"):
+                placeholder_text = get_text(
+                    "ui.language_selection.sign_will_appear_here"
+                )
+                # Get font size from configuration
+                font_size = self.learn_mode.current_font_size
+                # Create complete style with dynamic font size
+                complete_style = f"{self.PLACEHOLDER_STYLE} font-size: {font_size}px;"
+                html_content = f'<div style="{complete_style}">{placeholder_text}</div>'
+                self.learn_mode.sign_instructions_label.setText(html_content)
+                self.learn_mode.logger.debug(
+                    f"Placeholder text set: '{placeholder_text}' with font size: {font_size}px"
+                )
+        except Exception as e:
+            self.learn_mode.logger.error(f"Error setting placeholder text: {e}")
 
     def update_ui(self) -> None:
         """Update the UI to reflect the current mode"""
@@ -196,16 +221,9 @@ class LearnModeUIBehaviorManager:
             current_size = max(numeric_size, 16)
             current_family = get_font_family()
             # Theme-aware text colors for readability
-            text_color = (
-                "#2c3e50"
-                if getattr(self.learn_mode, "effective_theme", "Light") == "Light"
-                else "#e0e6ed"
-            )
-            meta_color = (
-                "#6b7b8c"
-                if getattr(self.learn_mode, "effective_theme", "Light") == "Light"
-                else "#a8b2bd"
-            )
+            current_theme = get_theme()
+            text_color = "#2c3e50" if current_theme == "Light" else "#e0e6ed"
+            meta_color = "#6b7b8c" if current_theme == "Light" else "#a8b2bd"
 
             if (
                 hasattr(self.learn_mode, "sign_instructions_label")
@@ -324,19 +342,26 @@ class LearnModeUIBehaviorManager:
                 placeholder_text = get_text(
                     "ui.language_selection.sign_will_appear_here"
                 )
-                self.learn_mode.sign_svg_widget.setText(placeholder_text)
-                self.learn_mode.logger.info(
-                    f"Placeholder message set: '{placeholder_text}'"
-                )
+                # Handle different widget types appropriately
+                if hasattr(self.learn_mode.sign_svg_widget, "setText"):
+                    # QLabel or other text widget
+                    self.learn_mode.sign_svg_widget.setText(placeholder_text)
+                    self.learn_mode.logger.info(
+                        f"Placeholder message set: '{placeholder_text}'"
+                    )
+                elif hasattr(self.learn_mode.sign_svg_widget, "load"):
+                    # QSvgWidget - can't set text, just log it
+                    self.learn_mode.logger.debug(
+                        f"QSvgWidget placeholder text would be: '{placeholder_text}'"
+                    )
+                else:
+                    # Unknown widget type
+                    self.learn_mode.logger.debug("Unknown widget type for placeholder")
 
                 # Ensure the text is visible by setting a visible text color
                 if hasattr(self.learn_mode.sign_svg_widget, "setStyleSheet"):
-                    text_color = (
-                        "#333333"
-                        if getattr(self.learn_mode, "effective_theme", "Light")
-                        == "Light"
-                        else "#ffffff"
-                    )
+                    current_theme = get_theme()
+                    text_color = "#333333" if current_theme == "Light" else "#ffffff"
                     self.learn_mode.sign_svg_widget.setStyleSheet(
                         f"color: {text_color};"
                     )
@@ -350,11 +375,27 @@ class LearnModeUIBehaviorManager:
     def _on_clear_sign_clicked(self) -> None:
         """Handle clear sign button click"""
         try:
-            # Clear the sign display
+            # Clear the sign display (hand gesture)
             if hasattr(self.learn_mode, "sign_svg_widget"):
-                self.learn_mode.sign_svg_widget.setText(
-                    get_text("ui.language_selection.sign_will_appear_here")
-                )
+                # Handle different widget types appropriately
+                if hasattr(self.learn_mode.sign_svg_widget, "setText"):
+                    # QLabel or other text widget
+                    self.learn_mode.sign_svg_widget.setText(
+                        get_text("ui.language_selection.sign_will_appear_here")
+                    )
+                elif hasattr(self.learn_mode.sign_svg_widget, "load"):
+                    # QSvgWidget - clear by loading empty content
+                    self.learn_mode.sign_svg_widget.load("")
+                else:
+                    # Unknown widget type - just log it
+                    self.learn_mode.logger.debug("Unknown widget type for sign display")
+
+            # Show placeholder message in instructions label since sign_svg_widget is QSvgWidget (doesn't support text)
+            self._set_placeholder_text()
+
+            # Hide the close button since there's nothing to clear
+            if hasattr(self.learn_mode, "clear_sign_btn"):
+                self.learn_mode.clear_sign_btn.setVisible(False)
 
             # Clear button selections
             if hasattr(self.learn_mode, "alphabet_buttons"):

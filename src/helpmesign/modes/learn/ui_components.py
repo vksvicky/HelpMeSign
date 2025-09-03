@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 from PySide6.QtCore import QEvent, QObject
 
+from ...core.startup import get_theme
 from ...utils.language_manager import get_text
 from ...utils.theme_manager import get_theme_style
 
@@ -552,16 +553,16 @@ class LearnModeUIComponents:
                 else "#ffffff"
             )
             self.learn_mode.sign_svg_widget.setStyleSheet(
-                f"color: {text_color}; font-size: 14px;"
+                f"color: {text_color}; font-size: {self.learn_mode.current_font_size}px;"
             )
 
         # Instructions inside dotted border box
         self.learn_mode.sign_instructions_label = QLabel()
         self.learn_mode.sign_instructions_label.setWordWrap(True)
         self.learn_mode.sign_instructions_label.setTextFormat(Qt.TextFormat.RichText)
-        # Left alignment allows justified paragraphs to take full width
+        # Center alignment for placeholder text consistency
         self.learn_mode.sign_instructions_label.setAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
         )
         self.learn_mode.sign_instructions_label.setMinimumWidth(300)
         # Increase instruction area height for multi-line guidance
@@ -571,6 +572,9 @@ class LearnModeUIComponents:
         self.learn_mode.sign_instructions_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
+
+        # Initialize with placeholder text - will be set by behavior manager after initialization
+        # The actual text will be set when the behavior manager is ready
 
         self.learn_mode.instructions_box = QFrame()
         self.learn_mode.instructions_box.setObjectName("instructionsBox")
