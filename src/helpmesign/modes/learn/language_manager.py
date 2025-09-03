@@ -202,6 +202,23 @@ class LearnModeLanguageManager:
 
         """Handle language selection"""
         self.learn_mode.selected_language = language
+        # Update the current language for the learn mode
+        language_code = language.get("code")
+        if language_code:
+            self.learn_mode.current_language = language_code
+        else:
+            # Fallback to current configuration instead of hard-coding
+            from ...core.startup import get_all_settings
+
+            try:
+                config = get_all_settings()
+                self.learn_mode.current_language = config.get("selected_language")
+            except Exception:
+                # If all else fails, log error and don't set a language
+                self.learn_mode.logger.error(
+                    "Could not determine language code and config fallback failed"
+                )
+                return
 
         # Update button states (if legacy in-panel list exists)
         try:
@@ -222,7 +239,7 @@ class LearnModeLanguageManager:
 
         # Update sign display title to show selected language flag and code (if present)
         flag = language.get("flag", "🌐")
-        code = language.get("code", "ASL")
+        code = language.get("code", "")
         if self.learn_mode.sign_title is not None:
             try:
                 self.learn_mode.sign_title.setText(f"{flag} {code}")
@@ -232,19 +249,39 @@ class LearnModeLanguageManager:
                 pass
 
         # Change the sign language for the sign display
-        language_code = language.get("code", "ASL")
-        self.learn_mode.change_sign_language(language_code)
+        language_code = language.get("code")
+        if language_code:
+            self.learn_mode.change_sign_language(language_code)
+        else:
+            self.learn_mode.logger.error("No language code found in language data")
 
         # Language-aware hand control:
         # - If language offers only a two-hand form (e.g., BSL), select 'both' and hide icons
         # - If language offers left/right variants, show icons and ensure a concrete hand is selected
         try:
-            hands = []
-            if hasattr(self.learn_mode, "sign_loader") and self.learn_mode.sign_loader:
-                hands = self.learn_mode.sign_loader.get_available_hands(language_code)
-            has_left_or_right = any(h in ("left", "right") for h in hands)
-            # Treat missing metadata as a two-hand language by default (e.g., BSL)
-            has_both_only = ("both" in hands) or (not hands and not has_left_or_right)
+            # Get hand support from language metadata
+            from ...utils.language_loader import get_all_languages
+
+            languages = get_all_languages()
+            current_language_data = None
+            for lang in languages:
+                if lang.get("code") == language_code:
+                    current_language_data = lang
+                    break
+
+            # Determine hand support from metadata
+            hand_support = (
+                current_language_data.get("metadata", {}).get("handSupport", "single")
+                if current_language_data
+                else "single"
+            )
+
+            if hand_support == "both":
+                has_left_or_right = False
+                has_both_only = True
+            else:  # "single" or unknown
+                has_left_or_right = True
+                has_both_only = False
 
             if has_left_or_right:
                 # Show icons
@@ -261,14 +298,24 @@ class LearnModeLanguageManager:
                     # Default to right hand
                     self.learn_mode._set_hand_preference("right")
             elif has_both_only:
-                # BSL-like languages: default to right hand, but allow both hands for word-based signing
-                # Don't change the UI preference to "both"
-                if (
-                    getattr(self.learn_mode, "current_hand_preference", "right")
-                    == "both"
-                ):
-                    # Reset to right hand if it was set to "both"
-                    self.learn_mode._set_hand_preference("right")
+                # BSL-like languages: use both hands, hide individual hand buttons
+                # Set preference to "both" for two-handed languages
+                self.learn_mode.logger.info(
+                    f"Setting hand preference to 'both' for {language_code}"
+                )
+                self.learn_mode._set_hand_preference("both")
+
+                # Hide individual hand buttons for two-handed languages
+                if hasattr(self.learn_mode, "right_hand_btn"):
+                    self.learn_mode.right_hand_btn.setVisible(False)
+                    self.learn_mode.logger.info(
+                        "Hidden right hand button for two-handed language"
+                    )
+                if hasattr(self.learn_mode, "left_hand_btn"):
+                    self.learn_mode.left_hand_btn.setVisible(False)
+                    self.learn_mode.logger.info(
+                        "Hidden left hand button for two-handed language"
+                    )
             else:
                 # Unknown capability info; do not change visibility, but avoid 'both'
                 if (
@@ -283,7 +330,12 @@ class LearnModeLanguageManager:
         self.learn_mode._update_hand_icon_visibility_from_pref()
 
         # Save language selection to configuration
-        self.save_language_selection(language_code)
+        if language_code:
+            self.save_language_selection(language_code)
+        else:
+            self.learn_mode.logger.warning(
+                "Cannot save language selection: language_code is None"
+            )
 
         # Update character buttons based on new language
         self.learn_mode.update_character_buttons()
@@ -308,52 +360,77 @@ class LearnModeLanguageManager:
         except Exception:
             pass
 
-        # Re-evaluate hand icon visibility (no extra read; use current state)
-        self.learn_mode._update_hand_icon_visibility_from_pref()
+        # Hand icon visibility is already updated above, no need to re-evaluate
 
     def _update_hand_icon_visibility_from_pref(self) -> None:
-        """Show/hide hand icons solely based on saved hand preference.
+        """Show/hide hand icons based on saved hand preference and language capabilities.
 
-        Always show individual left/right hand buttons, never show combined "both" button.
+        For two-handed languages (like BSL), hide individual buttons.
+        For single-handed languages (like ASL), show individual buttons.
         """
         try:
             pref = getattr(self.learn_mode, "current_hand_preference", "right")
+            current_language = getattr(self.learn_mode, "current_language", "")
 
-            # Always show individual hand buttons
-            if hasattr(self.learn_mode, "right_hand_btn"):
-                try:
-                    self.learn_mode.right_hand_btn.setVisible(True)
-                    self.learn_mode.right_hand_btn.setText("🖐️")
-                    # Set selected state based on preference
-                    is_right_selected = pref == "right"
-                    self.learn_mode.right_hand_btn.setProperty(
-                        "selected", is_right_selected
-                    )
-                    self.learn_mode.right_hand_btn.style().unpolish(
-                        self.learn_mode.right_hand_btn
-                    )
-                    self.learn_mode.right_hand_btn.style().polish(
-                        self.learn_mode.right_hand_btn
-                    )
-                except Exception:
-                    pass
-            if hasattr(self.learn_mode, "left_hand_btn"):
-                try:
-                    self.learn_mode.left_hand_btn.setVisible(True)
-                    self.learn_mode.left_hand_btn.setText("🤚")
-                    # Set selected state based on preference
-                    is_left_selected = pref == "left"
-                    self.learn_mode.left_hand_btn.setProperty(
-                        "selected", is_left_selected
-                    )
-                    self.learn_mode.left_hand_btn.style().unpolish(
-                        self.learn_mode.left_hand_btn
-                    )
-                    self.learn_mode.left_hand_btn.style().polish(
-                        self.learn_mode.left_hand_btn
-                    )
-                except Exception:
-                    pass
+            # Check if current language supports both hands from metadata
+            has_both_support = False
+            from ...utils.language_loader import get_all_languages
+
+            languages = get_all_languages()
+            current_language_data = None
+            for lang in languages:
+                if lang.get("code") == current_language:
+                    current_language_data = lang
+                    break
+
+            if current_language_data:
+                hand_support = current_language_data.get("metadata", {}).get(
+                    "handSupport", "single"
+                )
+                has_both_support = hand_support == "both"
+
+            if has_both_support:
+                # Two-handed language (like BSL): hide individual buttons
+                if hasattr(self.learn_mode, "right_hand_btn"):
+                    self.learn_mode.right_hand_btn.setVisible(False)
+                if hasattr(self.learn_mode, "left_hand_btn"):
+                    self.learn_mode.left_hand_btn.setVisible(False)
+            else:
+                # Single-handed language (like ASL): show individual buttons
+                if hasattr(self.learn_mode, "right_hand_btn"):
+                    try:
+                        self.learn_mode.right_hand_btn.setVisible(True)
+                        self.learn_mode.right_hand_btn.setText("🖐️")
+                        # Set selected state based on preference
+                        is_right_selected = pref == "right"
+                        self.learn_mode.right_hand_btn.setProperty(
+                            "selected", is_right_selected
+                        )
+                        self.learn_mode.right_hand_btn.style().unpolish(
+                            self.learn_mode.right_hand_btn
+                        )
+                        self.learn_mode.right_hand_btn.style().polish(
+                            self.learn_mode.right_hand_btn
+                        )
+                    except Exception:
+                        pass
+                if hasattr(self.learn_mode, "left_hand_btn"):
+                    try:
+                        self.learn_mode.left_hand_btn.setVisible(True)
+                        self.learn_mode.left_hand_btn.setText("🤚")
+                        # Set selected state based on preference
+                        is_left_selected = pref == "left"
+                        self.learn_mode.left_hand_btn.setProperty(
+                            "selected", is_left_selected
+                        )
+                        self.learn_mode.left_hand_btn.style().unpolish(
+                            self.learn_mode.left_hand_btn
+                        )
+                        self.learn_mode.left_hand_btn.style().polish(
+                            self.learn_mode.left_hand_btn
+                        )
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -395,7 +472,7 @@ class LearnModeLanguageManager:
             # Get current settings
             current_settings = get_all_settings()
 
-            saved_language = current_settings.get("selected_language", "ASL")
+            saved_language = current_settings.get("selected_language", "")
             self.learn_mode.logger.info(
                 f"Loaded saved language selection: {saved_language}"
             )
@@ -407,8 +484,10 @@ class LearnModeLanguageManager:
 
         except Exception as e:
             self.learn_mode.logger.error(f"Error loading saved language selection: {e}")
-            # Default to ASL if there's an error
-            self.select_language_by_code("ASL")
+            # Don't default to any specific language if there's an error
+            self.learn_mode.logger.error(
+                "Failed to load language selection, no fallback available"
+            )
 
     def select_language_by_code(self, language_code: str) -> None:
         """Select a language by its code"""
@@ -445,14 +524,12 @@ class LearnModeLanguageManager:
                         pass
                     return
 
-            # If still not found, default to ASL
-            self.learn_mode.logger.warning(
-                f"Language {language_code} not found, defaulting to ASL"
+            # If still not found, log warning
+            self.learn_mode.logger.warning(f"Language {language_code} not found")
+            # If no language found, log error and don't default to any specific language
+            self.learn_mode.logger.error(
+                f"Language {language_code} not found and no fallback available"
             )
-            for language in all_languages:
-                if language.get("code") == "ASL":
-                    self.on_language_selected(language)
-                    return
 
         except Exception as e:
             self.learn_mode.logger.error(f"Error selecting language by code: {e}")

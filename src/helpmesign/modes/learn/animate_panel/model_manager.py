@@ -119,6 +119,9 @@ class ModelManager:
             if not self.parent_panel._showbase:
                 return
 
+            # Get current theme to adjust lighting accordingly
+            current_theme = self._get_current_theme()
+
             # Create ambient light
             from panda3d.core import (
                 AmbientLight,
@@ -126,15 +129,33 @@ class ModelManager:
                 PointLight,
             )
 
+            # Theme-aware ambient lighting
+            if current_theme == "Light":
+                # Stronger lighting for Light theme to provide better contrast
+                ambient_intensity = 0.4  # Reduced ambient to create more contrast
+                directional_intensity = (
+                    1.2  # Increased directional for stronger shadows
+                )
+                fill_intensity = 0.8  # Increased fill light for better definition
+            else:
+                # Darker ambient light for Dark theme
+                ambient_intensity = 0.3
+                directional_intensity = 0.8
+                fill_intensity = 0.4
+
             # Ambient light for overall illumination
             ambient_light = AmbientLight("ambient")
-            ambient_light.setColor((0.3, 0.3, 0.3, 1))
+            ambient_light.setColor(
+                (ambient_intensity, ambient_intensity, ambient_intensity, 1)
+            )
             ambient_np = self.parent_panel._showbase.render.attachNewNode(ambient_light)
             self.parent_panel._showbase.render.setLight(ambient_np)
 
             # Main directional light
             directional_light = DirectionalLight("directional")
-            directional_light.setColor((0.8, 0.8, 0.8, 1))
+            directional_light.setColor(
+                (directional_intensity, directional_intensity, directional_intensity, 1)
+            )
             directional_np = self.parent_panel._showbase.render.attachNewNode(
                 directional_light
             )
@@ -143,13 +164,47 @@ class ModelManager:
 
             # Fill light from the opposite side
             fill_light = DirectionalLight("fill")
-            fill_light.setColor((0.4, 0.4, 0.4, 1))
+            fill_light.setColor((fill_intensity, fill_intensity, fill_intensity, 1))
             fill_np = self.parent_panel._showbase.render.attachNewNode(fill_light)
             fill_np.setHpr(-45, -45, 0)
             self.parent_panel._showbase.render.setLight(fill_np)
 
         except Exception as e:
             self._log.error(f"Error setting up lighting: {e}")
+
+    def _adjust_model_materials_for_theme(self) -> None:
+        """Adjust model materials for better visibility in the current theme."""
+        try:
+            if not self.parent_panel._model_np:
+                return
+
+            current_theme = self._get_current_theme()
+
+            if current_theme == "Light":
+                # In light mode, don't change the character - just use default materials
+                # The lighting improvements will provide better visibility
+                self._log.info(
+                    "Using default materials for Light theme - lighting provides contrast"
+                )
+            else:
+                # In dark mode, use default materials
+                if hasattr(self.parent_panel._model_np, "clearMaterial"):
+                    self.parent_panel._model_np.clearMaterial(1)
+                    self._log.info("Cleared material for Dark theme")
+
+        except Exception as e:
+            self._log.error(f"Error adjusting model materials for theme: {e}")
+
+    def _get_current_theme(self) -> str:
+        """Get the current application theme."""
+        try:
+            # Try to get theme from the main application
+            from ....core.startup import get_theme
+
+            return get_theme()
+        except Exception:
+            # Fallback to default Light theme
+            return "Light"
 
     def _frame_model(self, node, fill_fraction: float = 0.75) -> None:
         """Frame the model in the camera view."""

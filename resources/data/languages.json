@@ -18,6 +18,7 @@
       "speakers": 500000,
       "regions": ["United States", "Canada"],
       "difficulty": "Intermediate",
+      "handSupport": "single",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://github.com/thatcherclough/ASL-for-All"
@@ -45,6 +46,7 @@
       "speakers": 150000,
       "regions": ["United Kingdom"],
       "difficulty": "Intermediate",
+      "handSupport": "both",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://www.british-sign.co.uk"
@@ -78,6 +80,7 @@
       "speakers": 2000000,
       "regions": ["India"],
       "difficulty": "Beginner",
+      "handSupport": "single",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://www.indiansignlanguage.org"
@@ -110,6 +113,7 @@
       "speakers": 300000,
       "regions": ["Japan"],
       "difficulty": "Advanced",
+      "handSupport": "single",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://www.jfd.or.jp"
@@ -137,6 +141,7 @@
       "speakers": 250000,
       "regions": ["South Korea"],
       "difficulty": "Intermediate",
+      "handSupport": "single",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://www.kad.or.kr"
@@ -164,6 +169,7 @@
       "speakers": 3000000,
       "regions": ["China"],
       "difficulty": "Advanced",
+      "handSupport": "single",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://www.cad.org.cn"
@@ -191,6 +197,7 @@
       "speakers": 100000,
       "regions": ["France"],
       "difficulty": "Intermediate",
+      "handSupport": "single",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://www.ffs.fr"
@@ -218,6 +225,7 @@
       "speakers": 80000,
       "regions": ["Germany"],
       "difficulty": "Intermediate",
+      "handSupport": "single",
       "resources": [
         "https://github.com/SteezieJ/SIGNSlate",
         "https://www.gebaerdensprache.de"

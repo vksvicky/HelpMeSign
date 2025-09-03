@@ -184,6 +184,12 @@ class StatusBar(QFrame):
         self._is_cleaned_up = False
         self._shutting_down = False
         self.current_mode = get_text("modes.sign_translate.name")
+
+        # Initialize logger
+        from ..utils.logger import get_logger
+
+        self._log = get_logger("helpmesign.ui.status_bar")
+
         self.setup_ui()
         self.setup_system_monitor()
 
@@ -893,6 +899,13 @@ class StatusBar(QFrame):
         # Show mode and status together on the left
         mode_text = f"{get_text('ui.status.mode_prefix')}{self.current_mode}"
         full_message = f"{mode_text} | {message}"
+
+        # Log the status change for debugging
+        if hasattr(self, "_log"):
+            self._log.debug(
+                f"set_status called with message: '{message}' -> full: '{full_message}'"
+            )
+
         self.status_label.setText(full_message)
 
     def get_status(self) -> str:
@@ -905,7 +918,21 @@ class StatusBar(QFrame):
 
         # Set specific text for learning mode with hand preference and language info
         if mode == get_text("modes.learn.name"):
-            self._update_learning_mode_status()
+            # Check if status bar already has correct learning mode content
+            current_text = self.status_label.text()
+            expected_prefix = f"Mode: {get_text('modes.learn.name')} |"
+
+            if current_text.startswith(expected_prefix) and " - " in current_text:
+                # Status bar already has correct learning mode content, don't overwrite
+                self._log.debug(
+                    "Status bar already has correct learning mode content, skipping update"
+                )
+                return
+            else:
+                self._log.debug(
+                    f"Status bar needs update: current='{current_text}', expected prefix='{expected_prefix}'"
+                )
+                self._update_learning_mode_status()
             return
 
         # Show status bar for other modes
@@ -923,36 +950,118 @@ class StatusBar(QFrame):
     def _update_learning_mode_status(self) -> None:
         """Update status bar for learning mode with hand preference and language info"""
         try:
+            self._log.debug("_update_learning_mode_status called")
+
             # Get current language and hand preference from the main window if available
             main_window = self.window()
-            if (
+
+            # Try to get learn mode from main window first (more reliable during startup)
+            if hasattr(main_window, "learn_mode") and main_window.learn_mode:
+                learn_mode = main_window.learn_mode
+                self._log.debug("Got learn mode from main window")
+            elif (
                 hasattr(main_window, "content_area")
                 and main_window.content_area.currentWidget()
             ):
                 current_widget = main_window.content_area.currentWidget()
                 if hasattr(current_widget, "learn_mode"):
                     learn_mode = current_widget.learn_mode
+                    self._log.debug("Got learn mode from content area current widget")
+                else:
+                    self._log.debug("Current widget has no learn_mode attribute")
+                    learn_mode = None
+            else:
+                self._log.debug("No content area or current widget available")
+                learn_mode = None
 
-                    # Get language and hand preference
-                    language = getattr(learn_mode, "current_language", "ASL")
-                    hand_pref = getattr(learn_mode, "current_hand_preference", "right")
+            # Additional debugging for learn mode access
+            if learn_mode:
+                self._log.debug(f"Learn mode found: {type(learn_mode)}")
+                self._log.debug(
+                    f"Learn mode has current_language: {hasattr(learn_mode, 'current_language')}"
+                )
+                self._log.debug(
+                    f"Learn mode has current_hand_preference: {hasattr(learn_mode, 'current_hand_preference')}"
+                )
+                if hasattr(learn_mode, "current_language"):
+                    self._log.debug(
+                        f"Current language value: {getattr(learn_mode, 'current_language', 'NOT_FOUND')}"
+                    )
+                if hasattr(learn_mode, "current_hand_preference"):
+                    self._log.debug(
+                        f"Current hand preference value: {getattr(learn_mode, 'current_hand_preference', 'NOT_FOUND')}"
+                    )
+            else:
+                self._log.debug("No learn mode found at all")
 
-                    # Format hand preference text
-                    if hand_pref == "both":
-                        hand_text = "Both Hands"
-                    else:
-                        hand_text = f"{hand_pref.title()} Hand"
+            if learn_mode:
+                # Get language and hand preference
+                language = getattr(learn_mode, "current_language", "ASL")
+                hand_pref = getattr(learn_mode, "current_hand_preference", "right")
 
-                    # Create status text
-                    status_text = f"Mode: {get_text('modes.learn.name')} | {language} - {hand_text}"
-                    self.status_label.setText(status_text)
-                    return
+                # Format hand preference text
+                if hand_pref == "both":
+                    hand_text = "Both Hands"
+                else:
+                    hand_text = f"{hand_pref.title()} Hand"
 
-            # Fallback if we can't get the learn mode info
+                # Create status text
+                status_text = (
+                    f"Mode: {get_text('modes.learn.name')} | {language} - {hand_text}"
+                )
+                self.status_label.setText(status_text)
+                self._log.debug(f"Status bar updated: {status_text}")
+                return
+            else:
+                self._log.debug("No learn mode available for status update")
+
+            # Try to get configuration directly as fallback
+            try:
+                # Import from the correct path
+                from ..utils.language_loader import get_all_languages
+
+                # Get current language and hand preference from learn mode if available
+                if hasattr(self, "current_mode") and self.current_mode == get_text(
+                    "modes.learn.name"
+                ):
+                    # Try to get from learn mode first
+                    try:
+                        from ..modes.learn.learn_mode import LearnMode
+
+                        # This is a fallback, so we'll use default values
+                        language = "ASL"
+                        hand_pref = "right"
+                    except ImportError:
+                        language = "ASL"
+                        hand_pref = "right"
+                else:
+                    language = "ASL"
+                    hand_pref = "right"
+
+                # Format hand preference text
+                if hand_pref == "both":
+                    hand_text = "Both Hands"
+                else:
+                    hand_text = f"{hand_pref.title()} Hand"
+
+                # Create status text from config
+                status_text = (
+                    f"Mode: {get_text('modes.learn.name')} | {language} - {hand_text}"
+                )
+                self.status_label.setText(status_text)
+                self._log.debug(
+                    f"Status bar updated from config fallback: {status_text}"
+                )
+                return
+            except Exception as e:
+                self._log.debug(f"Config fallback failed: {e}")
+
+            # Final fallback if we can't get the learn mode info
             self.status_label.setText(get_text("ui.status.learning_mode"))
 
-        except Exception:
+        except Exception as e:
             # Fallback to default learning mode status
+            self._log.error(f"Error updating learning mode status: {e}")
             self.status_label.setText(get_text("ui.status.learning_mode"))
 
     def update_learning_mode_status(

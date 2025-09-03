@@ -57,10 +57,12 @@ class AnimateGesturePanel(QWidget):
     - play_gesture(char_code: str, hand: str)
     """
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, parent: Optional[QWidget] = None, headless: bool = False
+    ) -> None:
         # If no QApplication exists (e.g., tests before Qt mocks), avoid QWidget init
         self._log = get_logger("helpmesign.modes.learn.animate_panel")
-        self._headless: bool = False
+        self._headless: bool = headless
 
         def _make_stub_label():
             class _Stub:
@@ -102,7 +104,7 @@ class AnimateGesturePanel(QWidget):
                 self._display.setText("Loading 3D character...")
                 self._display.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
                 self._display.setAutoFillBackground(True)
-                self._display.setStyleSheet("background-color: #2b2b2b; color: white;")
+                # Theme-aware background color will be set in _apply_theme_colors
             except Exception:
                 self._display = _make_stub_label()
 
@@ -115,7 +117,7 @@ class AnimateGesturePanel(QWidget):
             # Set widget properties
             self.setObjectName("AnimateGesturePanel")
             self.setFixedHeight(400)
-            self.setStyleSheet("background-color: #2b2b2b;")
+            # Theme-aware background color will be set in _apply_theme_colors
         else:
             # Headless mode for tests
             self._headless = True
@@ -159,6 +161,43 @@ class AnimateGesturePanel(QWidget):
 
         # Shutdown state
         self._shutdown_requested: bool = False
+
+    def _apply_theme_colors(self) -> None:
+        """Apply theme-aware colors to the panel and display."""
+        try:
+            if self._headless:
+                return
+
+            current_theme = self.get_current_theme()
+
+            if current_theme == "Light":
+                # Light theme colors - darker gray for better character contrast
+                bg_color = "#e5e7eb"  # Medium light gray for better contrast
+                text_color = "#1e293b"  # Dark blue-gray
+            else:
+                # Dark theme colors
+                bg_color = "#2b2b2b"  # Dark gray
+                text_color = "#ffffff"  # White
+
+            # Apply to main panel with object name specificity
+            self.setStyleSheet(
+                f"#animateGesturePanel {{ background-color: {bg_color}; }}"
+            )
+
+            # Apply to display label
+            if hasattr(self, "_display") and self._display:
+                self._display.setStyleSheet(
+                    f"background-color: {bg_color}; color: {text_color};"
+                )
+
+            self._log.info(f"Applied {current_theme} theme colors to 3D panel")
+
+        except Exception as e:
+            self._log.error(f"Error applying theme colors: {e}")
+            # Fallback to dark theme
+            if hasattr(self, "_display") and self._display:
+                self._display.setStyleSheet("background-color: #2b2b2b; color: white;")
+            self.setStyleSheet("#animateGesturePanel { background-color: #2b2b2b; }")
 
     # Public API methods
     def set_language(self, code: str) -> None:
@@ -292,6 +331,31 @@ class AnimateGesturePanel(QWidget):
     def _dump_node_names(self) -> None:
         """Dump node names for debugging."""
         self._model_manager._dump_node_names()
+
+    def refresh_lighting_for_theme(self) -> None:
+        """Refresh the 3D lighting and background colors to match the current theme."""
+        try:
+            # Refresh 3D lighting if Panda3D is ready
+            if self._panda_ready and hasattr(self, "_model_np") and self._model_np:
+                # Re-setup lighting with current theme
+                self._model_manager._setup_lighting()
+                self._log.info("3D lighting refreshed for current theme")
+
+            # Refresh background colors
+            self._apply_theme_colors()
+
+        except Exception as e:
+            self._log.error(f"Error refreshing lighting for theme: {e}")
+
+    def get_current_theme(self) -> str:
+        """Get the current application theme."""
+        try:
+            from ....core.startup import get_theme
+
+            return get_theme()
+        except Exception:
+            # Fallback to default Light theme
+            return "Light"
 
     # Cleanup
     def cleanup(self) -> None:

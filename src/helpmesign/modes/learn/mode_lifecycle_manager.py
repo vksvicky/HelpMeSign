@@ -47,8 +47,16 @@ class LearnModeLifecycleManager:
             # Update character buttons
             self.learn_mode.update_character_buttons()
 
-            # Update hand preference visibility
+            # Update hand preference visibility and status bar
             self.learn_mode._restore_hand_preference_visual_state()
+
+            # Ensure status bar is updated with current language and hand preference
+            if hasattr(self.learn_mode.main_window, "status_bar"):
+                self.learn_mode.main_window.status_bar.update_learning_mode_status()
+                self.learn_mode.logger.debug("Status bar updated after mode activation")
+
+            # Set up behavior and signal connections
+            self.setup_behavior()
 
             # Start welcome animation timer
             self._start_welcome_animation_timer()
@@ -140,8 +148,68 @@ class LearnModeLifecycleManager:
                 welcome_text, current_language, hand_preference
             )
 
+            # Ensure status bar is updated with current language and hand preference
+            # This runs after a delay, so the UI should be fully ready
+            if hasattr(self.learn_mode.main_window, "status_bar"):
+                # Add a small additional delay to ensure UI is fully ready
+                from PySide6.QtCore import QTimer
+
+                # Store timer as instance variable to prevent garbage collection
+                if not hasattr(self, "_delayed_status_timer"):
+                    self._delayed_status_timer = QTimer()
+                    self._delayed_status_timer.setSingleShot(True)
+                    self._delayed_status_timer.timeout.connect(
+                        self._delayed_status_bar_update
+                    )
+
+                self._delayed_status_timer.start(500)  # 500ms additional delay
+                self.learn_mode.logger.debug(
+                    f"Status bar update scheduled in welcome timer for {current_language} - {hand_preference} hand"
+                )
+
         except Exception as e:
             self.learn_mode.logger.error(f"Error in welcome timer: {e}")
+
+    def _delayed_status_bar_update(self) -> None:
+        """Delayed status bar update that checks current content before updating"""
+        try:
+            self.learn_mode.logger.debug("Delayed status bar update method called")
+
+            if hasattr(self.learn_mode.main_window, "status_bar"):
+                status_bar = self.learn_mode.main_window.status_bar
+
+                # Check if status bar already has the correct content
+                current_text = status_bar.status_label.text()
+                expected_text = (
+                    f"Mode: {get_text('modes.learn.name')} | ASL - Left Hand"
+                )
+
+                self.learn_mode.logger.debug(
+                    f"Current status bar text: '{current_text}'"
+                )
+                self.learn_mode.logger.debug(f"Expected text: '{expected_text}'")
+
+                if current_text == expected_text:
+                    self.learn_mode.logger.debug(
+                        "Status bar already has correct content, skipping update"
+                    )
+                    return
+
+                # Only update if content is different or blank
+                if current_text != expected_text:
+                    self.learn_mode.logger.debug(
+                        f"Updating status bar from '{current_text}' to '{expected_text}'"
+                    )
+                    status_bar.update_learning_mode_status()
+                else:
+                    self.learn_mode.logger.debug(
+                        "Status bar content is correct, no update needed"
+                    )
+            else:
+                self.learn_mode.logger.debug("No status bar found in main window")
+
+        except Exception as e:
+            self.learn_mode.logger.error(f"Error in delayed status bar update: {e}")
 
     def _start_welcome_animation(self, welcome: str, lang: str, hand: str) -> None:
         """Start the welcome animation"""
@@ -152,9 +220,17 @@ class LearnModeLifecycleManager:
                 f"Welcome to {lang} learning mode ({hand} hand)"
             )
 
-            # Update status with welcome message
+            # Show hand preference in status bar instead of generic welcome message
             if hasattr(self.learn_mode.main_window, "set_status"):
-                self.learn_mode.main_window.set_status(welcome)
+                hand_message = f"Hand preference set to {hand}"
+                self.learn_mode.logger.debug(
+                    f"Setting hand preference status: '{hand_message}'"
+                )
+                self.learn_mode.main_window.set_status(hand_message)
+            else:
+                self.learn_mode.logger.debug(
+                    "No set_status method available for hand preference display"
+                )
 
         except Exception as e:
             self.learn_mode.logger.error(f"Error starting welcome animation: {e}")
@@ -163,12 +239,15 @@ class LearnModeLifecycleManager:
         """Set the hand preference"""
         try:
             # Validate hand preference
-            if hand_preference not in ["left", "right"]:
+            if hand_preference not in ["left", "right", "both"]:
                 self.learn_mode.logger.warning(
                     f"Invalid hand preference: {hand_preference}"
                 )
                 return
 
+            self.learn_mode.logger.info(
+                f"Setting hand preference to: {hand_preference}"
+            )
             # Update local state
             self.learn_mode.current_hand_preference = hand_preference
 
@@ -182,15 +261,21 @@ class LearnModeLifecycleManager:
             # Save to configuration
             self._save_hand_preference_to_config(hand_preference)
 
-            # Update status
+            # Update status with hand preference change message
             if hasattr(self.learn_mode.main_window, "set_status"):
-                self.learn_mode.main_window.set_status(
-                    f"Hand preference set to {hand_preference}"
-                )
+                if hand_preference == "both":
+                    hand_message = "Hand preference set to both hands"
+                else:
+                    hand_message = f"Hand preference set to {hand_preference}"
+                self.learn_mode.main_window.set_status(hand_message)
 
-            # Update status bar to show new hand preference
-            if hasattr(self.learn_mode.main_window, "status_bar"):
-                self.learn_mode.main_window.status_bar.update_learning_mode_status()
+            # Schedule status bar update after a delay to show the temporary message
+            from PySide6.QtCore import QTimer
+
+            timer = QTimer()
+            timer.setSingleShot(True)
+            timer.timeout.connect(lambda: self._restore_status_bar_display())
+            timer.start(3000)  # 3 seconds delay
 
         except Exception as e:
             self.learn_mode.logger.error(f"Error setting hand preference: {e}")
@@ -243,15 +328,13 @@ class LearnModeLifecycleManager:
             # Update character buttons
             self.learn_mode.update_character_buttons()
 
-            # Update status
-            if hasattr(self.learn_mode.main_window, "set_status"):
-                self.learn_mode.main_window.set_status(
-                    f"Sign language changed to {language}"
-                )
+            # Update hand preference visual state and status bar for the new language
+            self._restore_hand_preference_visual_state()
 
-            # Update status bar to show new language
-            if hasattr(self.learn_mode.main_window, "status_bar"):
-                self.learn_mode.main_window.status_bar.update_learning_mode_status()
+            # Status bar will be updated by _restore_hand_preference_visual_state() to show proper hand preference format
+            self.learn_mode.logger.debug(
+                f"Language changed to {language}, status bar updated via hand preference restoration"
+            )
 
         except Exception as e:
             self.learn_mode.logger.error(f"Error changing sign language: {e}")
@@ -259,8 +342,37 @@ class LearnModeLifecycleManager:
     def _on_external_language_selected(self, code: str) -> None:
         """Handle external language selection"""
         try:
-            # Use the language manager to select the language
-            self.learn_mode.language_manager.select_language_by_code(code)
+            self.learn_mode.logger.info(
+                f"External language selection received for code: {code}"
+            )
+
+            # Get the full language data from the language code
+            from ...utils.language_loader import get_all_languages
+
+            languages = get_all_languages()
+            language_data = None
+
+            self.learn_mode.logger.info(f"Found {len(languages)} languages in total")
+
+            for lang in languages:
+                if lang.get("code") == code:
+                    language_data = lang
+                    self.learn_mode.logger.info(
+                        f"Found language data for {code}: {lang.get('name')}"
+                    )
+                    break
+
+            if language_data:
+                # Call the language manager's on_language_selected with full data
+                self.learn_mode.logger.info(f"Calling language manager for {code}")
+                self.learn_mode.language_manager.on_language_selected(language_data)
+                self.learn_mode.logger.info(
+                    f"Language changed to {code} via external selection"
+                )
+            else:
+                self.learn_mode.logger.warning(
+                    f"Language data not found for code: {code}"
+                )
 
         except Exception as e:
             self.learn_mode.logger.error(
@@ -268,7 +380,7 @@ class LearnModeLifecycleManager:
             )
 
     def _restore_hand_preference_visual_state(self) -> None:
-        """Restore the visual state of hand preference buttons"""
+        """Restore the visual state of hand preference buttons and update status bar"""
         try:
             # Get current hand preference
             current_pref = getattr(self.learn_mode, "current_hand_preference", "right")
@@ -294,6 +406,13 @@ class LearnModeLifecycleManager:
                 )
                 self.learn_mode.left_hand_btn.style().polish(
                     self.learn_mode.left_hand_btn
+                )
+
+            # Update status bar to show current hand preference
+            if hasattr(self.learn_mode.main_window, "status_bar"):
+                self.learn_mode.main_window.status_bar.update_learning_mode_status()
+                self.learn_mode.logger.debug(
+                    f"Status bar updated with hand preference: {current_pref}"
                 )
 
         except Exception as e:
@@ -401,9 +520,9 @@ class LearnModeLifecycleManager:
                 main_window.clear_requested.connect(self.learn_mode._on_clear_requested)
 
             # Set up external language selection handler
-            if hasattr(self.learn_mode.main_window, "on_language_selected"):
+            if hasattr(self.learn_mode.main_window, "language_selected"):
                 main_window = self.learn_mode.main_window
-                main_window.on_language_selected.connect(
+                main_window.language_selected.connect(
                     self._on_external_language_selected
                 )
 
@@ -424,3 +543,13 @@ class LearnModeLifecycleManager:
 
         except Exception as e:
             self.learn_mode.logger.error(f"Error setting up behavior: {e}")
+
+    def _restore_status_bar_display(self) -> None:
+        """Restore the normal status bar display after showing temporary messages"""
+        try:
+            # Update status bar to show normal mode display
+            if hasattr(self.learn_mode.main_window, "status_bar"):
+                self.learn_mode.main_window.status_bar.update_learning_mode_status()
+                self.learn_mode.logger.debug("Status bar restored to normal display")
+        except Exception as e:
+            self.learn_mode.logger.error(f"Error restoring status bar display: {e}")

@@ -692,8 +692,12 @@ class LearnModeUIComponents:
             border_color = (
                 "#c8d1dc" if self.learn_mode.effective_theme == "Light" else "#5a6a7a"
             )
+            # Use theme-aware background instead of transparent
+            bg_color = (
+                "#e5e7eb" if self.learn_mode.effective_theme == "Light" else "#2b2b2b"
+            )
             self.learn_mode.animate_gesture_panel.setStyleSheet(
-                f"#animateGesturePanel {{ border: 2px dotted {border_color}; border-radius: 16px; background: transparent; }}"
+                f"#animateGesturePanel {{ border: 2px dotted {border_color}; border-radius: 16px; background: {bg_color}; }}"
             )
         except Exception:
             pass
