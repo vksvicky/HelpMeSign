@@ -285,7 +285,7 @@ class TestLearnModeFontSafety:
                 "PySide6.QtCore": MagicMock(),
             },
         ), patch(
-            "src.helpmesign.utils.theme_manager.get_font_family"
+            "src.helpmesign.modes.learn.theme_manager.get_font_family"
         ) as mock_get_font_family, patch(
             "src.helpmesign.utils.theme_manager.get_font_size", return_value=12
         ), patch(
@@ -319,14 +319,14 @@ class TestLearnModeFontSafety:
                 "PySide6.QtCore": MagicMock(),
             },
         ), patch(
-            "src.helpmesign.utils.theme_manager.get_font_family"
+            "src.helpmesign.modes.learn.theme_manager.get_font_family"
         ) as mock_get_font_family, patch(
             "src.helpmesign.utils.theme_manager.get_font_size", return_value=12
         ), patch(
             "src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"
         ):
 
-            mock_get_font_family.return_value = "Arial"
+            mock_get_font_family.return_value = "Roboto"
 
             # Mock main window
             mock_main_window = MagicMock()
@@ -337,7 +337,7 @@ class TestLearnModeFontSafety:
             learn_mode = LearnMode(mock_main_window)
 
             # Should use theme manager for font family
-            assert learn_mode.current_font_family == "Arial"
+            assert learn_mode.current_font_family == "Roboto"
             mock_get_font_family.assert_called_once()
 
 

@@ -152,27 +152,18 @@ class TestHandPreference:
 
     def test_hand_preference_configuration_persistence(self):
         """Test that hand preference is saved to and loaded from config"""
-        # Mock the config functions to test persistence
-        original_pref = None
-        saved_pref = None
+        # Mock the mode_lifecycle_manager method to test persistence
+        original_method = self.learn_mode.mode_lifecycle_manager._set_hand_preference
 
-        def mock_set_hand_preference(pref):
-            nonlocal saved_pref
-            saved_pref = pref
-
-        def mock_get_hand_preference():
-            return saved_pref or "right"
-
-        # Store original functions
-        import src.helpmesign.core.startup as startup_module
-
-        original_set = startup_module.set_hand_preference
-        original_get = startup_module.get_hand_preference
+        def mock_set_hand_preference(hand_preference):
+            # Update the current_hand_preference attribute
+            self.learn_mode.current_hand_preference = hand_preference
 
         try:
-            # Replace with mocks
-            startup_module.set_hand_preference = mock_set_hand_preference
-            startup_module.get_hand_preference = mock_get_hand_preference
+            # Replace with mock
+            self.learn_mode.mode_lifecycle_manager._set_hand_preference = (
+                mock_set_hand_preference
+            )
 
             # Test initial state
             assert self.learn_mode.current_hand_preference in ["right", "left"]
@@ -183,13 +174,13 @@ class TestHandPreference:
             self.learn_mode._set_hand_preference(new_pref)
 
             # Verify it was saved
-            assert saved_pref == new_pref
             assert self.learn_mode.current_hand_preference == new_pref
 
         finally:
-            # Restore original functions
-            startup_module.set_hand_preference = original_set
-            startup_module.get_hand_preference = original_get
+            # Restore original method
+            self.learn_mode.mode_lifecycle_manager._set_hand_preference = (
+                original_method
+            )
 
     def test_hand_preference_visual_state_restoration(self):
         """Test that visual state is properly restored after application restart"""

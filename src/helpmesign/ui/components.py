@@ -903,9 +903,9 @@ class StatusBar(QFrame):
         """Set mode display"""
         self.current_mode = mode
 
-        # Set specific text for learning mode
+        # Set specific text for learning mode with hand preference and language info
         if mode == get_text("modes.learn.name"):
-            self.status_label.setText(get_text("ui.status.learning_mode"))
+            self._update_learning_mode_status()
             return
 
         # Show status bar for other modes
@@ -919,6 +919,48 @@ class StatusBar(QFrame):
         else:
             status_part = get_text("ui.status.default")
         self.set_status(status_part)
+
+    def _update_learning_mode_status(self) -> None:
+        """Update status bar for learning mode with hand preference and language info"""
+        try:
+            # Get current language and hand preference from the main window if available
+            main_window = self.window()
+            if (
+                hasattr(main_window, "content_area")
+                and main_window.content_area.currentWidget()
+            ):
+                current_widget = main_window.content_area.currentWidget()
+                if hasattr(current_widget, "learn_mode"):
+                    learn_mode = current_widget.learn_mode
+
+                    # Get language and hand preference
+                    language = getattr(learn_mode, "current_language", "ASL")
+                    hand_pref = getattr(learn_mode, "current_hand_preference", "right")
+
+                    # Format hand preference text
+                    if hand_pref == "both":
+                        hand_text = "Both Hands"
+                    else:
+                        hand_text = f"{hand_pref.title()} Hand"
+
+                    # Create status text
+                    status_text = f"Mode: {get_text('modes.learn.name')} | {language} - {hand_text}"
+                    self.status_label.setText(status_text)
+                    return
+
+            # Fallback if we can't get the learn mode info
+            self.status_label.setText(get_text("ui.status.learning_mode"))
+
+        except Exception:
+            # Fallback to default learning mode status
+            self.status_label.setText(get_text("ui.status.learning_mode"))
+
+    def update_learning_mode_status(
+        self, language: Optional[str] = None, hand_preference: Optional[str] = None
+    ) -> None:
+        """Update learning mode status with new language or hand preference"""
+        if self.current_mode == get_text("modes.learn.name"):
+            self._update_learning_mode_status()
 
 
 class MainWindow(QMainWindow):

@@ -279,7 +279,7 @@ class TestLearnModeFontInitialization:
             "src.helpmesign.modes.learn.learn_mode.LearnMode.setup_ui"
         ):
 
-            mock_get_font_family.return_value = "Arial"
+            mock_get_font_family.return_value = "Roboto"
 
             mock_main_window = MagicMock()
             mock_main_window.content_area = MagicMock()
@@ -289,7 +289,7 @@ class TestLearnModeFontInitialization:
             learn_mode = LearnMode(mock_main_window)
 
             # Should use theme manager for font family
-            assert learn_mode.current_font_family == "Arial"
+            assert learn_mode.current_font_family == "Roboto"
 
 
 class TestFontLoadingTiming:

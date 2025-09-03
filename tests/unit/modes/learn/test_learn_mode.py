@@ -287,7 +287,7 @@ class TestLearnMode:
         assert "Colors" in suggestions
 
     # Error Condition Tests
-    @patch("src.helpmesign.modes.learn.learn_mode.get_text")
+    @patch("src.helpmesign.modes.learn.ui_behavior_manager.get_text")
     def test_error_condition_empty_text_processing(self, mock_get_text):
         """Test processing empty text"""
         # Arrange
@@ -301,7 +301,7 @@ class TestLearnMode:
         assert result == "Please enter some text to learn."
         assert len(self.mode.learning_progress) == 0
 
-    @patch("src.helpmesign.modes.learn.learn_mode.get_text")
+    @patch("src.helpmesign.modes.learn.ui_behavior_manager.get_text")
     def test_error_condition_whitespace_text_processing(self, mock_get_text):
         """Test processing whitespace-only text"""
         # Arrange
@@ -366,16 +366,18 @@ class TestLearnMode:
     def test_exception_in_get_sign_language_info(self):
         """Test exception handling in get_sign_language_info"""
         # Arrange
-        # Mock the method to raise an exception
-        original_method = self.mode.get_sign_language_info
-        self.mode.get_sign_language_info = Mock(side_effect=Exception("Info failed"))
+        # Mock the method in ui_behavior_manager to raise an exception
+        original_method = self.mode.ui_behavior_manager.get_sign_language_info
+        self.mode.ui_behavior_manager.get_sign_language_info = Mock(
+            side_effect=Exception("Info failed")
+        )
 
         # Act & Assert
         with pytest.raises(Exception):
             self.mode.process_text("hello")
 
         # Restore original method
-        self.mode.get_sign_language_info = original_method
+        self.mode.ui_behavior_manager.get_sign_language_info = original_method
 
     # Boundary Condition Tests
     def test_boundary_condition_very_long_text(self):
@@ -1002,15 +1004,17 @@ class TestLearnMode:
         """Test process_text with exception in get_sign_language_info"""
         # Arrange
         mode = self.mode
-        original_method = mode.get_sign_language_info
-        mode.get_sign_language_info = Mock(side_effect=Exception("Test exception"))
+        original_method = mode.ui_behavior_manager.get_sign_language_info
+        mode.ui_behavior_manager.get_sign_language_info = Mock(
+            side_effect=Exception("Test exception")
+        )
 
         # Act & Assert
         with pytest.raises(Exception):
             mode.process_text("hello")
 
         # Restore original method
-        mode.get_sign_language_info = original_method
+        mode.ui_behavior_manager.get_sign_language_info = original_method
 
     def test_get_lesson_suggestions_with_progress(self):
         """Test get_lesson_suggestions with learning progress"""
@@ -1064,9 +1068,11 @@ class TestLearnMode:
         # Arrange
         mode = self.mode
 
-        # Act & Assert
-        with pytest.raises(AttributeError):
-            mode.get_sign_language_info(None)
+        # Act
+        result = mode.get_sign_language_info(None)
+
+        # Assert
+        assert result == "Please enter text to get sign language information"
 
     def test_get_sign_language_info_with_empty_string(self):
         """Test get_sign_language_info with empty string"""
