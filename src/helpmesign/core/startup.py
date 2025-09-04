@@ -492,7 +492,7 @@ class SecureConfigManager:
                 self.logger.info("Default configuration created and saved successfully")
             else:
                 self.logger.error("Failed to save default configuration")
-            
+
             # Always return the default config, even if saving failed
             return default_config
 

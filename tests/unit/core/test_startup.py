@@ -1911,7 +1911,9 @@ class TestSecureConfigManager:
             assert "hand_preference" in result
             assert "selected_language" in result
 
-    def test_secure_config_manager_load_config_with_invalid_json(self, isolated_config_manager):
+    def test_secure_config_manager_load_config_with_invalid_json(
+        self, isolated_config_manager
+    ):
         """Test load_config with invalid JSON"""
         manager = isolated_config_manager
 
@@ -1925,7 +1927,9 @@ class TestSecureConfigManager:
                 assert "hand_preference" in result
                 assert "selected_language" in result
 
-    def test_secure_config_manager_load_config_with_hmac_verification_failure(self, isolated_config_manager):
+    def test_secure_config_manager_load_config_with_hmac_verification_failure(
+        self, isolated_config_manager
+    ):
         """Test load_config with HMAC verification failure"""
         manager = isolated_config_manager
 
@@ -2298,7 +2302,9 @@ class TestSecureConfigManager:
         result = manager._verify_hmac(test_data, invalid_signature)
         assert result is False
 
-    def test_secure_config_manager_save_config_with_metadata(self, isolated_config_manager):
+    def test_secure_config_manager_save_config_with_metadata(
+        self, isolated_config_manager
+    ):
         """Test save_config with metadata"""
         manager = isolated_config_manager
 
@@ -2315,7 +2321,9 @@ class TestSecureConfigManager:
             result = manager.save_config(config_with_metadata)
             assert result is True
 
-    def test_secure_config_manager_load_config_ignores_environment_field(self, isolated_config_manager):
+    def test_secure_config_manager_load_config_ignores_environment_field(
+        self, isolated_config_manager
+    ):
         """Environment field in config is ignored and does not prevent loading defaults"""
         manager = isolated_config_manager
 
@@ -2493,7 +2501,9 @@ class TestSecureConfigManager:
             assert isinstance(mac, str)
             assert len(mac) > 0
 
-    def test_secure_config_manager_save_config_with_metadata_and_timestamp(self, isolated_config_manager):
+    def test_secure_config_manager_save_config_with_metadata_and_timestamp(
+        self, isolated_config_manager
+    ):
         """Test save_config with metadata and timestamp"""
         manager = isolated_config_manager
 
