@@ -8,49 +8,304 @@ from typing import Any, Dict, List, Optional
 from ....utils.logger import get_logger
 
 try:
-    from PySide6.QtCore import Qt, QTimer
-    from PySide6.QtGui import QImage, QPixmap
-    from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+    from PySide6.QtCore import QRect, Qt, QTimer
+    from PySide6.QtGui import QIcon, QImage, QPixmap
+    from PySide6.QtWidgets import (
+        QDialog,
+        QHBoxLayout,
+        QLabel,
+        QPushButton,
+        QSizePolicy,
+        QVBoxLayout,
+        QWidget,
+    )
 except Exception:  # pragma: no cover - tests may mock Qt imports
+    pass
 
-    class QTimer:  # type: ignore[no-redef]
-        pass
-
-    class QLabel:  # type: ignore[no-redef]
-        def __init__(self, parent=None):
-            pass
-
-    class QWidget:  # type: ignore[no-redef]
-        def __init__(self, parent=None):
-            pass
-
-        class SizePolicy:
-            Expanding = 0
-            Fixed = 1
-
-    class QVBoxLayout:  # type: ignore[no-redef]
-        def __init__(self, parent=None):
-            pass
-
-    class Qt:  # type: ignore[no-redef]
-        class AlignmentFlag:
-            AlignCenter = 0
-
-        class WidgetAttribute:
-            WA_StyledBackground = 0
-            WA_TranslucentBackground = 0
-
-    class QImage:  # type: ignore[no-redef]
-        pass
-
-    class QPixmap:  # type: ignore[no-redef]
-        pass
-
+# Import OpenCV and numpy outside try-except to ensure they're always available
+import cv2
+import numpy as np
 
 from .animation_manager import AnimationManager
 from .model_manager import ModelManager
 from .panda3d_manager import Panda3DManager
 from .rendering_manager import RenderingManager
+
+
+class ZoomLens(QLabel):
+    """Super resolution zoom lens using OpenCV DNN"""
+
+    def __init__(self, parent_panel, parent=None):
+        super().__init__(parent)
+        self.parent_panel = parent_panel
+        self.setFixedSize(200, 200)
+        self.setStyleSheet(
+            """
+            QLabel {
+                border: 3px solid #007acc;
+                border-radius: 100px;
+                background-color: rgba(255, 255, 255, 0.9);
+            }
+        """
+        )
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setScaledContents(True)
+        self.hide()
+
+        # Enable mouse tracking for dragging
+        self.setMouseTracking(True)
+        self.dragging = False
+        self.drag_start_pos = None
+
+        # Initialize super resolution model
+        self.sr_model = None
+        self._init_super_resolution()
+
+        # Create update timer for continuous updates
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.update_zoom_view)
+        self.update_timer.start(50)  # Update every 50ms
+
+    def _init_super_resolution(self):
+        """Initialize the super resolution model"""
+        try:
+            import os
+
+            model_path = os.path.join(
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                ),
+                "resources",
+                "models",
+                "super_resolution",
+                "ESPCN_x2.pb",
+            )
+
+            if os.path.exists(model_path):
+                self.sr_model = cv2.dnn_superres.DnnSuperResImpl_create()
+                self.sr_model.readModel(model_path)
+                self.sr_model.setModel("espcn", 2)  # 2x upscaling
+                self.parent_panel._log.info(
+                    "Super resolution model loaded successfully"
+                )
+            else:
+                self.parent_panel._log.warning(
+                    f"Super resolution model not found at: {model_path}"
+                )
+        except Exception as e:
+            self.parent_panel._log.warning(
+                f"Failed to initialize super resolution: {e}"
+            )
+            self.sr_model = None
+
+    def update_zoom_view(self):
+        """Update the zoomed view using super resolution for high-quality magnification"""
+        try:
+            if not self.isVisible():
+                return
+
+            if hasattr(self.parent_panel, "_display") and self.parent_panel._display:
+                current_pixmap = self.parent_panel._display.pixmap()
+                if not current_pixmap.isNull():
+                    # Get the lens center position relative to the main panel
+                    lens_center_relative_to_panel = self.mapTo(
+                        self.parent_panel, self.rect().center()
+                    )
+
+                    # Get the display widget position relative to the main panel
+                    display_widget = self.parent_panel._display
+                    display_top_left_relative = display_widget.mapTo(
+                        self.parent_panel, display_widget.rect().topLeft()
+                    )
+
+                    # Calculate the lens position within the display widget
+                    display_x = (
+                        lens_center_relative_to_panel.x()
+                        - display_top_left_relative.x()
+                    )
+                    display_y = (
+                        lens_center_relative_to_panel.y()
+                        - display_top_left_relative.y()
+                    )
+
+                    # Extract a 100x100 area around the lens center for super resolution
+                    source_size = 100
+                    source_x = max(0, display_x - source_size // 2)
+                    source_y = max(0, display_y - source_size // 2)
+
+                    # Ensure we don't go beyond the pixmap bounds
+                    source_x = min(source_x, current_pixmap.width() - source_size)
+                    source_y = min(source_y, current_pixmap.height() - source_size)
+                    source_x = max(0, source_x)
+                    source_y = max(0, source_y)
+
+                    # Extract the source area
+                    source_rect = QRect(source_x, source_y, source_size, source_size)
+                    cropped_pixmap = current_pixmap.copy(source_rect)
+
+                    if not cropped_pixmap.isNull():
+                        # Try super resolution first, fallback to high-quality scaling
+                        try:
+                            # Convert QPixmap to OpenCV format
+                            qimage = cropped_pixmap.toImage()
+                            width = qimage.width()
+                            height = qimage.height()
+
+                            # Get image data
+                            ptr = qimage.bits()
+                            data = bytes(ptr)
+
+                            # Convert to numpy array (RGBA format)
+                            arr = np.frombuffer(data, dtype=np.uint8).reshape(
+                                height, width, 4
+                            )
+
+                            # Convert RGBA to RGB with proper alpha handling
+                            alpha = arr[:, :, 3]
+                            rgb = arr[:, :, :3]
+
+                            # Create white background and blend with RGB using alpha
+                            white_bg = np.ones_like(rgb) * 255
+                            rgb_image = (
+                                rgb * (alpha[:, :, np.newaxis] / 255.0)
+                                + white_bg * (1 - alpha[:, :, np.newaxis] / 255.0)
+                            ).astype(np.uint8)
+
+                            # Apply super resolution if model is available
+                            if self.sr_model is not None:
+                                try:
+                                    # Use super resolution for 2x upscaling
+                                    super_res_image = self.sr_model.upsample(rgb_image)
+
+                                    # Take center 200x200 from the super resolution result
+                                    sr_height, sr_width = super_res_image.shape[:2]
+                                    center_start_h = (sr_height - 200) // 2
+                                    center_start_w = (sr_width - 200) // 2
+                                    final_image = super_res_image[
+                                        center_start_h : center_start_h + 200,
+                                        center_start_w : center_start_w + 200,
+                                    ]
+
+                                    self.parent_panel._log.debug(
+                                        f"Super resolution applied: {rgb_image.shape} -> {super_res_image.shape} -> {final_image.shape}"
+                                    )
+
+                                except Exception as sr_error:
+                                    self.parent_panel._log.warning(
+                                        f"Super resolution failed, using fallback: {sr_error}"
+                                    )
+                                    # Fallback to high-quality Lanczos4 interpolation
+                                    final_image = cv2.resize(
+                                        rgb_image,
+                                        (200, 200),
+                                        interpolation=cv2.INTER_LANCZOS4,
+                                    )
+                            else:
+                                # Use high-quality Lanczos4 interpolation as fallback
+                                final_image = cv2.resize(
+                                    rgb_image,
+                                    (200, 200),
+                                    interpolation=cv2.INTER_LANCZOS4,
+                                )
+
+                            # Convert back to QPixmap
+                            height, width, _ = final_image.shape
+                            bytes_per_line = 3 * width
+                            q_image = QImage(
+                                final_image.data,
+                                width,
+                                height,
+                                bytes_per_line,
+                                QImage.Format_RGB888,
+                            )
+                            scaled_pixmap = QPixmap.fromImage(q_image)
+                            self.setPixmap(scaled_pixmap)
+
+                        except Exception as cv_error:
+                            # Final fallback to Qt scaling
+                            self.parent_panel._log.warning(
+                                f"OpenCV processing failed, using Qt fallback: {cv_error}"
+                            )
+                            scaled_pixmap = cropped_pixmap.scaled(
+                                200,
+                                200,
+                                Qt.AspectRatioMode.IgnoreAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation,
+                            )
+                            self.setPixmap(scaled_pixmap)
+                    else:
+                        self.setText("No Image")
+        except Exception as e:
+            self.parent_panel._log.warning(f"Error updating zoom lens: {e}")
+            self.setText("Error")
+
+    def show_lens(self, x, y):
+        """Show the lens at the specified position"""
+        # Position the lens so it's centered on the click point
+        # Ensure the lens stays within the parent widget bounds
+        parent_width = self.parent().width() if self.parent() else 400
+        parent_height = self.parent().height() if self.parent() else 400
+
+        # Calculate position with bounds checking
+        lens_x = max(0, min(x - self.width() // 2, parent_width - self.width()))
+        lens_y = max(0, min(y - self.height() // 2, parent_height - self.height()))
+
+        self.move(lens_x, lens_y)
+        self.show()
+        self.raise_()  # Bring to front
+
+        # Update the zoom view immediately
+        self.update_zoom_view()
+
+        # Debug logging
+        self.parent_panel._log.debug(
+            f"Zoom lens positioned at ({lens_x}, {lens_y}) for click at ({x}, {y})"
+        )
+
+    def hide_lens(self):
+        """Hide the lens"""
+        self.hide()
+        self.update_timer.stop()
+
+    def mousePressEvent(self, event):
+        """Handle mouse press to start dragging"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.dragging = True
+            self.drag_start_pos = (
+                event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            )
+            self.parent_panel._log.debug("Zoom lens: Mouse press - dragging started")
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for dragging"""
+        if self.dragging and event.buttons() & Qt.MouseButton.LeftButton:
+            # Move the lens to follow the mouse
+            new_pos = event.globalPosition().toPoint() - self.drag_start_pos
+            # Keep within parent bounds
+            parent_rect = self.parent().rect()
+            new_pos.setX(max(0, min(new_pos.x(), parent_rect.width() - self.width())))
+            new_pos.setY(max(0, min(new_pos.y(), parent_rect.height() - self.height())))
+            self.move(new_pos)
+            # Update the zoom view immediately after moving
+            QTimer.singleShot(0, self.update_zoom_view)
+            self.parent_panel._log.debug(
+                f"Zoom lens: Mouse move - moved to ({new_pos.x()}, {new_pos.y()})"
+            )
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release to stop dragging"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.dragging = False
+            self.drag_start_pos = None
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
 
 
 class AnimateGesturePanel(QWidget):
@@ -119,6 +374,9 @@ class AnimateGesturePanel(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
             self.setLayout(layout)
 
+            # Add zoom button overlay
+            self._create_zoom_button()
+
             # Set widget properties
             self.setObjectName("AnimateGesturePanel")
             self.setFixedHeight(400)
@@ -167,6 +425,9 @@ class AnimateGesturePanel(QWidget):
         # Shutdown state
         self._shutdown_requested: bool = False
 
+        # Zoom lens reference
+        self._zoom_lens: Optional[ZoomLens] = None
+
     def _apply_theme_colors(self) -> None:
         """Apply theme-aware colors to the panel and display."""
         try:
@@ -203,6 +464,188 @@ class AnimateGesturePanel(QWidget):
             if hasattr(self, "_display") and self._display:
                 self._display.setStyleSheet("background-color: #2b2b2b; color: white;")
             self.setStyleSheet("#animateGesturePanel { background-color: #2b2b2b; }")
+
+    def _create_zoom_button(self) -> None:
+        """Create and position the zoom button in the top-right corner"""
+        try:
+            if self._headless:
+                return
+
+            # Create zoom button
+            self._zoom_button = QPushButton("🔍", self)
+            self._zoom_button.setFixedSize(40, 40)
+            self._zoom_button.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: rgba(0, 0, 0, 0.7);
+                    color: white;
+                    border: 2px solid rgba(255, 255, 255, 0.8);
+                    border-radius: 20px;
+                    font-size: 16px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: rgba(0, 0, 0, 0.9);
+                    border-color: white;
+                }
+                QPushButton:pressed {
+                    background-color: rgba(0, 0, 0, 1.0);
+                }
+            """
+            )
+            self._zoom_button.clicked.connect(self._toggle_zoom_mode)
+            self._zoom_button.setToolTip(
+                "Toggle Zoom Lens (Click to activate, click again to deactivate)"
+            )
+
+            # Position button in top-right corner
+            self._zoom_button.move(self.width() - 50, 10)
+
+            # Create zoom lens
+            try:
+                self._zoom_lens = ZoomLens(self, self)
+                self._log.info("Zoom lens created successfully")
+            except Exception as lens_error:
+                self._log.error(f"Error creating zoom lens: {lens_error}")
+                self._zoom_lens = None
+            self._zoom_mode_active = False
+
+        except Exception as e:
+            self._log.error(f"Error creating zoom button: {e}")
+
+    def _toggle_zoom_mode(self) -> None:
+        """Toggle zoom lens mode on/off"""
+        try:
+            if self._headless:
+                return
+
+            # Ensure zoom lens is created
+            if not hasattr(self, "_zoom_lens") or self._zoom_lens is None:
+                try:
+                    self._zoom_lens = ZoomLens(self, self)
+                    self._log.info("Zoom lens created on demand")
+                except Exception as lens_error:
+                    self._log.error(f"Error creating zoom lens on demand: {lens_error}")
+                    return
+
+            self._zoom_mode_active = not self._zoom_mode_active
+
+            if self._zoom_mode_active:
+                # Enable zoom mode - show zoom lens at center
+                center_x = self.width() // 2
+                center_y = self.height() // 2
+                if self._zoom_lens and hasattr(self._zoom_lens, "show_lens"):
+                    self._zoom_lens.show_lens(center_x, center_y)
+                self._zoom_button.setStyleSheet(
+                    """
+                    QPushButton {
+                        background-color: rgba(0, 122, 204, 0.9);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.8);
+                        border-radius: 20px;
+                        font-size: 16px;
+                        font-weight: bold;
+                    }
+                """
+                )
+            else:
+                # Disable zoom mode
+                if self._zoom_lens:
+                    self._zoom_lens.hide_lens()
+                self._display.setText("Loading 3D character...")
+                self._zoom_button.setStyleSheet(
+                    """
+                    QPushButton {
+                        background-color: rgba(0, 0, 0, 0.7);
+                        color: white;
+                        border: 2px solid rgba(255, 255, 255, 0.8);
+                        border-radius: 20px;
+                        font-size: 16px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: rgba(0, 0, 0, 0.9);
+                        border-color: white;
+                    }
+                    QPushButton:pressed {
+                        background-color: rgba(0, 0, 0, 1.0);
+                    }
+                """
+                )
+
+        except Exception as e:
+            self._log.error(f"Error toggling zoom mode: {e}")
+
+    def resizeEvent(self, event) -> None:
+        """Handle resize events and reposition zoom button"""
+        try:
+            if not self._headless:
+                super().resizeEvent(event)
+                self._rendering_manager.update_render_target_size()
+
+                # Reposition zoom button
+                if hasattr(self, "_zoom_button") and self._zoom_button:
+                    self._zoom_button.move(self.width() - 50, 10)
+
+        except Exception as e:
+            self._log.error(f"Error in resize event: {e}")
+
+    def mousePressEvent(self, event) -> None:
+        """Handle mouse press events for zoom lens"""
+        try:
+            if self._headless:
+                return
+
+            if hasattr(self, "_zoom_mode_active") and self._zoom_mode_active:
+                # Show zoom lens at click position
+                if self._zoom_lens and hasattr(self._zoom_lens, "show_lens"):
+                    self._zoom_lens.show_lens(event.x(), event.y())
+            else:
+                # Pass through to parent
+                super().mousePressEvent(event)
+
+        except Exception as e:
+            self._log.error(f"Error in mouse press event: {e}")
+
+    def mouseMoveEvent(self, event) -> None:
+        """Handle mouse move events to update zoom lens position"""
+        try:
+            if self._headless:
+                return
+
+            if (
+                hasattr(self, "_zoom_mode_active")
+                and self._zoom_mode_active
+                and hasattr(self, "_zoom_lens")
+                and self._zoom_lens
+                and hasattr(self._zoom_lens, "isVisible")
+                and self._zoom_lens.isVisible()
+            ):
+                # Update zoom lens position and content
+                if hasattr(self._zoom_lens, "show_lens"):
+                    self._zoom_lens.show_lens(event.x(), event.y())
+            else:
+                # Pass through to parent
+                super().mouseMoveEvent(event)
+
+        except Exception as e:
+            self._log.error(f"Error in mouse move event: {e}")
+
+    def mouseReleaseEvent(self, event) -> None:
+        """Handle mouse release events"""
+        try:
+            if self._headless:
+                return
+
+            if hasattr(self, "_zoom_mode_active") and self._zoom_mode_active:
+                # Keep lens visible after mouse release
+                pass
+            else:
+                # Pass through to parent
+                super().mouseReleaseEvent(event)
+
+        except Exception as e:
+            self._log.error(f"Error in mouse release event: {e}")
 
     # Public API methods
     def set_language(self, code: str) -> None:
@@ -287,12 +730,6 @@ class AnimateGesturePanel(QWidget):
         """Set style sheet."""
         if not self._headless:
             super().setStyleSheet(*args, **kwargs)
-
-    def resizeEvent(self, event):
-        """Handle resize events."""
-        if not self._headless:
-            super().resizeEvent(event)
-            self._rendering_manager.update_render_target_size()
 
     # Frame handling
     def _on_frame(self) -> None:
