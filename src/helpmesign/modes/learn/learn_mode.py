@@ -14,9 +14,9 @@ from ...utils.sign_language_loader import get_sign_language_loader
 from ..base_mode import BaseMode
 from .character_manager import LearnModeCharacterManager
 from .gesture_manager import LearnModeGestureManager
-from .sign_language_manager import LearnModeSignLanguageManager
 from .learning_progress import LearnModeLearningProgress
 from .mode_lifecycle_manager import LearnModeLifecycleManager
+from .sign_language_manager import LearnModeSignLanguageManager
 from .ui_behavior_manager import LearnModeUIBehaviorManager
 
 # Import refactored modules
@@ -112,6 +112,7 @@ class LearnMode(BaseMode):
 
             # Get font family from theme manager
             from ...utils.theme_manager import get_font_family
+
             self.current_font_family = get_font_family()
 
         except Exception as e:
@@ -119,6 +120,7 @@ class LearnMode(BaseMode):
             # Fallback to system theme instead of hardcoded Light
             try:
                 from ...core.startup import get_theme
+
                 fallback_theme = get_theme()
             except Exception:
                 fallback_theme = "Light"
@@ -133,6 +135,7 @@ class LearnMode(BaseMode):
             # Detect system theme
             try:
                 from ...utils.theme_manager import get_theme_manager
+
                 theme_manager = get_theme_manager()
                 current_theme = theme_manager.get_current_theme()
 
@@ -151,6 +154,7 @@ class LearnMode(BaseMode):
             # Instead of hardcoded Light, get from system
             try:
                 from ...core.startup import get_theme
+
                 return get_theme()
             except Exception:
                 return "Light"  # Final fallback

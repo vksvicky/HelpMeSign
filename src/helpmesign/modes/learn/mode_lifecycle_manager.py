@@ -365,7 +365,9 @@ class LearnModeLifecycleManager:
             if language_data:
                 # Call the language manager's on_language_selected with full data
                 self.learn_mode.logger.info(f"Calling language manager for {code}")
-                self.learn_mode.sign_language_manager.on_language_selected(language_data)
+                self.learn_mode.sign_language_manager.on_language_selected(
+                    language_data
+                )
                 self.learn_mode.logger.info(
                     f"Language changed to {code} via external selection"
                 )

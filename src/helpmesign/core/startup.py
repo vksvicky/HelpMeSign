@@ -304,6 +304,26 @@ class SecureConfigManager:
     """Secure configuration manager with system-derived key protection"""
 
     def __init__(self) -> None:
+        # Safety check: Prevent tests from accidentally using real config
+        import os
+
+        if os.environ.get("HELPMESIGN_TEST_MODE") == "true":
+            # Check if we're in a test environment without proper mocking
+            real_home = os.path.expanduser("~")
+            current_home = str(Path.home())
+            # Allow if home is mocked to a temp directory (different from real home)
+            # or if it's explicitly in a temp directory
+            is_temp_dir = (
+                "/tmp/" in current_home
+                or "/var/folders/" in current_home  # macOS temp dirs
+                or "helpmesign_test_" in current_home  # Our test prefix
+            )
+            if real_home == current_home and not is_temp_dir:
+                raise RuntimeError(
+                    "Test is attempting to use real user configuration! "
+                    "Use proper mocking or the isolate_user_config fixture."
+                )
+
         self.config_dir = Path.home() / ".helpmesign"
         self.config_file = self.config_dir / "user_config.secure"
         self.logger = get_logger("helpmesign.config")
@@ -467,13 +487,14 @@ class SecureConfigManager:
                 "timestamp": self.get_timestamp(),
             }
 
-            # Save the default configuration
+            # Try to save the default configuration, but return it even if saving fails
             if self.save_config(default_config):
                 self.logger.info("Default configuration created and saved successfully")
-                return default_config
             else:
                 self.logger.error("Failed to save default configuration")
-                return {}
+            
+            # Always return the default config, even if saving failed
+            return default_config
 
         except Exception as e:
             self.logger.error(f"Error creating default configuration: {e}")

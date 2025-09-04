@@ -89,7 +89,9 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("Popular Languages")
         assert self.mode.current_category == "popular"
-        self.mode.sign_language_manager.populate_language_list.assert_called_with("popular")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with(
+            "popular"
+        )
 
     @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_beginner(self, mock_get_text):
@@ -106,7 +108,9 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("Beginner Friendly")
         assert self.mode.current_category == "beginner"
-        self.mode.sign_language_manager.populate_language_list.assert_called_with("beginner")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with(
+            "beginner"
+        )
 
     @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_intermediate(self, mock_get_text):
@@ -142,7 +146,9 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("Advanced")
         assert self.mode.current_category == "advanced"
-        self.mode.sign_language_manager.populate_language_list.assert_called_with("advanced")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with(
+            "advanced"
+        )
 
     @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_unknown_category(self, mock_get_text):
@@ -161,7 +167,9 @@ class TestCategorySelection(QtTestCase):
         assert (
             self.mode.current_category == "unknown"
         )  # Still tracks the unknown category
-        self.mode.sign_language_manager.populate_language_list.assert_called_with("unknown")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with(
+            "unknown"
+        )
 
     @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_exception_handling(self, mock_get_text):
@@ -242,7 +250,9 @@ class TestCategorySelection(QtTestCase):
         self.mode.on_search_changed("")
 
         # Assert
-        self.mode.sign_language_manager.populate_language_list.assert_called_with("popular")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with(
+            "popular"
+        )
 
     @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_search_with_text_uses_search_results(self, mock_get_text):
@@ -368,4 +378,6 @@ class TestCategorySelectionWithQt(QtTestCase):
 
         # Assert
         assert self.mode.current_category == "popular"
-        self.mode.sign_language_manager.populate_language_list.assert_called_with("popular")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with(
+            "popular"
+        )

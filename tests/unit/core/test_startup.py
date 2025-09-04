@@ -594,7 +594,12 @@ class TestSecureConfigManager:
 
         result = manager.load_config()
 
-        assert result == {}
+        # Should return default config when file doesn't exist
+        assert "user_mode" in result
+        assert "theme" in result
+        assert "font_size" in result
+        assert "hand_preference" in result
+        assert "selected_language" in result
 
     @patch("src.helpmesign.core.startup.Path")
     def test_save_config_success(self, mock_path):
@@ -794,7 +799,12 @@ class TestSecureConfigManager:
 
         with patch("builtins.open", mock_open(read_data=mock_content)):
             result = manager.load_config()
-            assert result == {}
+            # Should return default config when format is invalid
+            assert "user_mode" in result
+            assert "theme" in result
+            assert "font_size" in result
+            assert "hand_preference" in result
+            assert "selected_language" in result
 
     @patch("src.helpmesign.core.startup.Path")
     def test_load_config_json_error(self, mock_path):
@@ -821,7 +831,12 @@ class TestSecureConfigManager:
                 side_effect=Exception("JSON error"),
             ):
                 result = manager.load_config()
-                assert result == {}
+                # Should return default config when JSON is invalid
+                assert "user_mode" in result
+                assert "theme" in result
+                assert "font_size" in result
+                assert "hand_preference" in result
+                assert "selected_language" in result
 
     @patch("src.helpmesign.core.startup.Path")
     def test_load_config_tamper_detection(self, mock_path):
@@ -849,7 +864,12 @@ class TestSecureConfigManager:
                     manager, "_verify_hmac", return_value=False
                 ):  # Tampered
                     result = manager.load_config()
-                    assert result == {}
+                    # Should return default config when tampering is detected
+                    assert "user_mode" in result
+                    assert "theme" in result
+                    assert "font_size" in result
+                    assert "hand_preference" in result
+                    assert "selected_language" in result
 
     @patch("src.helpmesign.core.startup.Path")
     def test_get_user_mode_from_config(self, mock_path):
@@ -1247,7 +1267,12 @@ class TestSecureConfigManager:
 
         with patch("builtins.open", side_effect=Exception("General error")):
             result = manager.load_config()
-            assert result == {}
+            # Should return default config when there's a general error
+            assert "user_mode" in result
+            assert "theme" in result
+            assert "font_size" in result
+            assert "hand_preference" in result
+            assert "selected_language" in result
 
     @patch("src.helpmesign.core.startup.Path")
     def test_get_user_mode_exception_handling(self, mock_path):
@@ -1886,11 +1911,9 @@ class TestSecureConfigManager:
             assert "hand_preference" in result
             assert "selected_language" in result
 
-    def test_secure_config_manager_load_config_with_invalid_json(self):
+    def test_secure_config_manager_load_config_with_invalid_json(self, isolated_config_manager):
         """Test load_config with invalid JSON"""
-        from src.helpmesign.core.startup import SecureConfigManager
-
-        manager = SecureConfigManager()
+        manager = isolated_config_manager
 
         with patch("pathlib.Path.exists", return_value=True):
             with patch("builtins.open", mock_open(read_data="invalid json")):
@@ -1902,11 +1925,9 @@ class TestSecureConfigManager:
                 assert "hand_preference" in result
                 assert "selected_language" in result
 
-    def test_secure_config_manager_load_config_with_hmac_verification_failure(self):
+    def test_secure_config_manager_load_config_with_hmac_verification_failure(self, isolated_config_manager):
         """Test load_config with HMAC verification failure"""
-        from src.helpmesign.core.startup import SecureConfigManager
-
-        manager = SecureConfigManager()
+        manager = isolated_config_manager
 
         # Create invalid config data with string signature instead of bytes
         invalid_config = {"data": "test_data", "signature": "invalid_signature"}
@@ -2277,11 +2298,9 @@ class TestSecureConfigManager:
         result = manager._verify_hmac(test_data, invalid_signature)
         assert result is False
 
-    def test_secure_config_manager_save_config_with_metadata(self):
+    def test_secure_config_manager_save_config_with_metadata(self, isolated_config_manager):
         """Test save_config with metadata"""
-        from src.helpmesign.core.startup import SecureConfigManager
-
-        manager = SecureConfigManager()
+        manager = isolated_config_manager
 
         # Test config with metadata
         config_with_metadata = {
@@ -2292,15 +2311,13 @@ class TestSecureConfigManager:
             "metadata": {"created": "2023-01-01", "version": "1.0"},
         }
 
-        with patch("builtins.open", mock_open()):
+        with patch("builtins.open", mock_open()), patch("os.chmod"):
             result = manager.save_config(config_with_metadata)
             assert result is True
 
-    def test_secure_config_manager_load_config_ignores_environment_field(self):
+    def test_secure_config_manager_load_config_ignores_environment_field(self, isolated_config_manager):
         """Environment field in config is ignored and does not prevent loading defaults"""
-        from src.helpmesign.core.startup import SecureConfigManager
-
-        manager = SecureConfigManager()
+        manager = isolated_config_manager
 
         # Create config payload with environment field
         config_data = {
@@ -2476,11 +2493,9 @@ class TestSecureConfigManager:
             assert isinstance(mac, str)
             assert len(mac) > 0
 
-    def test_secure_config_manager_save_config_with_metadata_and_timestamp(self):
+    def test_secure_config_manager_save_config_with_metadata_and_timestamp(self, isolated_config_manager):
         """Test save_config with metadata and timestamp"""
-        from src.helpmesign.core.startup import SecureConfigManager
-
-        manager = SecureConfigManager()
+        manager = isolated_config_manager
 
         # Test config with metadata and timestamp
         config_with_metadata = {
@@ -2495,7 +2510,7 @@ class TestSecureConfigManager:
             },
         }
 
-        with patch("builtins.open", mock_open()):
+        with patch("builtins.open", mock_open()), patch("os.chmod"):
             result = manager.save_config(config_with_metadata)
             assert result is True
 

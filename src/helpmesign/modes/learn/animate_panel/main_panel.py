@@ -23,7 +23,7 @@ except Exception:  # pragma: no cover - tests may mock Qt imports
     class QWidget:  # type: ignore[no-redef]
         def __init__(self, parent=None):
             pass
-            
+
         class SizePolicy:
             Expanding = 0
             Fixed = 1
