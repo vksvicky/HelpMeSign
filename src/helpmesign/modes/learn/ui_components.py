@@ -16,6 +16,59 @@ from ...utils.language_manager import get_text
 from ...utils.theme_manager import get_theme_style
 
 
+def get_button_style(style_type: str = "default") -> str:
+    """Get button style for different button types"""
+    if style_type == "primary":
+        return """
+            QPushButton {
+                background-color: #007acc;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #005a9e;
+            }
+            QPushButton:pressed {
+                background-color: #004578;
+            }
+        """
+    elif style_type == "secondary":
+        return """
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #333;
+                border: 1px solid #ccc;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0;
+            }
+        """
+    else:  # default
+        return """
+            QPushButton {
+                background-color: #ffffff;
+                color: #333;
+                border: 1px solid #ccc;
+                padding: 6px 12px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #f5f5f5;
+            }
+            QPushButton:pressed {
+                background-color: #e0e0e0;
+            }
+        """
+
+
 class _CornerButtonPositioner(QObject):
     def __init__(self, parent_widget, widget, anchor: str = "top-right"):
         try:
@@ -651,7 +704,7 @@ class LearnModeUIComponents:
                     self.learn_mode.clear_sign_btn,
                 )
                 self.learn_mode.sign_display_container.installEventFilter(
-                    self.learn_mode._clear_btn_positioner
+                    self.learn_mode.event_filter
                 )
             except Exception:
                 pass
@@ -709,14 +762,17 @@ class LearnModeUIComponents:
         # Add text-to-sign translation interface (following sign.mt architecture)
         self.create_text_to_sign_interface(layout)
 
-        # Add HPR Editor button
+        # Add HPR Editor and Pose Validation buttons
         hpr_button_layout = QHBoxLayout()
         self.learn_mode.hpr_editor_btn = QPushButton("Open HPR Editor")
         self.learn_mode.hpr_editor_btn.setToolTip(
-            "Open interactive HPR editor to adjust character joint positions"
+            "Open the HPR (Heading, Pitch, Roll) editor with pose validation for real-time 3D character pose management"
         )
-        self.learn_mode.hpr_editor_btn.clicked.connect(self.learn_mode.open_hpr_editor)
+        self.learn_mode.hpr_editor_btn.clicked.connect(
+            self.learn_mode.open_pose_validation
+        )
         hpr_button_layout.addWidget(self.learn_mode.hpr_editor_btn)
+
         hpr_button_layout.addStretch()
         layout.addLayout(hpr_button_layout)
 

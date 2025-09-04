@@ -270,14 +270,18 @@ class LearnModeCharacterManager:
                 hand = getattr(self.learn_mode, "current_hand_preference", "right")
 
                 # Get gesture data and validate it before playing
-                gesture_data = self.learn_mode._get_gesture_data(letter, "letter", hand)
+                gesture_data = self.learn_mode.gesture_manager._get_gesture_data(
+                    letter, "letter", hand
+                )
                 if gesture_data:
-                    validated_gesture = self.learn_mode.validate_gesture_before_play(
-                        gesture_data
+                    validated_gesture = (
+                        self.learn_mode.gesture_manager.validate_gesture_before_play(
+                            gesture_data
+                        )
                     )
 
                     # Check for violations and log them
-                    violations = self.learn_mode.get_gesture_constraint_violations(
+                    violations = self.learn_mode.gesture_manager.get_gesture_constraint_violations(
                         gesture_data
                     )
                     if violations:
@@ -324,14 +328,18 @@ class LearnModeCharacterManager:
                 hand = getattr(self.learn_mode, "current_hand_preference", "right")
 
                 # Get gesture data and validate it before playing
-                gesture_data = self.learn_mode._get_gesture_data(number, "number", hand)
+                gesture_data = self.learn_mode.gesture_manager._get_gesture_data(
+                    number, "number", hand
+                )
                 if gesture_data:
-                    validated_gesture = self.learn_mode.validate_gesture_before_play(
-                        gesture_data
+                    validated_gesture = (
+                        self.learn_mode.gesture_manager.validate_gesture_before_play(
+                            gesture_data
+                        )
                     )
 
                     # Check for violations and log them
-                    violations = self.learn_mode.get_gesture_constraint_violations(
+                    violations = self.learn_mode.gesture_manager.get_gesture_constraint_violations(
                         gesture_data
                     )
                     if violations:

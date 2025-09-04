@@ -188,9 +188,17 @@ class LearnModeLifecycleManager:
 
                 # Check if status bar already has the correct content
                 current_text = status_bar.status_label.text()
-                expected_text = (
-                    f"Mode: {get_text('modes.learn.name')} | ASL - Left Hand"
+
+                # Get current language and hand preference from learn_mode
+                current_language = getattr(self.learn_mode, "current_language", "ASL")
+                current_hand_preference = getattr(
+                    self.learn_mode, "current_hand_preference", "right"
                 )
+
+                # Format hand preference for display
+                hand_display = "Left" if current_hand_preference == "left" else "Right"
+
+                expected_text = f"Mode: {get_text('modes.learn.name')} | {current_language} - {hand_display} Hand"
 
                 self.learn_mode.logger.debug(
                     f"Current status bar text: '{current_text}'"
@@ -518,6 +526,13 @@ class LearnModeLifecycleManager:
                 btn = self.learn_mode.hpr_editor_btn
                 btn.clicked.connect(self.learn_mode.ui_behavior_manager.open_hpr_editor)
 
+            # Set up pose validation button handler
+            if hasattr(self.learn_mode, "pose_validation_btn"):
+                btn = self.learn_mode.pose_validation_btn
+                btn.clicked.connect(
+                    self.learn_mode.ui_behavior_manager.open_pose_validation
+                )
+
             # Set up learn and clear request handlers
             if hasattr(self.learn_mode.main_window, "process_requested"):
                 main_window = self.learn_mode.main_window
@@ -549,7 +564,7 @@ class LearnModeLifecycleManager:
                 and self.learn_mode.learning_widget
             ):
                 widget = self.learn_mode.learning_widget
-                widget.installEventFilter(self.learn_mode)
+                widget.installEventFilter(self.learn_mode.event_filter)
 
         except Exception as e:
             self.learn_mode.logger.error(f"Error setting up behavior: {e}")

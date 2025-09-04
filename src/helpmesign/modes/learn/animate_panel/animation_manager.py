@@ -35,8 +35,8 @@ class AnimationManager:
                 self.parent_panel._reset_to_neutral_pose()
                 return
 
-            # Continue animation
-            self.parent_panel._actor.pose("idle", current_time)
+            # Continue animation - don't apply idle pose, use natural pose
+            # self.parent_panel._actor.pose("idle", current_time)  # Removed to avoid T-pose
 
         except Exception as e:
             self._log.error(f"Error in signing animation frame: {e}")
@@ -176,15 +176,31 @@ class AnimationManager:
                 self.parent_panel._apply_fallback_movement()
                 return
 
-            # Apply each joint rotation
+            # Apply each joint rotation using Actor controlJoint method
             for joint_name, rotation_data in pose.items():
                 if len(rotation_data) >= 3:  # Need at least x, y, z
-                    joint_node = self.parent_panel._get_joint_node(joint_name)
-                    if joint_node:
-                        # Apply rotation (assuming rotation_data is [x, y, z] in degrees)
-                        joint_node.setHpr(
-                            rotation_data[0], rotation_data[1], rotation_data[2]
+                    try:
+                        # Use Actor's controlJoint method for proper joint control
+                        joint = self.parent_panel._actor.controlJoint(
+                            None, "modelRoot", joint_name
                         )
+                        if joint is not None:
+                            # Apply rotation (assuming rotation_data is [x, y, z] in degrees)
+                            joint.setHpr(
+                                rotation_data[0], rotation_data[1], rotation_data[2]
+                            )
+                            self._log.debug(
+                                f"Applied pose to joint {joint_name}: {rotation_data}"
+                            )
+                        else:
+                            self._log.warning(f"Could not control joint: {joint_name}")
+                    except Exception as joint_error:
+                        self._log.warning(
+                            f"Error applying pose to joint {joint_name}: {joint_error}"
+                        )
+
+            # Update the actor after applying all poses
+            self.parent_panel._actor.update()
 
         except Exception as e:
             self._log.error(f"Error applying pose: {e}")
@@ -233,8 +249,14 @@ class AnimationManager:
             self.parent_panel._wave_active = False
             self.parent_panel._intro_active = False
 
-            # Reset to default pose
-            self.parent_panel._actor.pose("idle", 0)
+            # Apply the hands-down pose as the neutral pose
+            try:
+                self.parent_panel._actor.stop()
+                self.parent_panel._actor.pose("Armature|mixamo.com|Layer0", 0)
+                self._log.info("Reset to neutral pose - applied hands-down pose")
+            except Exception as pose_error:
+                self._log.warning(f"Could not apply hands-down pose: {pose_error}")
+                self._log.info("Using model's natural pose")
 
         except Exception as e:
             self._log.error(f"Error resetting to neutral pose: {e}")

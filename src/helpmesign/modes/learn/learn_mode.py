@@ -5,6 +5,8 @@ Provides character selection and sign display layout
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from PySide6.QtCore import QEvent, QObject
+
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget, QLabel
     from .animate_panel import AnimateGesturePanel
@@ -21,6 +23,21 @@ from .ui_behavior_manager import LearnModeUIBehaviorManager
 
 # Import refactored modules
 from .ui_components import LearnModeUIComponents
+
+
+class LearnModeEventFilter(QObject):
+    """Event filter for LearnMode to handle widget events"""
+
+    def __init__(self, learn_mode):
+        super().__init__()
+        self.learn_mode = learn_mode
+
+    def eventFilter(self, obj, event):
+        """Filter events for the learn mode"""
+        if event.type() == QEvent.Type.Resize:
+            # Handle resize events if needed
+            pass
+        return super().eventFilter(obj, event)
 
 
 class LearnMode(BaseMode):
@@ -53,7 +70,7 @@ class LearnMode(BaseMode):
         self.current_category = "all"  # Track current category
 
         # Initialize animate panel (will be set up in setup_ui)
-        self.animate_panel: Optional["AnimateGesturePanel"] = None
+        self.animate_gesture_panel: Optional["AnimateGesturePanel"] = None
 
         # Initialize learning widget (will be set up in setup_ui)
         self.learning_widget: Optional["QWidget"] = None
@@ -64,6 +81,9 @@ class LearnMode(BaseMode):
 
         # Initialize language selection tracking
         self.selected_language: Optional[Dict[str, Any]] = None
+
+        # Initialize event filter
+        self.event_filter = LearnModeEventFilter(self)
 
         # Initialize manager instances BEFORE calling parent __init__
         self.ui_components = LearnModeUIComponents(self)
@@ -284,6 +304,10 @@ class LearnMode(BaseMode):
     def open_hpr_editor(self) -> None:
         """Open the HPR editor"""
         self.ui_behavior_manager.open_hpr_editor()
+
+    def open_pose_validation(self) -> None:
+        """Open the pose validation panel"""
+        self.ui_behavior_manager.open_pose_validation()
 
     def _show_placeholder_message(self) -> None:
         """Show placeholder message"""

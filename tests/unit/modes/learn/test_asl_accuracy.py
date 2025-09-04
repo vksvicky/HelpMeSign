@@ -27,10 +27,18 @@ class TestASLAccuracy:
         # Test ASL alphabet poses (A, B, C)
         asl_poses = {
             "A": {
-                "mixamorig:RightShoulder": [0, 30, 0],
-                "mixamorig:RightArm": [0, 20, 0],
-                "mixamorig:RightHandIndex1": [0, 80, 0],
-                "mixamorig:RightHandThumb1": [0, 0, 0],
+                "mixamorig:RightShoulder": [0, -30, -180],
+                "mixamorig:RightArm": [0, 10, 0],
+                "mixamorig:RightForeArm": [0, 90, 0],
+                "mixamorig:RightHand": [0, 0, 0],
+                "mixamorig:Head": [0, 0, 0],
+                "mixamorig:Neck": [0, 0, 0],
+                "mixamorig:LeftShoulder": [-160, 80, -100],
+                "mixamorig:LeftArm": [-15, 80, 0],
+                "mixamorig:LeftForeArm": [10, 0, 0],
+                "mixamorig:LeftHand": [0, 0, 0],
+                "mixamorig:RightHandIndex1": [0, 70, 0],
+                "mixamorig:RightHandThumb1": [-45, 0, 0],
             },
             "B": {
                 "mixamorig:RightShoulder": [0, 45, 0],

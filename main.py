@@ -6,6 +6,7 @@ Main entry point for HelpMeSign application
 import sys
 import argparse
 import os
+import signal
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
@@ -145,8 +146,22 @@ def main():
     
     logger.info("Application started successfully")
     
+    # Set up signal handling for clean shutdown
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, shutting down gracefully...")
+        app.quit()
+    
+    # Handle Ctrl+C (SIGINT) and SIGTERM
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     # Start the event loop
-    sys.exit(app.exec())
+    try:
+        sys.exit(app.exec())
+    except KeyboardInterrupt:
+        logger.info("KeyboardInterrupt received, shutting down...")
+        app.quit()
+        sys.exit(0)
 
 
 if __name__ == "__main__":

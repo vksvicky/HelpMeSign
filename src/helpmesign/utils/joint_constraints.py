@@ -135,8 +135,8 @@ class JointConstraintValidator:
                 max_h=45,  # Thumb CMC joint
                 min_p=-20,
                 max_p=20,  # Thumb flexion/extension
-                min_r=-45,
-                max_r=45,  # Thumb abduction/adduction
+                min_r=-90,
+                max_r=90,  # Thumb abduction/adduction (increased for ASL signs)
                 description="Right thumb CMC joint",
             ),
             "mixamorig:RightHandThumb2": JointConstraint(
@@ -152,7 +152,7 @@ class JointConstraintValidator:
                 min_h=-20,
                 max_h=20,  # Thumb IP joint
                 min_p=0,
-                max_p=90,  # Thumb flexion
+                max_p=120,  # Thumb flexion (increased for ASL signs)
                 min_r=-20,
                 max_r=20,  # Thumb rotation
                 description="Right thumb IP joint",
@@ -162,7 +162,7 @@ class JointConstraintValidator:
                 min_h=-30,
                 max_h=30,  # Index MCP joint
                 min_p=0,
-                max_p=90,  # Index flexion
+                max_p=120,  # Index flexion (increased for ASL signs)
                 min_r=-45,
                 max_r=45,  # Index abduction/adduction
                 description="Right index MCP joint",
@@ -180,7 +180,7 @@ class JointConstraintValidator:
                 min_h=-15,
                 max_h=15,  # Index DIP joint
                 min_p=0,
-                max_p=90,  # Index flexion
+                max_p=120,  # Index flexion (increased for ASL signs)
                 min_r=-15,
                 max_r=15,  # Index rotation
                 description="Right index DIP joint",
@@ -190,7 +190,7 @@ class JointConstraintValidator:
                 min_h=-20,
                 max_h=20,  # Middle MCP joint
                 min_p=0,
-                max_p=90,  # Middle flexion
+                max_p=120,  # Middle flexion (increased for ASL signs)
                 min_r=-30,
                 max_r=30,  # Middle abduction/adduction
                 description="Right middle MCP joint",
@@ -208,7 +208,7 @@ class JointConstraintValidator:
                 min_h=-10,
                 max_h=10,  # Middle DIP joint
                 min_p=0,
-                max_p=90,  # Middle flexion
+                max_p=120,  # Middle flexion (increased for ASL signs)
                 min_r=-10,
                 max_r=10,  # Middle rotation
                 description="Right middle DIP joint",
@@ -218,7 +218,7 @@ class JointConstraintValidator:
                 min_h=-20,
                 max_h=20,  # Ring MCP joint
                 min_p=0,
-                max_p=90,  # Ring flexion
+                max_p=120,  # Ring flexion (increased for ASL signs)
                 min_r=-30,
                 max_r=30,  # Ring abduction/adduction
                 description="Right ring MCP joint",
@@ -236,7 +236,7 @@ class JointConstraintValidator:
                 min_h=-10,
                 max_h=10,  # Ring DIP joint
                 min_p=0,
-                max_p=90,  # Ring flexion
+                max_p=120,  # Ring flexion (increased for ASL signs)
                 min_r=-10,
                 max_r=10,  # Ring rotation
                 description="Right ring DIP joint",
@@ -246,7 +246,7 @@ class JointConstraintValidator:
                 min_h=-30,
                 max_h=30,  # Pinky MCP joint
                 min_p=0,
-                max_p=90,  # Pinky flexion
+                max_p=120,  # Pinky flexion (increased for ASL signs)
                 min_r=-45,
                 max_r=45,  # Pinky abduction/adduction
                 description="Right pinky MCP joint",
@@ -264,7 +264,7 @@ class JointConstraintValidator:
                 min_h=-15,
                 max_h=15,  # Pinky DIP joint
                 min_p=0,
-                max_p=90,  # Pinky flexion
+                max_p=120,  # Pinky flexion (increased for ASL signs)
                 min_r=-15,
                 max_r=15,  # Pinky rotation
                 description="Right pinky DIP joint",
@@ -292,7 +292,7 @@ class JointConstraintValidator:
                 min_h=-20,
                 max_h=20,  # Thumb IP joint
                 min_p=0,
-                max_p=90,  # Thumb flexion
+                max_p=120,  # Thumb flexion (increased for ASL signs)
                 min_r=-20,
                 max_r=20,  # Thumb rotation
                 description="Left thumb IP joint",
@@ -302,7 +302,7 @@ class JointConstraintValidator:
                 min_h=-30,
                 max_h=30,  # Index MCP joint
                 min_p=0,
-                max_p=90,  # Index flexion
+                max_p=120,  # Index flexion (increased for ASL signs)
                 min_r=-45,
                 max_r=45,  # Index abduction/adduction
                 description="Left index MCP joint",
@@ -320,7 +320,7 @@ class JointConstraintValidator:
                 min_h=-15,
                 max_h=15,  # Index DIP joint
                 min_p=0,
-                max_p=90,  # Index flexion
+                max_p=120,  # Index flexion (increased for ASL signs)
                 min_r=-15,
                 max_r=15,  # Index rotation
                 description="Left index DIP joint",
@@ -330,7 +330,7 @@ class JointConstraintValidator:
                 min_h=-20,
                 max_h=20,  # Middle MCP joint
                 min_p=0,
-                max_p=90,  # Middle flexion
+                max_p=120,  # Middle flexion (increased for ASL signs)
                 min_r=-30,
                 max_r=30,  # Middle abduction/adduction
                 description="Left middle MCP joint",
@@ -348,7 +348,7 @@ class JointConstraintValidator:
                 min_h=-10,
                 max_h=10,  # Middle DIP joint
                 min_p=0,
-                max_p=90,  # Middle flexion
+                max_p=120,  # Middle flexion (increased for ASL signs)
                 min_r=-10,
                 max_r=10,  # Middle rotation
                 description="Left middle DIP joint",
@@ -358,7 +358,7 @@ class JointConstraintValidator:
                 min_h=-20,
                 max_h=20,  # Ring MCP joint
                 min_p=0,
-                max_p=90,  # Ring flexion
+                max_p=120,  # Ring flexion (increased for ASL signs)
                 min_r=-30,
                 max_r=30,  # Ring abduction/adduction
                 description="Left ring MCP joint",
@@ -376,7 +376,7 @@ class JointConstraintValidator:
                 min_h=-10,
                 max_h=10,  # Ring DIP joint
                 min_p=0,
-                max_p=90,  # Ring flexion
+                max_p=120,  # Ring flexion (increased for ASL signs)
                 min_r=-10,
                 max_r=10,  # Ring rotation
                 description="Left ring DIP joint",
@@ -386,7 +386,7 @@ class JointConstraintValidator:
                 min_h=-30,
                 max_h=30,  # Pinky MCP joint
                 min_p=0,
-                max_p=90,  # Pinky flexion
+                max_p=120,  # Pinky flexion (increased for ASL signs)
                 min_r=-45,
                 max_r=45,  # Pinky abduction/adduction
                 description="Left pinky MCP joint",
@@ -404,7 +404,7 @@ class JointConstraintValidator:
                 min_h=-15,
                 max_h=15,  # Pinky DIP joint
                 min_p=0,
-                max_p=90,  # Pinky flexion
+                max_p=120,  # Pinky flexion (increased for ASL signs)
                 min_r=-15,
                 max_r=15,  # Pinky rotation
                 description="Left pinky DIP joint",

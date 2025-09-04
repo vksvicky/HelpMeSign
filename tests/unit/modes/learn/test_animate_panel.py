@@ -295,7 +295,10 @@ class TestAnimationManager:
         assert parent_panel._is_animating is False
         assert parent_panel._wave_active is False
         assert parent_panel._intro_active is False
-        parent_panel._actor.pose.assert_called_once_with("idle", 0)
+        parent_panel._actor.stop.assert_called_once()
+        parent_panel._actor.pose.assert_called_once_with(
+            "Armature|mixamo.com|Layer0", 0
+        )
 
 
 class TestModelManager:

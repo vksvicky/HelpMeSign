@@ -163,13 +163,15 @@ class LearnModeGestureManager:
 
             # Try to get gesture data from the sign loader
             if char_type == "letter":
-                data = self.learn_mode.sign_loader.get_letter_data(
-                    self.learn_mode.current_language, character, hand
+                alphabet_signs = self.learn_mode.sign_loader.get_alphabet_signs(
+                    self.learn_mode.current_language, hand
                 )
+                data = alphabet_signs.get(character.upper())
             elif char_type == "number":
-                data = self.learn_mode.sign_loader.get_number_data(
-                    self.learn_mode.current_language, character, hand
+                number_signs = self.learn_mode.sign_loader.get_number_signs(
+                    self.learn_mode.current_language, hand
                 )
+                data = number_signs.get(character)
             else:
                 return None
 

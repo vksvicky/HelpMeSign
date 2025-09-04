@@ -423,11 +423,63 @@ class LearnModeUIBehaviorManager:
     def open_hpr_editor(self) -> None:
         """Open the HPR editor"""
         try:
-            # This would typically open a separate HPR editing interface
+            from .hpr_editor import SignLanguagePoseEditor
+
+            if (
+                not hasattr(self.learn_mode, "hpr_editor")
+                or self.learn_mode.hpr_editor is None
+            ):
+                self.learn_mode.hpr_editor = SignLanguagePoseEditor(
+                    self.learn_mode.animate_gesture_panel, self.learn_mode.main_window
+                )
+
+            self.learn_mode.hpr_editor.show()
+            self.learn_mode.hpr_editor.raise_()
+            self.learn_mode.hpr_editor.activateWindow()
+
             if hasattr(self.learn_mode.main_window, "set_status"):
-                self.learn_mode.main_window.set_status("HPR Editor not implemented yet")
+                self.learn_mode.main_window.set_status("HPR Editor opened")
         except Exception as e:
             self.learn_mode.logger.error(f"Error opening HPR editor: {e}")
+            if hasattr(self.learn_mode.main_window, "set_status"):
+                self.learn_mode.main_window.set_status(f"Error opening HPR editor: {e}")
+
+    def open_pose_validation(self) -> None:
+        """Open the HPR editor with pose validation functionality"""
+        try:
+            from .hpr_editor import SignLanguagePoseEditor
+
+            # Always create a new instance to avoid "already deleted" errors
+            # The old instance will be properly cleaned up by Qt's parent-child relationship
+            self.learn_mode.hpr_editor = SignLanguagePoseEditor(
+                self.learn_mode.animate_gesture_panel, self.learn_mode.main_window
+            )
+
+            self.learn_mode.hpr_editor.show()
+            self.learn_mode.hpr_editor.raise_()
+            self.learn_mode.hpr_editor.activateWindow()
+
+            if hasattr(self.learn_mode.main_window, "set_status"):
+                self.learn_mode.main_window.set_status(
+                    "HPR Editor with Pose Validation opened"
+                )
+        except Exception as e:
+            self.learn_mode.logger.error(f"Error opening HPR editor: {e}")
+            if hasattr(self.learn_mode.main_window, "set_status"):
+                self.learn_mode.main_window.set_status(f"Error opening HPR editor: {e}")
+
+    def on_pose_corrected(
+        self, letter: str, corrected_pose: Dict[str, List[float]]
+    ) -> None:
+        """Handle pose corrections from validation panel"""
+        try:
+            self.learn_mode.logger.info(f"Pose corrected for letter {letter}")
+            if hasattr(self.learn_mode.main_window, "set_status"):
+                self.learn_mode.main_window.set_status(
+                    f"Pose corrected for letter {letter}"
+                )
+        except Exception as e:
+            self.learn_mode.logger.error(f"Error handling pose correction: {e}")
 
     def on_text_to_sign_play(self) -> None:
         """Handle text-to-sign play button click"""

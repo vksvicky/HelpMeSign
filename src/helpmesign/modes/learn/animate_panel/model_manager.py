@@ -49,10 +49,31 @@ class ModelManager:
             try:
                 from direct.actor.Actor import Actor
 
+                # Debug: Check if the model has the required structure for Actor
+                self._log.info(f"Model node type: {type(model_node)}")
+                self._log.info(f"Model node name: {model_node.getName()}")
+
+                # Try to create Actor
                 self.parent_panel._actor = Actor(model_node, {})
                 self.parent_panel._model_np = self.parent_panel._actor
                 self._log.info("Loaded model as Actor for skeletal control")
-            except Exception:
+
+                # Debug: Check if Actor was created successfully
+                if self.parent_panel._actor:
+                    self._log.info("Actor created successfully")
+                    # Try to get joint information
+                    try:
+                        joints = self.parent_panel._actor.getJoints()
+                        self._log.info(f"Found {len(joints)} joints in the model")
+                        if joints:
+                            self._log.info(f"First few joints: {joints[:5]}")
+                    except Exception as e:
+                        self._log.warning(f"Could not get joints from Actor: {e}")
+                else:
+                    self._log.warning("Actor creation returned None")
+
+            except Exception as e:
+                self._log.warning(f"Failed to create Actor: {e}")
                 # Fallback to regular NodePath
                 self.parent_panel._model_np = NodePath(model_node)
                 self.parent_panel._actor = None
@@ -66,6 +87,12 @@ class ModelManager:
             self._set_camera_for_default_pose()
             self._setup_lighting()
 
+            # Set enhanced visibility color for better hand gesture visibility
+            self._set_enhanced_visibility_color()
+
+            # Set joint colors to black for better visibility
+            self._set_joint_colors()
+
             # Frame the model in view
             self._frame_model(self.parent_panel._model_np)
 
@@ -78,15 +105,27 @@ class ModelManager:
             if not self.parent_panel._model_np:
                 return
 
-            # Try to apply idle pose if it's an Actor
+            # Use the hands-down pose from the GLB file as the default neutral pose
             if self.parent_panel._actor:
                 try:
-                    self.parent_panel._actor.pose("idle", 0)
-                    self._log.info("Applied idle pose to Actor")
-                except Exception:
-                    self._log.info(
-                        "Using character's natural model pose - no joint modifications applied"
-                    )
+                    # Stop any current animations
+                    self.parent_panel._actor.stop()
+
+                    # Apply the hands-down pose (first animation frame 0)
+                    # This is the natural pose with arms by the sides
+                    self.parent_panel._actor.pose("Armature|mixamo.com|Layer0", 0)
+                    self._log.info("Applied hands-down pose as default neutral pose")
+
+                except Exception as e:
+                    self._log.warning(f"Could not apply hands-down pose: {e}")
+                    # Fallback to bind pose if animation fails
+                    try:
+                        self.parent_panel._actor.pose("", 0)
+                        self._log.info("Fallback to bind pose")
+                    except Exception as fallback_error:
+                        self._log.warning(
+                            f"Could not apply bind pose either: {fallback_error}"
+                        )
 
             # Set default position and orientation
             self.parent_panel._model_np.setPos(0, 0, 0)
@@ -95,6 +134,102 @@ class ModelManager:
 
         except Exception as e:
             self._log.error(f"Error applying default pose: {e}")
+
+    def _set_enhanced_visibility_color(self) -> None:
+        """Set enhanced visibility color for better hand gesture visibility."""
+        try:
+            if not self.parent_panel._model_np:
+                return
+
+            from panda3d.core import VBase4
+
+            # Set default blue color for better visibility
+            enhanced_color = VBase4(0.1, 0.3, 0.9, 1.0)  # High contrast blue
+            self.parent_panel._model_np.setColor(enhanced_color)
+            self._log.info(
+                "Applied enhanced visibility color for better hand gesture visibility"
+            )
+
+        except Exception as e:
+            self._log.error(f"Error setting enhanced visibility color: {e}")
+
+    def _set_joint_colors(self) -> None:
+        """Set joint colors to black for better visibility."""
+        try:
+            if not self.parent_panel._model_np:
+                return
+
+            from panda3d.core import VBase4
+
+            black_color = VBase4(0.0, 0.0, 0.0, 1.0)  # Black
+            colored_geometry = 0
+
+            # Method 1: Color all geometry nodes that might be joints
+            print("=== Method 1: Coloring all geometry nodes ===")
+            geom_nodes = self.parent_panel._model_np.findAllMatches("**/+GeomNode")
+            for i in range(geom_nodes.getNumPaths()):
+                geom_node = geom_nodes.getPath(i)
+                try:
+                    # Check if this geometry is small (likely a joint)
+                    bounds = geom_node.getBounds()
+                    if bounds:
+                        size = bounds.getSize()
+                        if size.length() < 0.2:  # Small geometry threshold
+                            geom_node.setColor(black_color)
+                            colored_geometry += 1
+                            print(f"  ✓ Colored small geometry: {geom_node.getName()}")
+                except Exception as e:
+                    print(f"  ✗ Could not color geometry {i}: {e}")
+
+            # Method 2: Try to find and color joint-related geometry by name patterns
+            print("=== Method 2: Coloring joint-related geometry ===")
+            joint_patterns = [
+                "**/*joint*",
+                "**/*Joint*",
+                "**/*bone*",
+                "**/*Bone*",
+                "**/*skeleton*",
+                "**/*Skeleton*",
+            ]
+
+            for pattern in joint_patterns:
+                try:
+                    nodes = self.parent_panel._model_np.findAllMatches(pattern)
+                    for j in range(nodes.getNumPaths()):
+                        node = nodes.getPath(j)
+                        try:
+                            node.setColor(black_color)
+                            colored_geometry += 1
+                            print(f"  ✓ Colored {pattern} node: {node.getName()}")
+                        except Exception as e:
+                            print(f"  ✗ Could not color {node.getName()}: {e}")
+                except Exception as e:
+                    print(f"  ✗ Pattern {pattern} failed: {e}")
+
+            # Method 3: Color specific body parts that might be joints
+            print("=== Method 3: Coloring specific body parts ===")
+            body_parts = ["Head", "Shoulder", "Elbow", "Wrist", "Hip", "Knee", "Ankle"]
+            for part in body_parts:
+                try:
+                    part_nodes = self.parent_panel._model_np.findAllMatches(
+                        f"**/*{part}*"
+                    )
+                    for k in range(part_nodes.getNumPaths()):
+                        part_node = part_nodes.getPath(k)
+                        try:
+                            part_node.setColor(black_color)
+                            colored_geometry += 1
+                            print(f"  ✓ Colored {part} part: {part_node.getName()}")
+                        except Exception as e:
+                            print(f"  ✗ Could not color {part_node.getName()}: {e}")
+                except Exception as e:
+                    print(f"  ✗ Error with {part}: {e}")
+
+            print(f"=== Total colored geometry: {colored_geometry} ===")
+            self._log.info(f"Set {colored_geometry} geometry nodes to black color")
+
+        except Exception as e:
+            self._log.error(f"Error setting joint colors: {e}")
 
     def _set_camera_for_default_pose(self) -> None:
         """Set camera position for optimal viewing of the default pose."""
@@ -128,19 +263,23 @@ class ModelManager:
                 DirectionalLight,
             )
 
-            # Theme-aware ambient lighting
+            # Theme-aware ambient lighting with maximum visibility for hand gestures
             if current_theme == "Light":
-                # Stronger lighting for Light theme to provide better contrast
-                ambient_intensity = 0.4  # Reduced ambient to create more contrast
-                directional_intensity = (
-                    1.2  # Increased directional for stronger shadows
+                # Maximum lighting for Light theme to provide optimal hand gesture visibility
+                ambient_intensity = (
+                    0.6  # Further increased ambient for maximum visibility
                 )
-                fill_intensity = 0.8  # Increased fill light for better definition
+                directional_intensity = (
+                    1.6  # Maximum directional for strongest shadows and definition
+                )
+                fill_intensity = 1.2  # Maximum fill light for optimal hand definition
             else:
-                # Darker ambient light for Dark theme
-                ambient_intensity = 0.3
-                directional_intensity = 0.8
-                fill_intensity = 0.4
+                # Enhanced lighting for Dark theme to maximize hand gesture visibility
+                ambient_intensity = 0.5  # Increased ambient for better visibility
+                directional_intensity = (
+                    1.2  # Increased directional for better definition
+                )
+                fill_intensity = 0.8  # Increased fill light for better hand visibility
 
             # Ambient light for overall illumination
             ambient_light = AmbientLight("ambient")
