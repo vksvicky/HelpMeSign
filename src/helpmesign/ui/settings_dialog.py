@@ -505,6 +505,9 @@ class SettingsDialog(QDialog):
         # Apply initial theme
         self._apply_initial_theme()
 
+        # Update settings info display
+        self._update_settings_info_display()
+
         self.logger.info("Settings dialog initialized")
 
     def _reset_loop_detection(self):
@@ -906,6 +909,45 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(mode_group)
 
+        # Settings Information section (debug mode only)
+        import sys
+
+        if "pytest" in sys.modules or os.environ.get("DEBUG", "").lower() in (
+            "true",
+            "1",
+            "yes",
+        ):
+            info_group = QGroupBox("Settings Information (Debug)")
+            info_layout = QVBoxLayout(info_group)
+            info_layout.setContentsMargins(20, 20, 20, 20)
+            info_layout.setSpacing(12)
+
+            # Settings info display (no scroll area, let it expand naturally)
+            self.settings_info_label = QLabel()
+            self.settings_info_label.setFont(get_body_font())
+            self.settings_info_label.setWordWrap(True)
+            self.settings_info_label.setStyleSheet(
+                """
+                QLabel {
+                    color: #64748b;
+                    background-color: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 12px;
+                    line-height: 1.3;
+                    font-size: 11px;
+                }
+            """
+            )
+            self.settings_info_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+            info_layout.addWidget(self.settings_info_label)
+
+            layout.addWidget(info_group)
+        else:
+            # Create a placeholder label that won't be used
+            self.settings_info_label = None
+
         # Other general settings can be added here
         layout.addStretch()
         return tab
@@ -1245,6 +1287,9 @@ class SettingsDialog(QDialog):
             self._on_font_size_changed(default_font_size)
             self._apply_tab_bar_styling(default_font_size)
 
+            # Update the settings info display
+            self._update_settings_info_display()
+
             self.logger.info(
                 f"Settings reset to defaults (mode kept as: {current_mode})"
             )
@@ -1292,6 +1337,9 @@ class SettingsDialog(QDialog):
             if save_all_settings(new_settings):
                 # Update original settings to current state
                 self.original_settings = new_settings.copy()
+
+                # Update settings info display
+                self._update_settings_info_display()
 
                 # Emit signal with new mode
                 self.settings_applied.emit(new_settings["user_mode"])
@@ -2069,6 +2117,91 @@ class SettingsDialog(QDialog):
 
         except Exception as e:
             self.logger.error(f"Error previewing font size: {e}")
+
+    def _update_settings_info_display(self):
+        """Update the settings information display with timestamps (debug mode only)"""
+        try:
+            # Only update if we're in debug mode and the label exists
+            if (
+                not hasattr(self, "settings_info_label")
+                or self.settings_info_label is None
+            ):
+                return
+
+            from ..core.startup import get_settings_with_timestamps
+
+            settings_with_timestamps = get_settings_with_timestamps()
+
+            # Format timestamps for display
+            def format_timestamp(timestamp_str):
+                if timestamp_str == "Never":
+                    return "Never"
+                try:
+                    from datetime import datetime
+
+                    dt = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+                    return dt.strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    return timestamp_str
+
+            # Filter out any settings that contain "test" or are not relevant for display
+            def should_show_setting(key, value):
+                if key in ["selected_language"] and str(value).lower() == "test":
+                    return False
+                if key.startswith("_") or key in ["last_updated"]:
+                    return False
+                return True
+
+            # Create info text with filtered settings
+            info_lines = ["<b>Settings History:</b><br/>"]
+
+            # Add main settings
+            main_settings = ["theme", "font_size", "user_mode", "hand_preference"]
+            for setting in main_settings:
+                value = settings_with_timestamps.get(setting, "Unknown")
+                if should_show_setting(setting, value):
+                    last_changed = format_timestamp(
+                        settings_with_timestamps.get(f"{setting}_last_changed", "Never")
+                    )
+                    if setting == "font_size":
+                        info_lines.append(
+                            f"• <b>{setting.replace('_', ' ').title()}:</b> {value}px (Last changed: {last_changed})<br/>"
+                        )
+                    else:
+                        info_lines.append(
+                            f"• <b>{setting.replace('_', ' ').title()}:</b> {value} (Last changed: {last_changed})<br/>"
+                        )
+
+            # Add other non-main settings that should be shown
+            for key, value in settings_with_timestamps.items():
+                if (
+                    key not in main_settings
+                    and should_show_setting(key, value)
+                    and not key.endswith("_last_changed")
+                ):
+                    last_changed = format_timestamp(
+                        settings_with_timestamps.get(f"{key}_last_changed", "Never")
+                    )
+                    info_lines.append(
+                        f"• <b>{key.replace('_', ' ').title()}:</b> {value} (Last changed: {last_changed})<br/>"
+                    )
+
+            info_lines.append(
+                f"<br/><b>Last Updated:</b> {format_timestamp(settings_with_timestamps.get('last_updated', 'Never'))}"
+            )
+
+            info_text = "".join(info_lines)
+
+            self.settings_info_label.setText(info_text)
+            self.logger.debug("Settings info display updated (debug mode)")
+
+        except Exception as e:
+            self.logger.error(f"Error updating settings info display: {e}")
+            if (
+                hasattr(self, "settings_info_label")
+                and self.settings_info_label is not None
+            ):
+                self.settings_info_label.setText("Error loading settings information")
 
 
 def show_settings_dialog(

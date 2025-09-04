@@ -88,6 +88,9 @@ def main():
     
     # Set up logging based on arguments
     if args.debug:
+        # Set DEBUG environment variable for UI debug features
+        os.environ['DEBUG'] = 'true'
+        
         # Configure debug logging
         import logging
         logging.basicConfig(
@@ -95,6 +98,7 @@ def main():
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         logger.debug("Debug logging enabled")
+        logger.debug("DEBUG environment variable set for UI debug features")
     
     # Create Qt application
     app = QApplication(sys.argv)

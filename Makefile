@@ -31,7 +31,8 @@ help:
 	@echo "  install-hooks - Install git hooks for automatic checks"
 	@echo ""
 	@echo "Development:"
-	@echo "  run        - Run the application in development mode"
+	@echo "  run        - Run the application in development mode (with debug features)"
+	@echo "  run-prod   - Run the application in production mode (clean UI)"
 	@echo "  test       - Run all tests"
 	@echo "  test-coverage - Run tests with coverage report (auto-detects PySide6)"
 	@echo "  test-coverage-quick - Quick coverage report (auto-detects PySide6)"
@@ -60,9 +61,14 @@ install-hooks:
 
 # Development commands
 run:
-	@echo "🚀 Starting HelpMeSign application..."
+	@echo "🚀 Starting HelpMeSign application (with debug mode)..."
 	$(check_venv)
 	@$(VENV_PYTHON) run_app.py --env dev --debug
+
+run-prod:
+	@echo "🚀 Starting HelpMeSign application (production mode)..."
+	$(check_venv)
+	@$(VENV_PYTHON) run_app.py --env prod
 
 test:
 	@echo "🧪 Running tests..."

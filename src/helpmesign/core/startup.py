@@ -533,8 +533,13 @@ class SecureConfigManager:
             return "Light"
 
     def set_theme(self, theme: str) -> bool:
-        """Set user's preferred theme"""
+        """Set user's preferred theme with validation"""
         try:
+            # Validate theme value
+            if not self._validate_theme(theme):
+                self.logger.error(f"Invalid theme value: {theme}")
+                return False
+
             # Check if we're already in a save operation to prevent infinite loops
             if hasattr(self, "_saving_settings") and self._saving_settings:
                 self.logger.warning("Already saving settings, skipping theme save")
@@ -543,10 +548,21 @@ class SecureConfigManager:
             config = self.load_config() or {}
             config["theme"] = theme
             config["last_updated"] = self.get_timestamp()
+            config["theme_last_changed"] = self.get_timestamp()
             return self.save_config(config)
         except Exception as e:
             self.logger.error(f"Could not save theme: {e}")
             return False
+
+    def _validate_theme(self, theme: str) -> bool:
+        """Validate theme value"""
+        valid_themes = ["Light", "Dark", "System"]
+        if theme not in valid_themes:
+            self.logger.warning(
+                f"Invalid theme '{theme}'. Valid themes are: {valid_themes}"
+            )
+            return False
+        return True
 
     def get_font_size(self) -> int:
         """Get user's preferred font size"""
@@ -633,20 +649,35 @@ class SecureConfigManager:
             }
 
     def save_all_settings(self, settings: Dict[str, Any]) -> bool:
-        """Save all user settings"""
+        """Save all user settings with validation"""
         try:
             # Check if we're already in a save operation to prevent infinite loops
             if hasattr(self, "_saving_settings") and self._saving_settings:
                 self.logger.warning("Already saving settings, skipping recursive call")
                 return True
 
+            # Validate settings before saving
+            if not self._validate_settings(settings):
+                self.logger.error("Settings validation failed")
+                return False
+
             self._saving_settings = True
 
             # Load existing config only if we need to merge with existing settings
             existing_config = self.load_config() or {}
 
-            # Update with new settings
-            existing_config.update(settings)
+            # Track changes for timestamps
+            current_timestamp = self.get_timestamp()
+
+            # Update with new settings and add timestamps for changed values
+            for key, value in settings.items():
+                if existing_config.get(key) != value:
+                    existing_config[key] = value
+                    # Add specific timestamp for this setting
+                    existing_config[f"{key}_last_changed"] = current_timestamp
+
+            # Always update the general last_updated timestamp
+            existing_config["last_updated"] = current_timestamp
 
             # Save the updated config
             result = self.save_config(existing_config)
@@ -662,9 +693,73 @@ class SecureConfigManager:
                 self._saving_settings = False
             return False
 
+    def _validate_settings(self, settings: Dict[str, Any]) -> bool:
+        """Validate all settings before saving"""
+        try:
+            # Validate theme if present
+            if "theme" in settings:
+                if not self._validate_theme(settings["theme"]):
+                    return False
+
+            # Validate font size if present
+            if "font_size" in settings:
+                font_size = settings["font_size"]
+                if not isinstance(font_size, int) or font_size < 8 or font_size > 72:
+                    self.logger.warning(
+                        f"Invalid font size: {font_size}. Must be between 8 and 72"
+                    )
+                    return False
+
+            # Validate user mode if present
+            if "user_mode" in settings:
+                valid_modes = ["Sign & Translate", "Learn Sign Language"]
+                if settings["user_mode"] not in valid_modes:
+                    self.logger.warning(
+                        f"Invalid user mode: {settings['user_mode']}. Valid modes: {valid_modes}"
+                    )
+                    return False
+
+            # Validate hand preference if present
+            if "hand_preference" in settings:
+                valid_hands = ["left", "right"]
+                if settings["hand_preference"] not in valid_hands:
+                    self.logger.warning(
+                        f"Invalid hand preference: {settings['hand_preference']}. Valid options: {valid_hands}"
+                    )
+                    return False
+
+            return True
+        except Exception as e:
+            self.logger.error(f"Error validating settings: {e}")
+            return False
+
     def get_timestamp(self) -> str:
         """Get current timestamp"""
         return datetime.now().isoformat()
+
+    def get_settings_with_timestamps(self) -> Dict[str, Any]:
+        """Get all settings with their last changed timestamps"""
+        try:
+            config = self.load_config() or {}
+            settings = self.get_all_settings()
+
+            # Add timestamp information
+            settings["last_updated"] = config.get("last_updated", "Never")
+            settings["theme_last_changed"] = config.get("theme_last_changed", "Never")
+            settings["font_size_last_changed"] = config.get(
+                "font_size_last_changed", "Never"
+            )
+            settings["user_mode_last_changed"] = config.get(
+                "user_mode_last_changed", "Never"
+            )
+            settings["hand_preference_last_changed"] = config.get(
+                "hand_preference_last_changed", "Never"
+            )
+
+            return settings
+        except Exception as e:
+            self.logger.error(f"Could not get settings with timestamps: {e}")
+            return {}
 
 
 def show_startup_screen(parent=None) -> Optional[str]:
@@ -802,3 +897,14 @@ def save_all_settings(settings: Dict[str, Any]) -> bool:
         logger = get_logger("helpmesign.startup")
         logger.error(f"Error saving all settings: {e}")
         return False
+
+
+def get_settings_with_timestamps() -> Dict[str, Any]:
+    """Get all user settings with their last changed timestamps"""
+    try:
+        config_manager = SecureConfigManager()
+        return config_manager.get_settings_with_timestamps()
+    except Exception as e:
+        logger = get_logger("helpmesign.startup")
+        logger.error(f"Error getting settings with timestamps: {e}")
+        return {}
