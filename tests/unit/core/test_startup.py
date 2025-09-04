@@ -984,7 +984,7 @@ class TestSecureConfigManager:
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
-                result = manager.set_theme("dark")
+                result = manager.set_theme("Dark")
                 assert result is True
 
     @patch("src.helpmesign.core.startup.Path")
@@ -1181,7 +1181,7 @@ class TestSecureConfigManager:
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
-                settings = {"user_mode": "learn", "theme": "dark", "font_size": 16}
+                settings = {"user_mode": "Learn Sign Language", "theme": "Dark", "font_size": 16}
                 result = manager.save_all_settings(settings)
                 assert result is True
 
@@ -1543,7 +1543,7 @@ class TestSecureConfigManager:
         manager = SecureConfigManager()
         manager._saving_settings = True  # Simulate recursive call
 
-        result = manager.set_theme("dark")
+        result = manager.set_theme("Dark")
         assert result is True
 
     @patch("src.helpmesign.core.startup.Path")
@@ -2359,7 +2359,7 @@ class TestSecureConfigManager:
         manager = SecureConfigManager()
 
         with patch.object(manager, "save_config", return_value=True):
-            result = manager.set_theme("dark")
+            result = manager.set_theme("Dark")
             assert result is True
 
     def test_secure_config_manager_get_font_size_with_config(self):
@@ -2411,8 +2411,8 @@ class TestSecureConfigManager:
         manager = SecureConfigManager()
 
         settings = {
-            "user_mode": "test_mode",
-            "theme": "dark",
+            "user_mode": "Sign & Translate",
+            "theme": "Dark",
             "font_size": 16,
             "hand_preference": "left",
         }
