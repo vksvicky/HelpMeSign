@@ -14,7 +14,19 @@ class LearnModeCharacterManager:
 
     def __init__(self, learn_mode):
         self.learn_mode = learn_mode
-        self.logger = learn_mode.logger
+
+    def _get_current_language(self) -> Optional[str]:
+        """Get the current language from global settings"""
+        # Use the global settings loaded at initialization
+        if (
+            hasattr(self.learn_mode, "current_language")
+            and self.learn_mode.current_language
+        ):
+            return self.learn_mode.current_language
+
+        # If not available, log error
+        self.learn_mode.logger.error("No language available in global settings")
+        return None
 
     def update_character_buttons(self):
         """Update the character buttons based on the selected language and hand preference"""
@@ -33,10 +45,14 @@ class LearnModeCharacterManager:
 
         self.learn_mode._updating_character_buttons = True
 
+        # Get the selected language and hand preference from global settings
+        selected_language = self.learn_mode.current_language
+        hand_preference = self.learn_mode.current_hand_preference
+
         try:
             # Safety check - ensure character layout exists
             if not hasattr(self.learn_mode, "character_layout"):
-                self.logger.warning(
+                self.learn_mode.logger.warning(
                     "Character layout not initialized yet, skipping character button update"
                 )
                 return
@@ -69,15 +85,17 @@ class LearnModeCharacterManager:
                     except Exception:
                         pass
 
-            # Get the selected language and hand preference
-            selected_language = "ASL"  # Default fallback
-            if (
-                hasattr(self.learn_mode, "selected_language")
-                and self.learn_mode.selected_language
-            ):
-                selected_language = self.learn_mode.selected_language.get("code", "ASL")
-
-            hand_preference = self.learn_mode.current_hand_preference
+            # Validate that we have the required settings
+            if not selected_language:
+                self.learn_mode.logger.error(
+                    "No language configured in global settings"
+                )
+                return
+            if not hand_preference:
+                self.learn_mode.logger.error(
+                    "No hand preference configured in global settings"
+                )
+                return
 
             # Load sign language data dynamically
             sign_loader = get_sign_language_loader()
@@ -273,16 +291,20 @@ class LearnModeCharacterManager:
                             )
 
                     # Play the validated gesture
-                    self.learn_mode.animate_gesture_panel.set_language(
-                        getattr(self.learn_mode, "current_language", "ASL")
-                    )
-                    self.learn_mode.animate_gesture_panel.play_gesture(letter, hand)
+                    current_language = self._get_current_language()
+                    if current_language:
+                        self.learn_mode.animate_gesture_panel.set_language(
+                            current_language
+                        )
+                        self.learn_mode.animate_gesture_panel.play_gesture(letter, hand)
                 else:
                     # Fallback to direct gesture playing if no data available
-                    self.learn_mode.animate_gesture_panel.set_language(
-                        getattr(self.learn_mode, "current_language", "ASL")
-                    )
-                    self.learn_mode.animate_gesture_panel.play_gesture(letter, hand)
+                    current_language = self._get_current_language()
+                    if current_language:
+                        self.learn_mode.animate_gesture_panel.set_language(
+                            current_language
+                        )
+                        self.learn_mode.animate_gesture_panel.play_gesture(letter, hand)
         except Exception as e:
             self.learn_mode.logger.error(
                 f"Error playing alphabet gesture '{letter}': {e}"
@@ -323,16 +345,20 @@ class LearnModeCharacterManager:
                             )
 
                     # Play the validated gesture
-                    self.learn_mode.animate_gesture_panel.set_language(
-                        getattr(self.learn_mode, "current_language", "ASL")
-                    )
-                    self.learn_mode.animate_gesture_panel.play_gesture(number, hand)
+                    current_language = self._get_current_language()
+                    if current_language:
+                        self.learn_mode.animate_gesture_panel.set_language(
+                            current_language
+                        )
+                        self.learn_mode.animate_gesture_panel.play_gesture(number, hand)
                 else:
                     # Fallback to direct gesture playing if no data available
-                    self.learn_mode.animate_gesture_panel.set_language(
-                        getattr(self.learn_mode, "current_language", "ASL")
-                    )
-                    self.learn_mode.animate_gesture_panel.play_gesture(number, hand)
+                    current_language = self._get_current_language()
+                    if current_language:
+                        self.learn_mode.animate_gesture_panel.set_language(
+                            current_language
+                        )
+                        self.learn_mode.animate_gesture_panel.play_gesture(number, hand)
         except Exception as e:
             self.learn_mode.logger.error(
                 f"Error playing number gesture '{number}': {e}"

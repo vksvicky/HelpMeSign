@@ -441,11 +441,18 @@ class TestSignLanguageAnimationIntegration:
         mock_panel._actor = None
         mock_panel.sign_loader = Mock()
 
+        # Mock the learn mode with global settings
+        mock_learn_mode = Mock()
+        mock_learn_mode.current_language = "ASL"
+        mock_panel.learn_mode = mock_learn_mode
+
         # Mock sign data with valid values
-        mock_panel.sign_loader.get_sign_data.return_value = {
-            "pose": {
-                "mixamorig:RightArm": [0, 45, 0],  # Valid values
-                "mixamorig:RightHand": [0, 0, 0],  # Valid values
+        mock_panel.sign_loader.get_alphabet_signs.return_value = {
+            "A": {
+                "pose": {
+                    "mixamorig:RightArm": [0, 45, 0],  # Valid values
+                    "mixamorig:RightHand": [0, 0, 0],  # Valid values
+                }
             }
         }
 

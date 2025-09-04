@@ -207,8 +207,12 @@ class AnimateGesturePanel(QWidget):
     # Public API methods
     def set_language(self, code: str) -> None:
         """Set the sign language code."""
-        # This would typically set up the sign language loader
-        pass
+        self.current_language = code
+        # Initialize sign language loader if not already done
+        if not self.sign_loader:
+            from ....utils.sign_language_loader import get_sign_language_loader
+
+            self.sign_loader = get_sign_language_loader()
 
     def load_character(self, model_path: str) -> None:
         """Load a 3D character model."""
@@ -233,12 +237,32 @@ class AnimateGesturePanel(QWidget):
             self._log.error(f"Error playing gesture: {e}")
 
     def play_phrase(
-        self, phrase: str, language: str = "ASL", hand: str = "right"
+        self, phrase: str, language: Optional[str] = None, hand: Optional[str] = None
     ) -> None:
         """Play a phrase with letter-by-letter animation."""
         try:
-            # For now, we ignore the language parameter as it's not used in the current implementation
-            # This maintains backward compatibility with the existing code
+            # If no language provided, get it from global settings
+            if not language:
+                # Try to get from learn mode global settings
+                if hasattr(self, "learn_mode"):
+                    language = getattr(self.learn_mode, "current_language", None)
+                if not language:
+                    self._log.error("No language available in global settings")
+                    return
+
+            # If no hand provided, get it from global settings
+            if not hand:
+                # Try to get from learn mode global settings
+                if hasattr(self, "learn_mode"):
+                    hand = getattr(self.learn_mode, "current_hand_preference", None)
+                if not hand:
+                    self._log.error("No hand preference available in global settings")
+                    return
+
+            # Set the language for the animation manager
+            self.set_language(language)
+
+            # Apply word animation
             self._animation_manager.apply_word_with_animation(phrase, hand)
         except Exception as e:
             self._log.error(f"Error playing phrase: {e}")

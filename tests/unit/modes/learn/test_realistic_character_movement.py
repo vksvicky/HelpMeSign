@@ -271,10 +271,14 @@ class TestAnimationManagerIntegration:
         mock_panel._is_animating = False
         mock_panel._actor = None
         mock_panel.sign_loader = Mock()
-        mock_panel.sign_loader.get_sign_data.return_value = {
-            "pose": {
-                "mixamorig:RightArm": [0, 45, 0],  # Valid pose
-            }
+
+        # Mock the learn mode with global settings
+        mock_learn_mode = Mock()
+        mock_learn_mode.current_language = "ASL"
+        mock_panel.learn_mode = mock_learn_mode
+
+        mock_panel.sign_loader.get_alphabet_signs.return_value = {
+            "A": {"pose": {"mixamorig:RightArm": [0, 45, 0]}}
         }
 
         animation_manager = AnimationManager(mock_panel)
@@ -285,16 +289,20 @@ class TestAnimationManagerIntegration:
         # Verify pose data is retrieved
         assert pose_data is not None
         assert "mixamorig:RightArm" in pose_data
-        mock_panel.sign_loader.get_sign_data.assert_called_once_with("A", "right")
+        mock_panel.sign_loader.get_alphabet_signs.assert_called_once_with("ASL", "right")
 
     def test_gesture_validation_before_playback(self):
         """Test that gestures are retrieved and can be validated"""
         mock_panel = Mock()
         mock_panel.sign_loader = Mock()
-        mock_panel.sign_loader.get_sign_data.return_value = {
-            "pose": {
-                "mixamorig:RightArm": [0, 45, 0],  # Valid pose
-            }
+
+        # Mock the learn mode with global settings
+        mock_learn_mode = Mock()
+        mock_learn_mode.current_language = "ASL"
+        mock_panel.learn_mode = mock_learn_mode
+
+        mock_panel.sign_loader.get_alphabet_signs.return_value = {
+            "A": {"pose": {"mixamorig:RightArm": [0, 45, 0]}}
         }
 
         animation_manager = AnimationManager(mock_panel)

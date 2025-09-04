@@ -71,10 +71,16 @@ class TestAnimateGesturePanel:
         """Test playing phrase."""
         panel = AnimateGesturePanel()
 
+        # Mock the learn mode with global settings
+        mock_learn_mode = Mock()
+        mock_learn_mode.current_language = "ASL"
+        mock_learn_mode.current_hand_preference = "right"
+        panel.learn_mode = mock_learn_mode
+
         with patch.object(
             panel._animation_manager, "apply_word_with_animation"
         ) as mock_apply:
-            panel.play_phrase("HELLO", "right")
+            panel.play_phrase("HELLO")
 
             mock_apply.assert_called_once_with("HELLO", "right")
 
@@ -221,15 +227,24 @@ class TestAnimationManager:
         """Test getting letter pose with sign loader."""
         parent_panel = Mock()
         parent_panel.sign_loader = Mock()
-        parent_panel.sign_loader.get_sign_data.return_value = {
-            "pose": {"RightHand": [0, 0, 0]}
+
+        # Mock the learn mode with global settings
+        mock_learn_mode = Mock()
+        mock_learn_mode.current_language = "ASL"
+        parent_panel.learn_mode = mock_learn_mode
+
+        # Mock get_alphabet_signs to return sign data
+        parent_panel.sign_loader.get_alphabet_signs.return_value = {
+            "A": {"pose": {"RightHand": [0, 0, 0]}}
         }
 
         manager = AnimationManager(parent_panel)
         result = manager.get_letter_pose_from_signs("A", "right")
 
         assert result == {"RightHand": [0, 0, 0]}
-        parent_panel.sign_loader.get_sign_data.assert_called_once_with("A", "right")
+        parent_panel.sign_loader.get_alphabet_signs.assert_called_once_with(
+            "ASL", "right"
+        )
 
     def test_apply_word_with_animation_no_word(self):
         """Test applying word animation with no word."""

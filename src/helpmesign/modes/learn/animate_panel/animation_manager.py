@@ -50,12 +50,30 @@ class AnimationManager:
             if not self.parent_panel.sign_loader:
                 return None
 
-            # Get sign data for the character
-            sign_data = self.parent_panel.sign_loader.get_sign_data(char_code, hand)
-            if not sign_data:
+            # Get alphabet signs for the character
+            # Get language from global settings, not configuration
+            try:
+                # Try to get from parent panel's learn mode global settings
+                if hasattr(self.parent_panel, "learn_mode"):
+                    language = getattr(
+                        self.parent_panel.learn_mode, "current_language", None
+                    )
+                else:
+                    language = None
+
+                if not language:
+                    self._log.error("No language available in global settings")
+                    return None
+            except Exception as e:
+                self._log.error(f"Failed to get language from global settings: {e}")
                 return None
 
-            # Extract pose data
+            alphabet = self.parent_panel.sign_loader.get_alphabet_signs(language, hand)
+            if char_code.upper() not in alphabet:
+                return None
+
+            # Extract pose data from the sign data
+            sign_data = alphabet[char_code.upper()]
             pose_data = sign_data.get("pose", {})
             if not pose_data:
                 return None

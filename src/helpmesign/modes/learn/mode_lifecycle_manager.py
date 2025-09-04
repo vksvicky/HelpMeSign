@@ -136,11 +136,19 @@ class LearnModeLifecycleManager:
             if hasattr(self.learn_mode, "welcome_timer"):
                 self.learn_mode.welcome_timer.stop()
 
-            # Get current language and hand preference
-            current_language = getattr(self.learn_mode, "current_language", "ASL")
-            hand_preference = getattr(
-                self.learn_mode, "current_hand_preference", "right"
-            )
+            # Get current language and hand preference from global settings
+            current_language = getattr(self.learn_mode, "current_language", None)
+            hand_preference = getattr(self.learn_mode, "current_hand_preference", None)
+
+            # Validate that we have the required settings
+            if not current_language:
+                self.learn_mode.logger.error("No language available in global settings")
+                return
+            if not hand_preference:
+                self.learn_mode.logger.error(
+                    "No hand preference available in global settings"
+                )
+                return
 
             # Start welcome animation
             welcome_text = get_text("ui.welcome.learning_mode")

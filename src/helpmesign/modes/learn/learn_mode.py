@@ -46,7 +46,10 @@ class LearnMode(BaseMode):
 
         # Initialize sign language loader
         self.sign_loader = get_sign_language_loader()
-        self.current_language = "ASL"  # Default to ASL
+
+        # Load global settings once at initialization
+        self._load_global_settings()
+
         self.current_category = "all"  # Track current category
 
         # Initialize animate panel (will be set up in setup_ui)
@@ -83,6 +86,28 @@ class LearnMode(BaseMode):
     def get_mode_name(self) -> str:
         """Get the display name for this mode"""
         return get_text("modes.learn.name")
+
+    def _load_global_settings(self) -> None:
+        """Load global settings once at initialization"""
+        try:
+            from ...core.startup import get_all_settings
+
+            # Load settings from configuration (this is the only time we read from config)
+            settings = get_all_settings()
+
+            # Set global settings that will be used throughout the session
+            self.current_language = settings.get("selected_language")
+            self.current_hand_preference = settings.get("hand_preference")
+
+            self.logger.info(
+                f"Global settings loaded: language={self.current_language}, hand_preference={self.current_hand_preference}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to load global settings: {e}")
+            # Set defaults if loading fails
+            self.current_language = None
+            self.current_hand_preference = None
 
     def _initialize_theme_and_font_info(self, main_window) -> None:
         """Initialize theme and font information from main window or config"""

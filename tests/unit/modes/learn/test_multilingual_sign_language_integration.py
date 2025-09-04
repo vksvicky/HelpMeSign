@@ -288,15 +288,24 @@ class TestMultilingualAnimationIntegration:
         mock_panel._actor = None
         mock_panel.sign_loader = Mock()
 
+        # Mock the learn mode with global settings
+        mock_learn_mode = Mock()
+        mock_panel.learn_mode = mock_learn_mode
+
         # Test different languages
         languages = ["ASL", "BSL", "ISL", "Auslan", "LSF", "DGS"]
 
         for language in languages:
+            # Set the current language for this iteration
+            mock_learn_mode.current_language = language
+
             # Mock sign data for each language
-            mock_panel.sign_loader.get_sign_data.return_value = {
-                "pose": {
-                    "mixamorig:RightArm": [0, 45, 0],  # Valid values
-                    "mixamorig:RightHand": [0, 0, 0],  # Valid values
+            mock_panel.sign_loader.get_alphabet_signs.return_value = {
+                "A": {
+                    "pose": {
+                        "mixamorig:RightArm": [0, 45, 0],  # Valid values
+                        "mixamorig:RightHand": [0, 0, 0],  # Valid values
+                    }
                 }
             }
 

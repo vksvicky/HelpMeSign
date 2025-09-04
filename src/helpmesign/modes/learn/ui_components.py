@@ -180,15 +180,16 @@ class LearnModeUIComponents:
             pass
 
         # Load hand preference from config (allow 'both' for two-hand languages)
-        try:
-            from src.helpmesign.core.startup import get_hand_preference
-
-            pref = get_hand_preference()
-            self.learn_mode.current_hand_preference = (
-                pref if pref in ("right", "left", "both") else "right"
+        # Use the global settings loaded at initialization
+        # The hand preference should already be loaded in learn_mode.current_hand_preference
+        if (
+            not hasattr(self.learn_mode, "current_hand_preference")
+            or not self.learn_mode.current_hand_preference
+        ):
+            self.learn_mode.logger.error(
+                "No hand preference available in global settings"
             )
-        except Exception:
-            self.learn_mode.current_hand_preference = "right"  # Default fallback
+            return
 
         # Set initial button selection based on loaded preference
         if self.learn_mode.current_hand_preference == "left":
@@ -683,6 +684,8 @@ class LearnModeUIComponents:
         self.learn_mode.sign_display_layout.addSpacing(6)
         # Reserve a 400px block above the sign area for the 3D animate panel
         self.learn_mode.animate_gesture_panel = AnimateGesturePanel()
+        # Set reference to learn mode so panel can access global settings
+        self.learn_mode.animate_gesture_panel.learn_mode = self.learn_mode
         self.learn_mode.animate_gesture_panel.setObjectName("animateGesturePanel")
         self.learn_mode.animate_gesture_panel.setFixedHeight(400)
         try:

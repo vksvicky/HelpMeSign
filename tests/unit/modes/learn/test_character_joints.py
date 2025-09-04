@@ -7,7 +7,7 @@ from direct.actor.Actor import Actor
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import loadPrcFileData
 
-from helpmesign.utils.resource_manager import ResourceManager
+from src.helpmesign.utils.resource_manager import ResourceManager
 
 
 def test_character_joints():
