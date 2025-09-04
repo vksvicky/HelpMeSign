@@ -38,7 +38,7 @@ class TestCategorySelection(QtTestCase):
         # Clean up
         deactivate_qt_mocks()
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_button_creation(self, mock_get_text):
         """Test that category button is created with proper text"""
         # Arrange
@@ -48,7 +48,7 @@ class TestCategorySelection(QtTestCase):
         # We'll test the method that updates the button text
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = (
+        self.mode.sign_language_manager.populate_language_list = (
             Mock()
         )  # Mock the language manager method
         self.mode.on_category_selected("all")
@@ -57,14 +57,14 @@ class TestCategorySelection(QtTestCase):
         mock_get_text.assert_called_with("ui.language_selection.category_all")
         self.mode.category_text_label.setText.assert_called_with("All Languages")
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_all(self, mock_get_text):
         """Test selecting 'all' category"""
         # Arrange
         mock_get_text.return_value = "All Languages"
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("all")
@@ -72,16 +72,16 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("All Languages")
         assert self.mode.current_category == "all"
-        self.mode.language_manager.populate_language_list.assert_called_with("all")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("all")
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_popular(self, mock_get_text):
         """Test selecting 'popular' category"""
         # Arrange
         mock_get_text.return_value = "Popular Languages"
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("popular")
@@ -89,16 +89,16 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("Popular Languages")
         assert self.mode.current_category == "popular"
-        self.mode.language_manager.populate_language_list.assert_called_with("popular")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("popular")
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_beginner(self, mock_get_text):
         """Test selecting 'beginner' category"""
         # Arrange
         mock_get_text.return_value = "Beginner Friendly"
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("beginner")
@@ -106,16 +106,16 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("Beginner Friendly")
         assert self.mode.current_category == "beginner"
-        self.mode.language_manager.populate_language_list.assert_called_with("beginner")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("beginner")
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_intermediate(self, mock_get_text):
         """Test selecting 'intermediate' category"""
         # Arrange
         mock_get_text.return_value = "Intermediate"
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("intermediate")
@@ -123,18 +123,18 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("Intermediate")
         assert self.mode.current_category == "intermediate"
-        self.mode.language_manager.populate_language_list.assert_called_with(
+        self.mode.sign_language_manager.populate_language_list.assert_called_with(
             "intermediate"
         )
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_advanced(self, mock_get_text):
         """Test selecting 'advanced' category"""
         # Arrange
         mock_get_text.return_value = "Advanced"
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("advanced")
@@ -142,16 +142,16 @@ class TestCategorySelection(QtTestCase):
         # Assert
         self.mode.category_text_label.setText.assert_called_with("Advanced")
         assert self.mode.current_category == "advanced"
-        self.mode.language_manager.populate_language_list.assert_called_with("advanced")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("advanced")
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_unknown_category(self, mock_get_text):
         """Test selecting unknown category defaults to 'all'"""
         # Arrange
         mock_get_text.return_value = "All Languages"
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("unknown")
@@ -161,23 +161,23 @@ class TestCategorySelection(QtTestCase):
         assert (
             self.mode.current_category == "unknown"
         )  # Still tracks the unknown category
-        self.mode.language_manager.populate_language_list.assert_called_with("unknown")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("unknown")
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_exception_handling(self, mock_get_text):
         """Test exception handling in category selection"""
         # Arrange
         mock_get_text.side_effect = Exception("Text not found")
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("all")
 
         # Assert
         # Should handle exception gracefully and default to "all"
-        self.mode.language_manager.populate_language_list.assert_called_with("all")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("all")
 
     def test_show_category_menu(self):
         """Test showing the category menu"""
@@ -215,7 +215,7 @@ class TestCategorySelection(QtTestCase):
         """Test that current_category is properly tracked"""
         # Arrange
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
         self.mode.category_text_label = Mock()  # Mock to avoid UI dependencies
 
         # Act - Set initial category
@@ -230,27 +230,27 @@ class TestCategorySelection(QtTestCase):
         # Assert
         assert self.mode.current_category == "popular"
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_search_with_current_category(self, mock_get_text):
         """Test that search uses the current category"""
         # Arrange
         self.mode.current_category = "popular"
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act - Simulate clearing search (which should show current category)
         self.mode.on_search_changed("")
 
         # Assert
-        self.mode.language_manager.populate_language_list.assert_called_with("popular")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("popular")
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_search_with_text_uses_search_results(self, mock_get_text):
         """Test that search with text uses search results instead of category"""
         # Arrange
         self.mode.current_category = "popular"
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_search_results = Mock()
+        self.mode.sign_language_manager.populate_search_results = Mock()
 
         # Act - Search with text
         self.mode.on_search_changed("ASL")
@@ -258,14 +258,14 @@ class TestCategorySelection(QtTestCase):
         # Assert
         # The search should populate search results instead of category
         # Verify that populate_search_results was called (indicating search was performed)
-        self.mode.language_manager.populate_search_results.assert_called()
+        self.mode.sign_language_manager.populate_search_results.assert_called()
 
     def test_initial_category_default(self):
         """Test that initial category defaults to 'all'"""
         # Assert
         assert self.mode.current_category == "all"
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_display_names_mapping(self, mock_get_text):
         """Test that category display names are properly mapped"""
         # Arrange
@@ -279,7 +279,7 @@ class TestCategorySelection(QtTestCase):
 
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act & Assert for each category
         categories = ["all", "popular", "beginner", "intermediate", "advanced"]
@@ -322,7 +322,7 @@ class TestCategorySelectionWithQt(QtTestCase):
         # Clean up
         deactivate_qt_mocks()
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_button_creation_with_qt(self, mock_get_text):
         """Test category button creation with Qt mocks"""
         # Arrange
@@ -331,7 +331,7 @@ class TestCategorySelectionWithQt(QtTestCase):
         # Act
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
         self.mode.on_category_selected("all")
 
         # Assert
@@ -354,18 +354,18 @@ class TestCategorySelectionWithQt(QtTestCase):
         self.mode.category_button.mapToGlobal.assert_called_once()
         self.mode.category_menu.popup.assert_called_once_with((100, 200))
 
-    @patch("src.helpmesign.modes.learn.language_manager.get_text")
+    @patch("src.helpmesign.modes.learn.sign_language_manager.get_text")
     def test_category_selection_workflow_with_qt(self, mock_get_text):
         """Test complete category selection workflow with Qt mocks"""
         # Arrange
         mock_get_text.return_value = "Popular Languages"
         self.mode.category_text_label = Mock()
         self.mode.language_list_layout = Mock()
-        self.mode.language_manager.populate_language_list = Mock()
+        self.mode.sign_language_manager.populate_language_list = Mock()
 
         # Act
         self.mode.on_category_selected("popular")
 
         # Assert
         assert self.mode.current_category == "popular"
-        self.mode.language_manager.populate_language_list.assert_called_with("popular")
+        self.mode.sign_language_manager.populate_language_list.assert_called_with("popular")

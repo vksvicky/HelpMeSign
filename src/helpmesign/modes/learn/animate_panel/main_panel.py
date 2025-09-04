@@ -3,7 +3,7 @@ Main AnimateGesturePanel class for Learn mode.
 Coordinates all managers and provides the public API for 3D character animation.
 """
 
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional
 
 from ....utils.logger import get_logger
 
@@ -17,15 +17,20 @@ except Exception:  # pragma: no cover - tests may mock Qt imports
         pass
 
     class QLabel:  # type: ignore[no-redef]
-        pass
+        def __init__(self, parent=None):
+            pass
 
     class QWidget:  # type: ignore[no-redef]
+        def __init__(self, parent=None):
+            pass
+            
         class SizePolicy:
             Expanding = 0
             Fixed = 1
 
     class QVBoxLayout:  # type: ignore[no-redef]
-        pass
+        def __init__(self, parent=None):
+            pass
 
     class Qt:  # type: ignore[no-redef]
         class AlignmentFlag:

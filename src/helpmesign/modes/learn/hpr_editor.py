@@ -22,7 +22,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSlider,
-    QSpacerItem,
     QSpinBox,
     QSplitter,
     QTextEdit,

@@ -285,7 +285,7 @@ class TestLearnModeFontSafety:
                 "PySide6.QtCore": MagicMock(),
             },
         ), patch(
-            "src.helpmesign.modes.learn.theme_manager.get_font_family"
+            "src.helpmesign.utils.theme_manager.get_font_family"
         ) as mock_get_font_family, patch(
             "src.helpmesign.utils.theme_manager.get_font_size", return_value=12
         ), patch(
@@ -319,7 +319,7 @@ class TestLearnModeFontSafety:
                 "PySide6.QtCore": MagicMock(),
             },
         ), patch(
-            "src.helpmesign.modes.learn.theme_manager.get_font_family"
+            "src.helpmesign.utils.theme_manager.get_font_family"
         ) as mock_get_font_family, patch(
             "src.helpmesign.utils.theme_manager.get_font_size", return_value=12
         ), patch(

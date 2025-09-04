@@ -14,10 +14,9 @@ from ...utils.sign_language_loader import get_sign_language_loader
 from ..base_mode import BaseMode
 from .character_manager import LearnModeCharacterManager
 from .gesture_manager import LearnModeGestureManager
-from .language_manager import LearnModeLanguageManager
+from .sign_language_manager import LearnModeSignLanguageManager
 from .learning_progress import LearnModeLearningProgress
 from .mode_lifecycle_manager import LearnModeLifecycleManager
-from .theme_manager import LearnModeThemeManager
 from .ui_behavior_manager import LearnModeUIBehaviorManager
 
 # Import refactored modules
@@ -65,16 +64,14 @@ class LearnMode(BaseMode):
 
         # Initialize manager instances BEFORE calling parent __init__
         self.ui_components = LearnModeUIComponents(self)
-        self.language_manager = LearnModeLanguageManager(self)
+        self.sign_language_manager = LearnModeSignLanguageManager(self)
         self.character_manager = LearnModeCharacterManager(self)
         self.gesture_manager = LearnModeGestureManager(self)
         self.learning_progress_manager = LearnModeLearningProgress(self)
         self.ui_behavior_manager = LearnModeUIBehaviorManager(self)
         self.mode_lifecycle_manager = LearnModeLifecycleManager(self)
-        self.theme_manager = LearnModeThemeManager(self)
-
-        # Initialize theme and font information
-        self.theme_manager.initialize_theme_and_font_info(main_window)
+        # Initialize theme and font information directly
+        self._initialize_theme_and_font_info(main_window)
 
         # Now call parent __init__ which will call setup_ui()
         super().__init__(main_window)
@@ -86,6 +83,77 @@ class LearnMode(BaseMode):
     def get_mode_name(self) -> str:
         """Get the display name for this mode"""
         return get_text("modes.learn.name")
+
+    def _initialize_theme_and_font_info(self, main_window) -> None:
+        """Initialize theme and font information from main window or config"""
+        try:
+            # Try to get theme and font info from main window first
+            if hasattr(main_window, "theme") and hasattr(main_window, "font_size"):
+                self.current_theme = main_window.theme
+                self.current_font_size = main_window.font_size
+                self.logger.debug(
+                    f"Using theme and font from main window: {self.current_theme}, {self.current_font_size}"
+                )
+            else:
+                # Fallback to config
+                from ...core.startup import get_all_settings
+
+                settings = get_all_settings()
+                self.current_theme = settings.get("theme", "Light")
+                self.current_font_size = settings.get("font_size", 16)
+                self.logger.debug(
+                    f"Using theme and font from config: {self.current_theme}, {self.current_font_size}"
+                )
+
+            # Get effective theme (handle System theme)
+            self.effective_theme = self._get_effective_theme_from_theme(
+                self.current_theme
+            )
+
+            # Get font family from theme manager
+            from ...utils.theme_manager import get_font_family
+            self.current_font_family = get_font_family()
+
+        except Exception as e:
+            self.logger.error(f"Error initializing theme and font info: {e}")
+            # Fallback to system theme instead of hardcoded Light
+            try:
+                from ...core.startup import get_theme
+                fallback_theme = get_theme()
+            except Exception:
+                fallback_theme = "Light"
+            self.current_theme = fallback_theme
+            self.effective_theme = fallback_theme
+            self.current_font_size = 16
+            self.current_font_family = "Roboto"
+
+    def _get_effective_theme_from_theme(self, theme: str) -> str:
+        """Get effective theme (Dark/Light) from theme name"""
+        if theme == "System":
+            # Detect system theme
+            try:
+                from ...utils.theme_manager import get_theme_manager
+                theme_manager = get_theme_manager()
+                current_theme = theme_manager.get_current_theme()
+
+                if current_theme.startswith("System ("):
+                    if "Dark" in current_theme:
+                        return "Dark"
+                    else:
+                        return "Light"
+                else:
+                    return "Light"  # Fallback
+            except Exception:
+                return "Light"  # Fallback
+        elif theme == "Dark":
+            return "Dark"
+        else:
+            # Instead of hardcoded Light, get from system
+            try:
+                from ...core.startup import get_theme
+                return get_theme()
+            except Exception:
+                return "Light"  # Final fallback
 
     def setup_ui(self) -> None:
         """Set up the mode-specific UI components"""
@@ -113,10 +181,10 @@ class LearnMode(BaseMode):
 
     def populate_language_list(self, category: str):
         """Populate the language list based on category using grid layout"""
-        self.language_manager.populate_language_list(category)
+        self.sign_language_manager.populate_language_list(category)
 
         # Recalculate the grid layout based on current width
-        self.language_manager._recalculate_grid_layout()
+        self.sign_language_manager._recalculate_grid_layout()
 
     # Add missing methods as delegations to managers
     def on_alphabet_selected(self, letter: str) -> None:
@@ -134,43 +202,43 @@ class LearnMode(BaseMode):
 
     def _update_hand_icon_visibility_from_pref(self) -> None:
         """Show/hide hand icons solely based on saved hand preference"""
-        self.language_manager._update_hand_icon_visibility_from_pref()
+        self.sign_language_manager._update_hand_icon_visibility_from_pref()
 
     def save_language_selection(self, language_code: str) -> None:
         """Save the selected language to user configuration"""
-        self.language_manager.save_language_selection(language_code)
+        self.sign_language_manager.save_language_selection(language_code)
 
     def load_saved_language_selection(self) -> None:
         """Load the saved language selection from configuration"""
-        self.language_manager.load_saved_language_selection()
+        self.sign_language_manager.load_saved_language_selection()
 
     def select_language_by_code(self, language_code: str) -> None:
         """Select a language by its code"""
-        self.language_manager.select_language_by_code(language_code)
+        self.sign_language_manager.select_language_by_code(language_code)
 
     def on_search_changed(self, text: str):
         """Handle search text changes"""
-        self.language_manager.on_search_changed(text)
+        self.sign_language_manager.on_search_changed(text)
 
     def populate_search_results(self, languages: list):
         """Populate language list with search results using grid layout"""
-        self.language_manager.populate_search_results(languages)
+        self.sign_language_manager.populate_search_results(languages)
 
     def show_category_menu(self):
         """Show the category selection menu"""
-        self.language_manager.show_category_menu()
+        self.sign_language_manager.show_category_menu()
 
     def on_category_selected(self, category: str):
         """Handle category selection from menu"""
-        self.language_manager.on_category_selected(category)
+        self.sign_language_manager.on_category_selected(category)
 
     def on_category_changed(self, category_text: str):
         """Handle category selection changes"""
-        self.language_manager.on_category_changed(category_text)
+        self.sign_language_manager.on_category_changed(category_text)
 
     def on_language_selected(self, language: dict):
         """Handle language selection"""
-        self.language_manager.on_language_selected(language)
+        self.sign_language_manager.on_language_selected(language)
 
     def change_sign_language(self, language: str) -> None:
         """Change the sign language"""

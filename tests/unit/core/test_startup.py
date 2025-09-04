@@ -1181,7 +1181,11 @@ class TestSecureConfigManager:
 
         with patch.object(manager, "load_config", return_value={}):
             with patch.object(manager, "save_config", return_value=True):
-                settings = {"user_mode": "Learn Sign Language", "theme": "Dark", "font_size": 16}
+                settings = {
+                    "user_mode": "Learn Sign Language",
+                    "theme": "Dark",
+                    "font_size": 16,
+                }
                 result = manager.save_all_settings(settings)
                 assert result is True
 

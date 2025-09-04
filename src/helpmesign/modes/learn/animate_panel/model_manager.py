@@ -126,7 +126,6 @@ class ModelManager:
             from panda3d.core import (
                 AmbientLight,
                 DirectionalLight,
-                PointLight,
             )
 
             # Theme-aware ambient lighting
@@ -210,8 +209,6 @@ class ModelManager:
         """Frame the model in the camera view."""
         try:
             import math
-
-            from panda3d.core import Point3
 
             # Compute tight bounds in model space
             min_pt, max_pt = node.getTightBounds()

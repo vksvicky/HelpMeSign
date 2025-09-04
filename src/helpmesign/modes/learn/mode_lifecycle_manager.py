@@ -252,7 +252,7 @@ class LearnModeLifecycleManager:
             self.learn_mode.current_hand_preference = hand_preference
 
             # Update UI to reflect the change
-            lang_manager = self.learn_mode.language_manager
+            lang_manager = self.learn_mode.sign_language_manager
             lang_manager._update_hand_icon_visibility_from_pref()
 
             # Update character buttons
@@ -365,7 +365,7 @@ class LearnModeLifecycleManager:
             if language_data:
                 # Call the language manager's on_language_selected with full data
                 self.learn_mode.logger.info(f"Calling language manager for {code}")
-                self.learn_mode.language_manager.on_language_selected(language_data)
+                self.learn_mode.sign_language_manager.on_language_selected(language_data)
                 self.learn_mode.logger.info(
                     f"Language changed to {code} via external selection"
                 )
@@ -480,13 +480,13 @@ class LearnModeLifecycleManager:
             # Set up category button handler
             if hasattr(self.learn_mode, "category_button"):
                 self.learn_mode.category_button.clicked.connect(
-                    self.learn_mode.language_manager.show_category_menu
+                    self.learn_mode.sign_language_manager.show_category_menu
                 )
 
             # Set up search handler
             if hasattr(self.learn_mode, "search_input"):
                 self.learn_mode.search_input.textChanged.connect(
-                    self.learn_mode.language_manager.on_search_changed
+                    self.learn_mode.sign_language_manager.on_search_changed
                 )
 
             # Set up text-to-sign play button handler

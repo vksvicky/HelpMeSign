@@ -8,11 +8,10 @@ import os
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 if TYPE_CHECKING:
-    from PySide6.QtCore import QCoreApplication, QRect, QSize, Qt, Signal
-    from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+    from PySide6.QtCore import QCoreApplication, QRect, Qt, Signal
+    from PySide6.QtGui import QColor, QFont, QPainter, QPen
     from PySide6.QtWidgets import (
         QButtonGroup,
-        QCheckBox,
         QComboBox,
         QDialog,
         QFrame,
@@ -22,7 +21,6 @@ if TYPE_CHECKING:
         QLabel,
         QLineEdit,
         QPushButton,
-        QRadioButton,
         QScrollArea,
         QSizePolicy,
         QSlider,
@@ -35,11 +33,10 @@ if TYPE_CHECKING:
 
 # Try to import PySide6 components
 try:
-    from PySide6.QtCore import QCoreApplication, QRect, QSize, Qt, Signal
-    from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+    from PySide6.QtCore import QCoreApplication, QRect, Qt, Signal
+    from PySide6.QtGui import QColor, QFont, QPainter, QPen
     from PySide6.QtWidgets import (
         QButtonGroup,
-        QCheckBox,
         QComboBox,
         QDialog,
         QFrame,
@@ -49,7 +46,6 @@ try:
         QLabel,
         QLineEdit,
         QPushButton,
-        QRadioButton,
         QScrollArea,
         QSizePolicy,
         QSlider,

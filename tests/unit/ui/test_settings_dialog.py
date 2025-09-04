@@ -769,8 +769,6 @@ class TestSettingsDialogRealImplementation:
     @patch("src.helpmesign.ui.settings_dialog.QGridLayout")
     @patch("src.helpmesign.ui.settings_dialog.QTextEdit")
     @patch("src.helpmesign.ui.settings_dialog.QLineEdit")
-    @patch("src.helpmesign.ui.settings_dialog.QCheckBox")
-    @patch("src.helpmesign.ui.settings_dialog.QRadioButton")
     @patch("src.helpmesign.ui.settings_dialog.QButtonGroup")
     @patch("src.helpmesign.ui.settings_dialog.QSlider")
     @patch("src.helpmesign.ui.settings_dialog.QSizePolicy")
@@ -801,8 +799,6 @@ class TestSettingsDialogRealImplementation:
         mock_sizepolicy,
         mock_slider,
         mock_buttongroup,
-        mock_radiobutton,
-        mock_checkbox,
         mock_lineedit,
         mock_textedit,
         mock_gridlayout,
@@ -1523,8 +1519,6 @@ class TestSettingsDialogRealCoverage:
     @patch("src.helpmesign.ui.settings_dialog.QGridLayout")
     @patch("src.helpmesign.ui.settings_dialog.QTextEdit")
     @patch("src.helpmesign.ui.settings_dialog.QLineEdit")
-    @patch("src.helpmesign.ui.settings_dialog.QCheckBox")
-    @patch("src.helpmesign.ui.settings_dialog.QRadioButton")
     @patch("src.helpmesign.ui.settings_dialog.QButtonGroup")
     @patch("src.helpmesign.ui.settings_dialog.QSlider")
     @patch("src.helpmesign.ui.settings_dialog.QFrame")
@@ -1556,8 +1550,6 @@ class TestSettingsDialogRealCoverage:
         mock_sizepolicy,
         mock_slider,
         mock_buttongroup,
-        mock_radiobutton,
-        mock_checkbox,
         mock_lineedit,
         mock_textedit,
         mock_gridlayout,
@@ -1591,8 +1583,6 @@ class TestSettingsDialogRealCoverage:
         mock_gridlayout.return_value = MagicMock()
         mock_textedit.return_value = MagicMock()
         mock_lineedit.return_value = MagicMock()
-        mock_checkbox.return_value = MagicMock()
-        mock_radiobutton.return_value = MagicMock()
         mock_buttongroup.return_value = MagicMock()
         mock_slider.return_value = MagicMock()
         mock_sizepolicy.return_value = MagicMock()
@@ -1664,8 +1654,6 @@ class TestSettingsDialogRealCoverage:
     @patch("src.helpmesign.ui.settings_dialog.QGridLayout")
     @patch("src.helpmesign.ui.settings_dialog.QTextEdit")
     @patch("src.helpmesign.ui.settings_dialog.QLineEdit")
-    @patch("src.helpmesign.ui.settings_dialog.QCheckBox")
-    @patch("src.helpmesign.ui.settings_dialog.QRadioButton")
     @patch("src.helpmesign.ui.settings_dialog.QButtonGroup")
     @patch("src.helpmesign.ui.settings_dialog.QSlider")
     @patch("src.helpmesign.ui.settings_dialog.QSizePolicy")
@@ -1696,8 +1684,6 @@ class TestSettingsDialogRealCoverage:
         mock_sizepolicy,
         mock_slider,
         mock_buttongroup,
-        mock_radiobutton,
-        mock_checkbox,
         mock_lineedit,
         mock_textedit,
         mock_gridlayout,
@@ -1767,8 +1753,6 @@ class TestSettingsDialogRealCoverage:
     @patch("src.helpmesign.ui.settings_dialog.QGridLayout")
     @patch("src.helpmesign.ui.settings_dialog.QTextEdit")
     @patch("src.helpmesign.ui.settings_dialog.QLineEdit")
-    @patch("src.helpmesign.ui.settings_dialog.QCheckBox")
-    @patch("src.helpmesign.ui.settings_dialog.QRadioButton")
     @patch("src.helpmesign.ui.settings_dialog.QButtonGroup")
     @patch("src.helpmesign.ui.settings_dialog.QSlider")
     @patch("src.helpmesign.ui.settings_dialog.QSizePolicy")
@@ -1799,8 +1783,6 @@ class TestSettingsDialogRealCoverage:
         mock_sizepolicy,
         mock_slider,
         mock_buttongroup,
-        mock_radiobutton,
-        mock_checkbox,
         mock_lineedit,
         mock_textedit,
         mock_gridlayout,
@@ -1877,8 +1859,6 @@ class TestSettingsDialogRealCoverage:
     @patch("src.helpmesign.ui.settings_dialog.QGridLayout")
     @patch("src.helpmesign.ui.settings_dialog.QTextEdit")
     @patch("src.helpmesign.ui.settings_dialog.QLineEdit")
-    @patch("src.helpmesign.ui.settings_dialog.QCheckBox")
-    @patch("src.helpmesign.ui.settings_dialog.QRadioButton")
     @patch("src.helpmesign.ui.settings_dialog.QButtonGroup")
     @patch("src.helpmesign.ui.settings_dialog.QSlider")
     @patch("src.helpmesign.ui.settings_dialog.QSizePolicy")
@@ -1909,8 +1889,6 @@ class TestSettingsDialogRealCoverage:
         mock_sizepolicy,
         mock_slider,
         mock_buttongroup,
-        mock_radiobutton,
-        mock_checkbox,
         mock_lineedit,
         mock_textedit,
         mock_gridlayout,
