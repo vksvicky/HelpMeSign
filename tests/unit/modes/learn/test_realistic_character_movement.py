@@ -289,7 +289,9 @@ class TestAnimationManagerIntegration:
         # Verify pose data is retrieved
         assert pose_data is not None
         assert "mixamorig:RightArm" in pose_data
-        mock_panel.sign_loader.get_alphabet_signs.assert_called_once_with("ASL", "right")
+        mock_panel.sign_loader.get_alphabet_signs.assert_called_once_with(
+            "ASL", "right"
+        )
 
     def test_gesture_validation_before_playback(self):
         """Test that gestures are retrieved and can be validated"""
