@@ -44,7 +44,7 @@ class ZoomLens(QLabel):
             QLabel {
                 border: 3px solid #007acc;
                 border-radius: 125px;
-                background-color: rgba(255, 255, 255, 0.9);
+                background-color: transparent;
             }
         """
         )
@@ -170,12 +170,8 @@ class ZoomLens(QLabel):
                         alpha = arr[:, :, 3]
                         rgb = arr[:, :, :3]
 
-                        # Create white background and blend with RGB using alpha
-                        white_bg = np.ones_like(rgb) * 255
-                        rgb_image = (
-                            rgb * (alpha[:, :, np.newaxis] / 255.0)
-                            + white_bg * (1 - alpha[:, :, np.newaxis] / 255.0)
-                        ).astype(np.uint8)
+                        # Use the original image without forcing a white background
+                        rgb_image = rgb.copy()
 
                         # Apply super resolution if model is available
                         if self.sr_model is not None:
@@ -231,20 +227,60 @@ class ZoomLens(QLabel):
                                 QImage.Format_RGB888,
                             )
                         scaled_pixmap = QPixmap.fromImage(q_image)
-                        self.setPixmap(scaled_pixmap)
+
+                        # Create a circular zoom lens with magnified content
+                        from PySide6.QtGui import QPainter, QPainterPath
+
+                        # Create a circular pixmap
+                        circular_pixmap = QPixmap(250, 250)
+                        circular_pixmap.fill(Qt.GlobalColor.transparent)
+
+                        painter = QPainter(circular_pixmap)
+                        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+                        # Set circular clipping region
+                        path = QPainterPath()
+                        path.addEllipse(0, 0, 250, 250)
+                        painter.setClipPath(path)
+
+                        # Draw the magnified content
+                        painter.drawPixmap(0, 0, scaled_pixmap)
+                        painter.end()
+
+                        self.setPixmap(circular_pixmap)
 
                     except Exception as cv_error:
                         # Final fallback to Qt scaling
                         self.parent_panel._log.warning(
                             f"OpenCV processing failed, using Qt fallback: {cv_error}"
                         )
-                        scaled_pixmap = cropped_pixmap.scaled(
+                        # Create a circular zoom lens with magnified content (fallback)
+                        from PySide6.QtGui import QPainter, QPainterPath
+
+                        fallback_scaled_pixmap = cropped_pixmap.scaled(
                             250,
                             250,
                             Qt.AspectRatioMode.IgnoreAspectRatio,
                             Qt.TransformationMode.SmoothTransformation,
                         )
-                        self.setPixmap(scaled_pixmap)
+
+                        # Create a circular pixmap
+                        circular_pixmap = QPixmap(250, 250)
+                        circular_pixmap.fill(Qt.GlobalColor.transparent)
+
+                        painter = QPainter(circular_pixmap)
+                        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+                        # Set circular clipping region
+                        path = QPainterPath()
+                        path.addEllipse(0, 0, 250, 250)
+                        painter.setClipPath(path)
+
+                        # Draw the magnified content
+                        painter.drawPixmap(0, 0, fallback_scaled_pixmap)
+                        painter.end()
+
+                        self.setPixmap(circular_pixmap)
                 else:
                     self.setText("No Image")
         except Exception as e:
