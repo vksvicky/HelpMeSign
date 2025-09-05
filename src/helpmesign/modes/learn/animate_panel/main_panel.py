@@ -38,12 +38,12 @@ class ZoomLens(QLabel):
     def __init__(self, parent_panel, parent=None):
         super().__init__(parent)
         self.parent_panel = parent_panel
-        self.setFixedSize(200, 200)
+        self.setFixedSize(250, 250)
         self.setStyleSheet(
             """
             QLabel {
                 border: 3px solid #007acc;
-                border-radius: 100px;
+                border-radius: 125px;
                 background-color: rgba(255, 255, 255, 0.9);
             }
         """
@@ -71,27 +71,32 @@ class ZoomLens(QLabel):
         try:
             import os
 
-            model_path = os.path.join(
+            # Get the project root directory (go up from src/helpmesign/modes/learn/animate_panel/)
+            current_dir = os.path.dirname(__file__)
+            project_root = os.path.dirname(
                 os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-                ),
+                    os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+                )
+            )
+
+            # Try EDSR x2 model first (more reliable)
+            edsr_path = os.path.join(
+                project_root,
                 "resources",
                 "models",
                 "super_resolution",
-                "ESPCN_x2.pb",
+                "EDSR_x2.pb",
             )
 
-            if os.path.exists(model_path):
-                self.sr_model = cv2.dnn_superres.DnnSuperResImpl_create()
-                self.sr_model.readModel(model_path)
-                self.sr_model.setModel("espcn", 2)  # 2x upscaling
-                self.parent_panel._log.info(
-                    "Super resolution model loaded successfully"
-                )
-            else:
-                self.parent_panel._log.warning(
-                    f"Super resolution model not found at: {model_path}"
-                )
+            self.parent_panel._log.debug(f"Looking for EDSR model at: {edsr_path}")
+            self.parent_panel._log.debug(f"Model exists: {os.path.exists(edsr_path)}")
+
+            # Skip loading EDSR models - they're too slow for real-time use (2+ seconds per operation)
+            # Use enhanced interpolation instead for fast, high-quality results
+            self.parent_panel._log.info(
+                "Using enhanced interpolation for fast, high-quality zoom (EDSR models too slow for real-time)"
+            )
+            self.sr_model = None
         except Exception as e:
             self.parent_panel._log.warning(
                 f"Failed to initialize super resolution: {e}"
@@ -128,113 +133,120 @@ class ZoomLens(QLabel):
                         - display_top_left_relative.y()
                     )
 
-                    # Extract a 100x100 area around the lens center for super resolution
-                    source_size = 100
-                    source_x = max(0, display_x - source_size // 2)
-                    source_y = max(0, display_y - source_size // 2)
+                # Extract a smaller area for more noticeable zoom effect
+                # Use 100x100 to get 2x zoom effect (200x200 output from 100x100 input)
+                source_size = 100
+                source_x = max(0, display_x - source_size // 2)
+                source_y = max(0, display_y - source_size // 2)
 
-                    # Ensure we don't go beyond the pixmap bounds
-                    source_x = min(source_x, current_pixmap.width() - source_size)
-                    source_y = min(source_y, current_pixmap.height() - source_size)
-                    source_x = max(0, source_x)
-                    source_y = max(0, source_y)
+                # Ensure we don't go beyond the pixmap bounds
+                source_x = min(source_x, current_pixmap.width() - source_size)
+                source_y = min(source_y, current_pixmap.height() - source_size)
+                source_x = max(0, source_x)
+                source_y = max(0, source_y)
 
-                    # Extract the source area
-                    source_rect = QRect(source_x, source_y, source_size, source_size)
-                    cropped_pixmap = current_pixmap.copy(source_rect)
+                # Extract the source area
+                source_rect = QRect(source_x, source_y, source_size, source_size)
+                cropped_pixmap = current_pixmap.copy(source_rect)
 
-                    if not cropped_pixmap.isNull():
-                        # Try super resolution first, fallback to high-quality scaling
-                        try:
-                            # Convert QPixmap to OpenCV format
-                            qimage = cropped_pixmap.toImage()
-                            width = qimage.width()
-                            height = qimage.height()
+                if not cropped_pixmap.isNull():
+                    # Try super resolution first, fallback to high-quality scaling
+                    try:
+                        # Convert QPixmap to OpenCV format
+                        qimage = cropped_pixmap.toImage()
+                        width = qimage.width()
+                        height = qimage.height()
 
-                            # Get image data
-                            ptr = qimage.bits()
-                            data = bytes(ptr)
+                        # Get image data
+                        ptr = qimage.bits()
+                        data = bytes(ptr)
 
-                            # Convert to numpy array (RGBA format)
-                            arr = np.frombuffer(data, dtype=np.uint8).reshape(
-                                height, width, 4
-                            )
+                        # Convert to numpy array (RGBA format)
+                        arr = np.frombuffer(data, dtype=np.uint8).reshape(
+                            height, width, 4
+                        )
 
-                            # Convert RGBA to RGB with proper alpha handling
-                            alpha = arr[:, :, 3]
-                            rgb = arr[:, :, :3]
+                        # Convert RGBA to RGB with proper alpha handling
+                        alpha = arr[:, :, 3]
+                        rgb = arr[:, :, :3]
 
-                            # Create white background and blend with RGB using alpha
-                            white_bg = np.ones_like(rgb) * 255
-                            rgb_image = (
-                                rgb * (alpha[:, :, np.newaxis] / 255.0)
-                                + white_bg * (1 - alpha[:, :, np.newaxis] / 255.0)
-                            ).astype(np.uint8)
+                        # Create white background and blend with RGB using alpha
+                        white_bg = np.ones_like(rgb) * 255
+                        rgb_image = (
+                            rgb * (alpha[:, :, np.newaxis] / 255.0)
+                            + white_bg * (1 - alpha[:, :, np.newaxis] / 255.0)
+                        ).astype(np.uint8)
 
-                            # Apply super resolution if model is available
-                            if self.sr_model is not None:
-                                try:
-                                    # Use super resolution for 2x upscaling
-                                    super_res_image = self.sr_model.upsample(rgb_image)
+                        # Apply super resolution if model is available
+                        if self.sr_model is not None:
+                            try:
+                                # Preprocess image for better super resolution results
+                                preprocessed = self._preprocess_for_sr(rgb_image)
 
-                                    # Take center 200x200 from the super resolution result
-                                    sr_height, sr_width = super_res_image.shape[:2]
-                                    center_start_h = (sr_height - 200) // 2
-                                    center_start_w = (sr_width - 200) // 2
-                                    final_image = super_res_image[
-                                        center_start_h : center_start_h + 200,
-                                        center_start_w : center_start_w + 200,
-                                    ]
+                                # Use super resolution for 2x upscaling
+                                super_res_image = self.sr_model.upsample(preprocessed)
 
-                                    self.parent_panel._log.debug(
-                                        f"Super resolution applied: {rgb_image.shape} -> {super_res_image.shape} -> {final_image.shape}"
-                                    )
+                                # Postprocess for better quality
+                                enhanced = self._postprocess_sr_result(super_res_image)
 
-                                except Exception as sr_error:
-                                    self.parent_panel._log.warning(
-                                        f"Super resolution failed, using fallback: {sr_error}"
-                                    )
-                                    # Fallback to high-quality Lanczos4 interpolation
-                                    final_image = cv2.resize(
-                                        rgb_image,
-                                        (200, 200),
-                                        interpolation=cv2.INTER_LANCZOS4,
-                                    )
-                            else:
-                                # Use high-quality Lanczos4 interpolation as fallback
-                                final_image = cv2.resize(
-                                    rgb_image,
-                                    (200, 200),
-                                    interpolation=cv2.INTER_LANCZOS4,
+                                # Take center 250x250 from the super resolution result
+                                sr_height, sr_width = enhanced.shape[:2]
+                                center_start_h = (sr_height - 250) // 2
+                                center_start_w = (sr_width - 250) // 2
+                                final_image = enhanced[
+                                    center_start_h : center_start_h + 250,
+                                    center_start_w : center_start_w + 250,
+                                ]
+
+                                self.parent_panel._log.debug(
+                                    f"Super resolution applied: {rgb_image.shape} -> {super_res_image.shape} -> {final_image.shape}"
                                 )
 
-                            # Convert back to QPixmap
+                            except Exception as sr_error:
+                                self.parent_panel._log.warning(
+                                    f"Super resolution failed, using fallback: {sr_error}"
+                                )
+                                # Fallback to high-quality interpolation with enhancement
+                            final_image = self._enhanced_interpolation(
+                                rgb_image, (250, 250)
+                            )
+                        else:
+                            # Use enhanced interpolation as fallback
+                            final_image = self._enhanced_interpolation(
+                                rgb_image, (250, 250)
+                            )
+
+                            # Convert back to QPixmap - ensure contiguous memory
                             height, width, _ = final_image.shape
                             bytes_per_line = 3 * width
+
+                            # Ensure the array is contiguous in memory
+                            final_image_contiguous = np.ascontiguousarray(final_image)
+
                             q_image = QImage(
-                                final_image.data,
+                                final_image_contiguous.data,
                                 width,
                                 height,
                                 bytes_per_line,
                                 QImage.Format_RGB888,
                             )
-                            scaled_pixmap = QPixmap.fromImage(q_image)
-                            self.setPixmap(scaled_pixmap)
+                        scaled_pixmap = QPixmap.fromImage(q_image)
+                        self.setPixmap(scaled_pixmap)
 
-                        except Exception as cv_error:
-                            # Final fallback to Qt scaling
-                            self.parent_panel._log.warning(
-                                f"OpenCV processing failed, using Qt fallback: {cv_error}"
-                            )
-                            scaled_pixmap = cropped_pixmap.scaled(
-                                200,
-                                200,
-                                Qt.AspectRatioMode.IgnoreAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation,
-                            )
-                            self.setPixmap(scaled_pixmap)
-                    else:
-                        self.setText("No Image")
+                    except Exception as cv_error:
+                        # Final fallback to Qt scaling
+                        self.parent_panel._log.warning(
+                            f"OpenCV processing failed, using Qt fallback: {cv_error}"
+                        )
+                        scaled_pixmap = cropped_pixmap.scaled(
+                            250,
+                            250,
+                            Qt.AspectRatioMode.IgnoreAspectRatio,
+                            Qt.TransformationMode.SmoothTransformation,
+                        )
+                        self.setPixmap(scaled_pixmap)
+                else:
+                    self.setText("No Image")
         except Exception as e:
             self.parent_panel._log.warning(f"Error updating zoom lens: {e}")
             self.setText("Error")
@@ -266,6 +278,83 @@ class ZoomLens(QLabel):
         """Hide the lens"""
         self.hide()
         self.update_timer.stop()
+
+    def _preprocess_for_sr(self, image: np.ndarray) -> np.ndarray:
+        """Preprocess image for better super resolution results"""
+        try:
+            # Apply slight sharpening to enhance details before super resolution
+            kernel = np.array([[-0.5, -1, -0.5], [-1, 7, -1], [-0.5, -1, -0.5]])
+            sharpened = cv2.filter2D(image, -1, kernel)
+
+            # Blend original with sharpened for natural look
+            preprocessed = cv2.addWeighted(image, 0.7, sharpened, 0.3, 0)
+
+            # Ensure values are in valid range
+            preprocessed = np.clip(preprocessed, 0, 255).astype(np.uint8)
+
+            return preprocessed
+        except Exception as e:
+            self.parent_panel._log.warning(f"Preprocessing failed: {e}")
+            return image
+
+    def _postprocess_sr_result(self, image: np.ndarray) -> np.ndarray:
+        """Postprocess super resolution result for better quality"""
+        try:
+            # Apply unsharp masking for better edge definition
+            gaussian = cv2.GaussianBlur(image, (0, 0), 1.0)
+            unsharp_mask = cv2.addWeighted(image, 1.5, gaussian, -0.5, 0)
+
+            # Apply contrast enhancement
+            enhanced = cv2.convertScaleAbs(unsharp_mask, alpha=1.1, beta=5)
+
+            # Apply edge enhancement
+            kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+            edge_enhanced = cv2.filter2D(enhanced, -1, kernel)
+
+            # Blend for natural but sharp look
+            final = cv2.addWeighted(enhanced, 0.8, edge_enhanced, 0.2, 0)
+
+            # Ensure values are in valid range
+            final = np.clip(final, 0, 255).astype(np.uint8)
+
+            return final
+        except Exception as e:
+            self.parent_panel._log.warning(f"Postprocessing failed: {e}")
+            return image
+
+    def _enhanced_interpolation(
+        self, image: np.ndarray, target_size: tuple
+    ) -> np.ndarray:
+        """Enhanced interpolation with optimized quality improvements for real-time performance"""
+        try:
+            # Use Lanczos4 for high-quality upscaling
+            upscaled = cv2.resize(image, target_size, interpolation=cv2.INTER_LANCZOS4)
+
+            # Apply moderate unsharp masking for better edge definition
+            gaussian = cv2.GaussianBlur(upscaled, (0, 0), 1.2)
+            unsharp_mask = cv2.addWeighted(upscaled, 1.4, gaussian, -0.4, 0)
+
+            # Apply moderate contrast enhancement
+            enhanced = cv2.convertScaleAbs(unsharp_mask, alpha=1.1, beta=5)
+
+            # Apply single sharpening pass for good detail without being too slow
+            kernel = np.array([[-0.5, -1, -0.5], [-1, 7, -1], [-0.5, -1, -0.5]])
+            sharpened = cv2.filter2D(enhanced, -1, kernel)
+
+            # Blend for natural but sharp look
+            final = cv2.addWeighted(enhanced, 0.7, sharpened, 0.3, 0)
+
+            # Apply final contrast boost
+            final = cv2.convertScaleAbs(final, alpha=1.05, beta=2)
+
+            # Ensure values are in valid range
+            final = np.clip(final, 0, 255).astype(np.uint8)
+
+            return final
+        except Exception as e:
+            self.parent_panel._log.warning(f"Enhanced interpolation failed: {e}")
+            # Fallback to simple Lanczos4
+            return cv2.resize(image, target_size, interpolation=cv2.INTER_LANCZOS4)
 
     def mousePressEvent(self, event):
         """Handle mouse press to start dragging"""
