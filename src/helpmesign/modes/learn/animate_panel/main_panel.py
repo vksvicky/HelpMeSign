@@ -230,10 +230,15 @@ class ZoomLens(QLabel):
 
                         # Create a circular zoom lens with magnified content
                         from PySide6.QtGui import QPainter, QPainterPath
-
-                        # Create a circular pixmap
+                        
+                        # Create a circular pixmap with theme-aware background
                         circular_pixmap = QPixmap(250, 250)
-                        circular_pixmap.fill(Qt.GlobalColor.transparent)
+                        # Use theme-appropriate background color
+                        current_theme = self.parent_panel.get_current_theme()
+                        if current_theme == "Light":
+                            circular_pixmap.fill(Qt.GlobalColor.white)  # White background for light theme
+                        else:
+                            circular_pixmap.fill(Qt.GlobalColor.transparent)  # Transparent for dark theme
 
                         painter = QPainter(circular_pixmap)
                         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -256,17 +261,22 @@ class ZoomLens(QLabel):
                         )
                         # Create a circular zoom lens with magnified content (fallback)
                         from PySide6.QtGui import QPainter, QPainterPath
-
+                        
                         fallback_scaled_pixmap = cropped_pixmap.scaled(
                             250,
                             250,
                             Qt.AspectRatioMode.IgnoreAspectRatio,
                             Qt.TransformationMode.SmoothTransformation,
                         )
-
-                        # Create a circular pixmap
+                        
+                        # Create a circular pixmap with theme-aware background
                         circular_pixmap = QPixmap(250, 250)
-                        circular_pixmap.fill(Qt.GlobalColor.transparent)
+                        # Use theme-appropriate background color
+                        current_theme = self.parent_panel.get_current_theme()
+                        if current_theme == "Light":
+                            circular_pixmap.fill(Qt.GlobalColor.white)  # White background for light theme
+                        else:
+                            circular_pixmap.fill(Qt.GlobalColor.transparent)  # Transparent for dark theme
 
                         painter = QPainter(circular_pixmap)
                         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
