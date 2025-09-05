@@ -61,6 +61,8 @@ class RenderingManager:
                             ).mirrored(False, True)
                         self.parent_panel._display.setPixmap(QPixmap.fromImage(img))
                         image_updated = True
+                        # Update zoom lens if visible after display update
+                        self.parent_panel.update_zoom_lens_if_visible()
                 except Exception:
                     image_updated = False
 
@@ -89,6 +91,8 @@ class RenderingManager:
                             ).mirrored(False, True)
                         self.parent_panel._display.setPixmap(QPixmap.fromImage(img))
                         image_updated = True
+                        # Update zoom lens if visible after display update
+                        self.parent_panel.update_zoom_lens_if_visible()
                 except Exception:
                     pass
 

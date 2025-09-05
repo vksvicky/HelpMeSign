@@ -12,7 +12,7 @@ import subprocess
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 if TYPE_CHECKING:
     from PySide6.QtCore import Qt, QTimer, Signal
@@ -329,6 +329,10 @@ class SecureConfigManager:
         self.logger = get_logger("helpmesign.config")
         self._saving_settings: bool = False
 
+        # Cache system info to avoid repeated MAC address retrieval and logging
+        self._cached_system_info: Optional[List[str]] = None
+        self._cached_secret_key: Optional[bytes] = None
+
         # Ensure config directory exists with secure permissions
         self.config_dir.mkdir(mode=0o700, exist_ok=True)
 
@@ -337,19 +341,24 @@ class SecureConfigManager:
         Derive secret key from system/user-specific data
         This makes it virtually impossible to decrypt without knowing the derivation method
         """
-        # Get system-specific identifiers
-        system_info = [
-            platform.system(),  # OS (Windows, Darwin, Linux)
-            platform.machine(),  # Architecture (x86_64, arm64, etc.)
-            platform.node(),  # Hostname
-            getpass.getuser(),  # Username
-            str(Path.home()),  # Home directory path
-            get_text("app.name"),  # Application identifier
-            self._get_mac_address(),  # MAC address for machine uniqueness
-        ]
+        # Use cached secret key if available
+        if self._cached_secret_key is not None:
+            return self._cached_secret_key
+
+        # Get system-specific identifiers (cache to avoid repeated MAC address retrieval)
+        if self._cached_system_info is None:
+            self._cached_system_info = [
+                platform.system(),  # OS (Windows, Darwin, Linux)
+                platform.machine(),  # Architecture (x86_64, arm64, etc.)
+                platform.node(),  # Hostname
+                getpass.getuser(),  # Username
+                str(Path.home()),  # Home directory path
+                get_text("app.name"),  # Application identifier
+                self._get_mac_address(),  # MAC address for machine uniqueness
+            ]
 
         # Create a unique salt for this system/user
-        salt = "|".join(system_info).encode("utf-8")
+        salt = "|".join(self._cached_system_info).encode("utf-8")
 
         # Use PBKDF2 to derive a key from the salt
         # This makes it computationally expensive to brute force
@@ -363,6 +372,8 @@ class SecureConfigManager:
             dklen=32,  # 32 bytes for SHA-256
         )
 
+        # Cache the derived key to avoid repeated computation
+        self._cached_secret_key = key
         self.logger.debug("Secret key derived from system data")
         return key
 

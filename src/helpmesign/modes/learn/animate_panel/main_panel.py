@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from ....utils.logger import get_logger
 
 try:
-    from PySide6.QtCore import QRect, Qt, QTimer
+    from PySide6.QtCore import QPoint, QRect, Qt, QTimer
     from PySide6.QtGui import QIcon, QImage, QPixmap
     from PySide6.QtWidgets import (
         QDialog,
@@ -61,10 +61,7 @@ class ZoomLens(QLabel):
         self.sr_model = None
         self._init_super_resolution()
 
-        # Create update timer for continuous updates
-        self.update_timer = QTimer(self)
-        self.update_timer.timeout.connect(self.update_zoom_view)
-        self.update_timer.start(50)  # Update every 50ms
+        # No timer needed - zoom lens updates only when necessary
 
     def _init_super_resolution(self):
         """Initialize the super resolution model"""
@@ -230,15 +227,19 @@ class ZoomLens(QLabel):
 
                         # Create a circular zoom lens with magnified content
                         from PySide6.QtGui import QPainter, QPainterPath
-                        
+
                         # Create a circular pixmap with theme-aware background
                         circular_pixmap = QPixmap(250, 250)
                         # Use theme-appropriate background color
                         current_theme = self.parent_panel.get_current_theme()
                         if current_theme == "Light":
-                            circular_pixmap.fill(Qt.GlobalColor.white)  # White background for light theme
+                            circular_pixmap.fill(
+                                Qt.GlobalColor.white
+                            )  # White background for light theme
                         else:
-                            circular_pixmap.fill(Qt.GlobalColor.transparent)  # Transparent for dark theme
+                            circular_pixmap.fill(
+                                Qt.GlobalColor.transparent
+                            )  # Transparent for dark theme
 
                         painter = QPainter(circular_pixmap)
                         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -261,22 +262,26 @@ class ZoomLens(QLabel):
                         )
                         # Create a circular zoom lens with magnified content (fallback)
                         from PySide6.QtGui import QPainter, QPainterPath
-                        
+
                         fallback_scaled_pixmap = cropped_pixmap.scaled(
                             250,
                             250,
                             Qt.AspectRatioMode.IgnoreAspectRatio,
                             Qt.TransformationMode.SmoothTransformation,
                         )
-                        
+
                         # Create a circular pixmap with theme-aware background
                         circular_pixmap = QPixmap(250, 250)
                         # Use theme-appropriate background color
                         current_theme = self.parent_panel.get_current_theme()
                         if current_theme == "Light":
-                            circular_pixmap.fill(Qt.GlobalColor.white)  # White background for light theme
+                            circular_pixmap.fill(
+                                Qt.GlobalColor.white
+                            )  # White background for light theme
                         else:
-                            circular_pixmap.fill(Qt.GlobalColor.transparent)  # Transparent for dark theme
+                            circular_pixmap.fill(
+                                Qt.GlobalColor.transparent
+                            )  # Transparent for dark theme
 
                         painter = QPainter(circular_pixmap)
                         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -308,17 +313,25 @@ class ZoomLens(QLabel):
         lens_x = max(0, min(x - self.width() // 2, parent_width - self.width()))
         lens_y = max(0, min(y - self.height() // 2, parent_height - self.height()))
 
-        self.move(lens_x, lens_y)
-        self.show()
-        self.raise_()  # Bring to front
+        # Only update if position has changed significantly
+        current_pos = self.pos()
+        if (
+            abs(current_pos.x() - lens_x) > 2
+            or abs(current_pos.y() - lens_y) > 2
+            or not self.isVisible()
+        ):
 
-        # Update the zoom view immediately
-        self.update_zoom_view()
+            self.move(lens_x, lens_y)
+            self.show()
+            self.raise_()  # Bring to front
 
-        # Debug logging
-        self.parent_panel._log.debug(
-            f"Zoom lens positioned at ({lens_x}, {lens_y}) for click at ({x}, {y})"
-        )
+            # Update the zoom view immediately
+            self.update_zoom_view()
+
+            # Debug logging
+            self.parent_panel._log.debug(
+                f"Zoom lens positioned at ({lens_x}, {lens_y}) for click at ({x}, {y})"
+            )
 
     def hide_lens(self):
         """Hide the lens"""
@@ -425,7 +438,7 @@ class ZoomLens(QLabel):
             new_pos.setY(max(0, min(new_pos.y(), parent_rect.height() - self.height())))
             self.move(new_pos)
             # Update the zoom view immediately after moving
-            QTimer.singleShot(0, self.update_zoom_view)
+            self.update_zoom_view()
             self.parent_panel._log.debug(
                 f"Zoom lens: Mouse move - moved to ({new_pos.x()}, {new_pos.y()})"
             )
@@ -562,6 +575,7 @@ class AnimateGesturePanel(QWidget):
 
         # Zoom lens reference
         self._zoom_lens: Optional[ZoomLens] = None
+        self._last_zoom_pos: Optional[QPoint] = None
 
     def _apply_theme_colors(self) -> None:
         """Apply theme-aware colors to the panel and display."""
@@ -735,6 +749,9 @@ class AnimateGesturePanel(QWidget):
                 # Show zoom lens at click position
                 if self._zoom_lens and hasattr(self._zoom_lens, "show_lens"):
                     self._zoom_lens.show_lens(event.x(), event.y())
+
+                # Also pass through to parent for pose updates
+                super().mousePressEvent(event)
             else:
                 # Pass through to parent
                 super().mousePressEvent(event)
@@ -756,9 +773,26 @@ class AnimateGesturePanel(QWidget):
                 and hasattr(self._zoom_lens, "isVisible")
                 and self._zoom_lens.isVisible()
             ):
-                # Update zoom lens position and content
+                # Only update position if mouse has moved significantly (avoid micro-movements)
+                # and throttle updates to prevent excessive calls
                 if hasattr(self._zoom_lens, "show_lens"):
-                    self._zoom_lens.show_lens(event.x(), event.y())
+                    # Check if we have a last position and if movement is significant
+                    if (
+                        self._last_zoom_pos is None
+                        or abs(event.x() - self._last_zoom_pos.x()) > 5
+                        or abs(event.y() - self._last_zoom_pos.y()) > 5
+                    ):
+                        self._last_zoom_pos = event.position().toPoint()
+                        # Use a timer to throttle updates
+                        if not hasattr(self, "_zoom_update_timer"):
+                            self._zoom_update_timer = QTimer(self)
+                            self._zoom_update_timer.setSingleShot(True)
+                            self._zoom_update_timer.timeout.connect(
+                                lambda: self._zoom_lens.show_lens(event.x(), event.y())
+                            )
+                        # Cancel previous timer and start new one
+                        self._zoom_update_timer.stop()
+                        self._zoom_update_timer.start(16)  # ~60fps max
             else:
                 # Pass through to parent
                 super().mouseMoveEvent(event)
@@ -773,8 +807,8 @@ class AnimateGesturePanel(QWidget):
                 return
 
             if hasattr(self, "_zoom_mode_active") and self._zoom_mode_active:
-                # Keep lens visible after mouse release
-                pass
+                # Keep lens visible after mouse release, but still pass through for pose updates
+                super().mouseReleaseEvent(event)
             else:
                 # Pass through to parent
                 super().mouseReleaseEvent(event)
@@ -951,12 +985,28 @@ class AnimateGesturePanel(QWidget):
     def get_current_theme(self) -> str:
         """Get the current application theme."""
         try:
-            from ....core.startup import get_theme
+            # Use the global theme manager instead of loading configuration
+            from ....utils.theme_manager import get_theme_manager
 
-            return get_theme()
+            theme_manager = get_theme_manager()
+            return theme_manager.get_current_theme()
         except Exception:
             # Fallback to default Light theme
             return "Light"
+
+    def update_zoom_lens_if_visible(self) -> None:
+        """Update the zoom lens if it's currently visible."""
+        try:
+            if (
+                hasattr(self, "_zoom_lens")
+                and self._zoom_lens
+                and hasattr(self._zoom_lens, "isVisible")
+                and self._zoom_lens.isVisible()
+            ):
+                # Update immediately since this is called after the display is updated
+                self._zoom_lens.update_zoom_view()
+        except Exception as e:
+            self._log.warning(f"Error updating zoom lens: {e}")
 
     # Cleanup
     def cleanup(self) -> None:

@@ -336,10 +336,11 @@ class ModelManager:
     def _get_current_theme(self) -> str:
         """Get the current application theme."""
         try:
-            # Try to get theme from the main application
-            from ....core.startup import get_theme
+            # Use the global theme manager instead of loading configuration
+            from ....utils.theme_manager import get_theme_manager
 
-            return get_theme()
+            theme_manager = get_theme_manager()
+            return theme_manager.get_current_theme()
         except Exception:
             # Fallback to default Light theme
             return "Light"

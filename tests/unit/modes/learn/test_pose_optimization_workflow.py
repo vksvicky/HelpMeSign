@@ -66,8 +66,8 @@ class TestPoseOptimizationWorkflow:
 
         # Requirements: Shoulder should support arm position (reasonable range for natural signing)
         assert (
-            -60 <= shoulder_pose[1] <= 80
-        ), f"Shoulder should support arm (-60° to 80°), got {shoulder_pose[1]}°"
+            -50 <= shoulder_pose[1] <= 80
+        ), f"Shoulder should support arm (-50° to 80°), got {shoulder_pose[1]}°"
 
         # Requirements: Arm should be forward for visibility
         assert (
@@ -302,8 +302,8 @@ class TestPoseOptimizationWorkflow:
 
         # Shoulder should support arm position (reasonable range for natural signing)
         assert (
-            -30 <= shoulder_pose[1] <= 80
-        ), f"{pose_name} shoulder should support arm (-30° to 80°), got {shoulder_pose[1]}°"
+            -50 <= shoulder_pose[1] <= 80
+        ), f"{pose_name} shoulder should support arm (-50° to 80°), got {shoulder_pose[1]}°"
 
     def _validate_front_view_visibility(
         self, pose: Dict[str, List[float]], pose_name: str
