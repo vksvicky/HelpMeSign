@@ -132,8 +132,45 @@ class ModelManager:
             self.parent_panel._model_np.setHpr(0, 0, 0)
             self.parent_panel._model_np.setScale(1, 1, 1)
 
+            # Store the natural pose values for reference
+            # self._natural_pose_values = self._get_natural_pose_values()
+
         except Exception as e:
             self._log.error(f"Error applying default pose: {e}")
+
+    def _get_natural_pose_values(self):
+        """Get the natural pose values for the character (T-pose)."""
+        return {
+            "mixamorig:Hips": {"hpr": [0.0, -89.3, 0.0], "pos": [-0.0, 104.3, 1.6]},
+            "mixamorig:Spine": {"hpr": [0.0, -9.2, 0.0], "pos": [-0.0, 0.0, 10.2]},
+            "mixamorig:Spine1": {"hpr": [0.0, -0.0, 0.0], "pos": [-0.0, -0.0, 10.0]},
+            "mixamorig:Spine2": {"hpr": [-0.0, 1.5, 0.0], "pos": [-0.0, 0.0, 9.3]},
+            "mixamorig:Neck": {"hpr": [-0.0, 0.0, -0.0], "pos": [0.0, 0.0, 16.9]},
+            "mixamorig:Head": {"hpr": [0.0, -0.0, 0.0], "pos": [-0.0, -2.8, 9.3]},
+            "mixamorig:RightShoulder": {
+                "hpr": [157.8, 82.5, 100.1],
+                "pos": [-4.6, 0.8, 11.2],
+            },
+            "mixamorig:RightArm": {"hpr": [0.6, -2.8, 11.9], "pos": [0.0, -0.0, 10.8]},
+            "mixamorig:RightForeArm": {
+                "hpr": [-0.0, 0.0, -0.0],
+                "pos": [-0.0, 0.0, 27.8],
+            },
+            "mixamorig:RightHand": {"hpr": [0.0, -0.0, -0.0], "pos": [0.0, -0.0, 28.3]},
+            "mixamorig:LeftShoulder": {
+                "hpr": [-157.8, 82.5, -100.1],
+                "pos": [4.6, 0.8, 11.2],
+            },
+            "mixamorig:LeftArm": {
+                "hpr": [-0.6, -2.8, -11.9],
+                "pos": [-0.0, -0.0, 10.8],
+            },
+            "mixamorig:LeftForeArm": {
+                "hpr": [0.0, 0.0, -0.0],
+                "pos": [-0.0, 0.0, 27.8],
+            },
+            "mixamorig:LeftHand": {"hpr": [-0.0, 0.0, 0.0], "pos": [0.0, -0.0, 28.3]},
+        }
 
     def _set_enhanced_visibility_color(self) -> None:
         """Set enhanced visibility color for better hand gesture visibility."""

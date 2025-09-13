@@ -80,36 +80,40 @@ class _CornerButtonPositioner(QObject):
         self._widget = widget
         self._anchor = anchor
 
+    def _position_button(self):
+        """Position the button according to the anchor setting"""
+        try:
+            margin = 8
+            if self._anchor == "top-right":
+                # Handle case where parent/widget might be mocks in tests
+                parent_width = getattr(self._parent, "width", lambda: 200)()
+                widget_width = getattr(self._widget, "width", lambda: 100)()
+                if (
+                    hasattr(parent_width, "_mock_name")
+                    or hasattr(widget_width, "_mock_name")
+                    or str(type(parent_width)).find("Mock") != -1
+                    or str(type(widget_width)).find("Mock") != -1
+                ):
+                    # In test environment with mocks, skip positioning
+                    return
+                x = parent_width - widget_width - margin
+                y = margin
+            else:  # top-left
+                x = margin
+                y = margin
+            self._widget.move(x, y)
+            try:
+                # Keep it on top, but do not force visibility
+                self._widget.raise_()
+            except Exception:
+                pass
+        except (TypeError, AttributeError):
+            # Skip positioning if we can't get proper dimensions (e.g., in tests)
+            pass
+
     def eventFilter(self, obj, event):
         if obj is self._parent and event.type() == QEvent.Resize:
-            try:
-                margin = 8
-                if self._anchor == "top-right":
-                    # Handle case where parent/widget might be mocks in tests
-                    parent_width = getattr(self._parent, "width", lambda: 200)()
-                    widget_width = getattr(self._widget, "width", lambda: 100)()
-                    if (
-                        hasattr(parent_width, "_mock_name")
-                        or hasattr(widget_width, "_mock_name")
-                        or str(type(parent_width)).find("Mock") != -1
-                        or str(type(widget_width)).find("Mock") != -1
-                    ):
-                        # In test environment with mocks, skip positioning
-                        return False
-                    x = parent_width - widget_width - margin
-                    y = margin
-                else:  # top-left
-                    x = margin
-                    y = margin
-                self._widget.move(x, y)
-                try:
-                    # Keep it on top, but do not force visibility
-                    self._widget.raise_()
-                except Exception:
-                    pass
-            except (TypeError, AttributeError):
-                # Skip positioning if we can't get proper dimensions (e.g., in tests)
-                pass
+            self._position_button()
         return False
 
 
@@ -654,7 +658,7 @@ class LearnModeUIComponents:
         self.learn_mode.clear_sign_btn.setVisible(False)
         # No tooltip for the X button per UX decision
         try:
-            self.learn_mode.clear_sign_btn.setToolTip("")
+            self.learn_mode.clear_sign_btn.setToolTip("Close sign display")
         except Exception:
             pass
 
@@ -696,16 +700,20 @@ class LearnModeUIComponents:
             self.learn_mode.ui_behavior_manager._on_clear_sign_clicked
         )
         self.learn_mode.clear_sign_btn.raise_()
+
         # Reposition on container resize via a QObject-based event filter (skip in tests)
         if not testing_env:
             try:
                 self.learn_mode._clear_btn_positioner = _CornerButtonPositioner(
                     self.learn_mode.sign_display_container,
                     self.learn_mode.clear_sign_btn,
+                    "top-right",
                 )
                 self.learn_mode.sign_display_container.installEventFilter(
-                    self.learn_mode.event_filter
+                    self.learn_mode._clear_btn_positioner
                 )
+                # Position the button initially
+                self.learn_mode._clear_btn_positioner._position_button()
             except Exception:
                 pass
 

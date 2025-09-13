@@ -87,102 +87,53 @@ class PoseManager(QObject):
         self._initialize_poses()
 
     def _create_neutral_pose(self) -> Dict[str, JointPose]:
-        """Create neutral pose using pose data service, with fallback for editing."""
-        # Use the same pose data service as the main pipeline
-        from ...utils.pose_data_service import PoseDataService
+        """Create neutral pose using the actual character's natural pose values."""
+        print("DEBUG: Creating neutral pose with hardcoded natural pose values")
 
-        pose_data_service = PoseDataService()
-        neutral_pose_data = pose_data_service.get_neutral_pose()
+        # Use the hardcoded natural pose values we discovered
+        natural_pose_data = {
+            "mixamorig:Hips": {"hpr": [0.0, -90.0, 0.0], "pos": [-0.0, 104.3, 1.6]},
+            "mixamorig:Spine": {"hpr": [0.0, 0.0, 0.0], "pos": [-0.0, 0.0, 10.2]},
+            "mixamorig:Spine1": {"hpr": [0.0, -0.0, 0.0], "pos": [-0.0, -0.0, 10.0]},
+            "mixamorig:Spine2": {"hpr": [0.0, 0.0, 0.0], "pos": [-0.0, 0.0, 9.3]},
+            "mixamorig:Neck": {"hpr": [-0.0, 0.0, -0.0], "pos": [0.0, 0.0, 16.9]},
+            "mixamorig:Head": {"hpr": [0.0, -0.0, 0.0], "pos": [-0.0, -2.8, 9.3]},
+            "mixamorig:RightShoulder": {
+                "hpr": [150.0, 90.0, 100.0],
+                "pos": [-4.6, 0.8, 11.2],
+            },
+            "mixamorig:RightArm": {"hpr": [0.0, 90.0, 30.0], "pos": [0.0, -0.0, 10.8]},
+            "mixamorig:RightForeArm": {
+                "hpr": [-20.0, 0.0, 0.0],
+                "pos": [-0.0, 0.0, 27.8],
+            },
+            "mixamorig:RightHand": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, -0.0, 28.3]},
+            "mixamorig:LeftShoulder": {
+                "hpr": [-150.0, 80.0, -100.0],
+                "pos": [4.6, 0.8, 11.2],
+            },
+            "mixamorig:LeftArm": {"hpr": [0.0, 80.0, -30.0], "pos": [-0.0, -0.0, 10.8]},
+            "mixamorig:LeftForeArm": {
+                "hpr": [20.0, 0.0, 0.0],
+                "pos": [-0.0, 0.0, 27.8],
+            },
+            "mixamorig:LeftHand": {"hpr": [-0.0, 0.0, 0.0], "pos": [0.0, -0.0, 28.3]},
+        }
 
-        # Convert PoseData to JointPose format
+        # Convert the natural pose values to JointPose objects
         neutral_poses = {}
+        for joint_name, pose_data in natural_pose_data.items():
+            hpr = pose_data["hpr"]
+            neutral_poses[joint_name] = JointPose(
+                joint_name, float(hpr[0]), float(hpr[1]), float(hpr[2])
+            )
+            print(
+                f"DEBUG: Created JointPose for {joint_name}: H={hpr[0]}, P={hpr[1]}, R={hpr[2]}"
+            )
 
-        # Always provide a full joint list for editing, regardless of what the pose service returns
-        joint_names = [
-            "mixamorig:Hips",
-            "mixamorig:Spine",
-            "mixamorig:Spine1",
-            "mixamorig:Spine2",
-            "mixamorig:Spine3",
-            "mixamorig:Neck",
-            "mixamorig:Head",
-            "mixamorig:RightShoulder",
-            "mixamorig:LeftShoulder",
-            "mixamorig:RightArm",
-            "mixamorig:LeftArm",
-            "mixamorig:RightForeArm",
-            "mixamorig:LeftForeArm",
-            "mixamorig:RightHand",
-            "mixamorig:LeftHand",
-            # Right Hand Fingers
-            "mixamorig:RightHandIndex1",
-            "mixamorig:RightHandIndex2",
-            "mixamorig:RightHandIndex3",
-            "mixamorig:RightHandIndex4",
-            "mixamorig:RightHandMiddle1",
-            "mixamorig:RightHandMiddle2",
-            "mixamorig:RightHandMiddle3",
-            "mixamorig:RightHandMiddle4",
-            "mixamorig:RightHandRing1",
-            "mixamorig:RightHandRing2",
-            "mixamorig:RightHandRing3",
-            "mixamorig:RightHandRing4",
-            "mixamorig:RightHandPinky1",
-            "mixamorig:RightHandPinky2",
-            "mixamorig:RightHandPinky3",
-            "mixamorig:RightHandPinky4",
-            "mixamorig:RightHandThumb1",
-            "mixamorig:RightHandThumb2",
-            "mixamorig:RightHandThumb3",
-            "mixamorig:RightHandThumb4",
-            # Left Hand Fingers
-            "mixamorig:LeftHandIndex1",
-            "mixamorig:LeftHandIndex2",
-            "mixamorig:LeftHandIndex3",
-            "mixamorig:LeftHandIndex4",
-            "mixamorig:LeftHandMiddle1",
-            "mixamorig:LeftHandMiddle2",
-            "mixamorig:LeftHandMiddle3",
-            "mixamorig:LeftHandMiddle4",
-            "mixamorig:LeftHandRing1",
-            "mixamorig:LeftHandRing2",
-            "mixamorig:LeftHandRing3",
-            "mixamorig:LeftHandRing4",
-            "mixamorig:LeftHandPinky1",
-            "mixamorig:LeftHandPinky2",
-            "mixamorig:LeftHandPinky3",
-            "mixamorig:LeftHandPinky4",
-            "mixamorig:LeftHandThumb1",
-            "mixamorig:LeftHandThumb2",
-            "mixamorig:LeftHandThumb3",
-            "mixamorig:LeftHandThumb4",
-            # Legs
-            "mixamorig:RightUpLeg",
-            "mixamorig:LeftUpLeg",
-            "mixamorig:RightLeg",
-            "mixamorig:LeftLeg",
-            "mixamorig:RightFoot",
-            "mixamorig:LeftFoot",
-            "mixamorig:RightToeBase",
-            "mixamorig:LeftToeBase",
-        ]
-
-        # First, add all joints with default zero values
-        for joint_name in joint_names:
-            neutral_poses[joint_name] = JointPose(joint_name, 0.0, 0.0, 0.0)
-
-        # Then, if the pose service has data for any of these joints, override with the service values
-        if neutral_pose_data.joints:
-            for joint_name, hpr_values in neutral_pose_data.joints.items():
-                if len(hpr_values) >= 3 and joint_name in neutral_poses:
-                    neutral_poses[joint_name] = JointPose(
-                        joint_name,
-                        float(hpr_values[0]),
-                        float(hpr_values[1]),
-                        float(hpr_values[2]),
-                    )
-
-        print(f"Created neutral pose with {len(neutral_poses)} joints")
+        print(
+            f"Created neutral pose with {len(neutral_poses)} joints using hardcoded natural pose values"
+        )
         print(f"Neutral pose joints: {list(neutral_poses.keys())}")
         return neutral_poses
 
@@ -347,8 +298,8 @@ class JointEditor(QWidget):
         reset_btn.clicked.connect(self.reset_pose)
         layout.addWidget(reset_btn)
 
-        # Load current pose
-        self.load_current_pose()
+        # Load current pose (without triggering signals)
+        self._load_pose_silently()
 
     def _on_h_changed(self, axis: str, value: float):
         self._update_pose()
@@ -368,6 +319,30 @@ class JointEditor(QWidget):
         )
         self.pose_manager.set_pose(self.joint_name, pose)
         self.pose_changed.emit(self.joint_name, pose)
+
+    def _load_pose_silently(self):
+        """Load current pose from pose manager without triggering signals."""
+        pose = self.pose_manager.get_pose(self.joint_name)
+        if pose:
+            # Temporarily disconnect signals to prevent infinite loop
+            try:
+                self.h_slider.value_changed.disconnect()
+                self.p_slider.value_changed.disconnect()
+                self.r_slider.value_changed.disconnect()
+            except:
+                pass
+
+            self.h_slider.set_value(pose.heading)
+            self.p_slider.set_value(pose.pitch)
+            self.r_slider.set_value(pose.roll)
+
+            # Reconnect signals
+            try:
+                self.h_slider.value_changed.connect(self._on_h_changed)
+                self.p_slider.value_changed.connect(self._on_p_changed)
+                self.r_slider.value_changed.connect(self._on_r_changed)
+            except:
+                pass
 
     def load_current_pose(self):
         """Load current pose from pose manager."""
@@ -817,41 +792,78 @@ class SignLanguagePoseEditor(QWidget):
         self.update_pose_display()
 
     def load_current_character_values(self):
-        """Capture current character pose values and update the editor."""
-        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
-            print("No animate panel or actor available for capturing pose")
-            return
-
+        """Load natural pose values into the pose manager."""
         try:
-            actor = self.animate_panel._actor
-            if actor is None:
-                print("No actor available for capturing pose")
-                return
+            # Load the natural pose values from the pose manager
+            print("DEBUG: Loading natural pose values into HPR editor")
 
-            # Get available joints from the actor
-            available_joints = self.get_available_joints(actor)
-            print(f"Capturing current pose from {len(available_joints)} joints")
+            # First, clear any existing pose/animation on the character
+            if (
+                self.animate_panel
+                and hasattr(self.animate_panel, "_actor")
+                and self.animate_panel._actor
+            ):
+                print("DEBUG: Clearing existing pose/animation on character")
+                try:
+                    # Stop any active animations
+                    self.animate_panel._actor.stop()
+                    # Don't apply T-pose animation - we'll create hands-down pose via individual joints
+                    self.animate_panel._actor.update()
+                    print(
+                        "DEBUG: Cleared animations, will create hands-down pose via individual joints"
+                    )
+                except Exception as e:
+                    print(f"DEBUG: Error clearing/applying pose: {e}")
 
-            # Capture current character pose values
-            self.capture_current_pose_as_neutral(actor, available_joints)
+            # Get the natural pose values from the pose manager
+            natural_poses = self.pose_manager.get_all_poses()
+            print(f"DEBUG: Loaded {len(natural_poses)} natural pose values")
 
-            # Auto-populate joints list with captured joints
+            # Debug: Print some sample values
+            for joint_name, pose in list(natural_poses.items())[:3]:
+                print(
+                    f"DEBUG: {joint_name}: H={pose.heading}, P={pose.pitch}, R={pose.roll}"
+                )
+
+            # Auto-populate joints list with natural pose joints
+            available_joints = list(natural_poses.keys())
             self.auto_populate_joints_list(available_joints)
 
-            # Update existing joint editors to show the captured values
+            # Update existing joint editors to show the natural pose values
+            # Temporarily disconnect signals to prevent infinite loop
             for joint_name, editor in self.joint_editors.items():
-                editor.load_current_pose()
-                print(f"Updated editor for {joint_name}")
+                try:
+                    # Disconnect the pose_changed signal temporarily
+                    editor.pose_changed.disconnect()
+                    editor.load_current_pose()
+                    # Reconnect the signal
+                    editor.pose_changed.connect(self.on_pose_changed)
+                    print(
+                        f"DEBUG: Updated editor for {joint_name} with natural pose values"
+                    )
+                except Exception as e:
+                    print(f"DEBUG: Error updating editor for {joint_name}: {e}")
+                    # Make sure to reconnect even if there's an error
+                    try:
+                        editor.pose_changed.connect(self.on_pose_changed)
+                    except:
+                        pass
+
+            # Apply all the pose values to the character
+            self.apply_all_poses_to_character()
 
             # Update the pose display
             self.update_pose_display()
 
             print(
-                f"Successfully captured current pose from {len(available_joints)} joints"
+                f"Successfully loaded natural pose values for {len(natural_poses)} joints"
             )
 
         except Exception as e:
-            print(f"Error capturing current pose: {e}")
+            print(f"Error loading natural pose values: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     def auto_populate_joints_list(self, available_joints):
         """Automatically populate the joints list with captured joints."""
@@ -1188,11 +1200,57 @@ class SignLanguagePoseEditor(QWidget):
                 print(
                     f"Applied pose to {joint_name}: H={pose.heading}° P={pose.pitch}° R={pose.roll}°"
                 )
+
+                # Debug: Check what the joint's actual values are after setting
+                actual_h, actual_p, actual_r = joint.getHpr()
+                print(
+                    f"DEBUG: After setting {joint_name}, actual values are: H={actual_h:.1f}° P={actual_p:.1f}° R={actual_r:.1f}°"
+                )
             else:
                 print(f"Joint {joint_name} not found on actor")
 
         except Exception as e:
             print(f"Error applying pose to {joint_name}: {e}")
+
+    def apply_all_poses_to_character(self):
+        """Apply all pose values from the pose manager to the character."""
+        if not self.animate_panel or not hasattr(self.animate_panel, "_actor"):
+            print("No animate panel or actor available for applying poses")
+            return
+
+        try:
+            actor = self.animate_panel._actor
+            if actor is None:
+                print("No actor available for applying poses")
+                return
+
+            print(
+                "DEBUG: Applying all pose values to character to create hands-down pose"
+            )
+
+            # Get all poses from the pose manager
+            all_poses = self.pose_manager.get_all_poses()
+
+            # Apply each pose to the character
+            for joint_name, pose in all_poses.items():
+                try:
+                    joint = actor.controlJoint(None, "modelRoot", joint_name)
+                    if joint is not None:
+                        joint.setHpr(pose.heading, pose.pitch, pose.roll)
+                        print(
+                            f"DEBUG: Applied {joint_name}: H={pose.heading}° P={pose.pitch}° R={pose.roll}°"
+                        )
+                    else:
+                        print(f"DEBUG: Joint {joint_name} not found on actor")
+                except Exception as e:
+                    print(f"DEBUG: Error applying pose to {joint_name}: {e}")
+
+            # Update the actor to reflect all changes
+            actor.update()
+            print("DEBUG: Successfully applied all pose values to character")
+
+        except Exception as e:
+            print(f"Error applying all poses to character: {e}")
 
     def update_pose_display(self):
         """Update the pose information display."""
