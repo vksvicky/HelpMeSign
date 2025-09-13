@@ -469,11 +469,6 @@ class SignLanguagePoseEditor(QWidget):
 
         self.joint_combo = QComboBox()
 
-        # Add refresh button
-        refresh_btn = QPushButton("🔄 Refresh")
-        refresh_btn.setToolTip("Refresh joint list from 3D model")
-        refresh_btn.clicked.connect(self.refresh_joint_list)
-        joint_layout.addWidget(refresh_btn)
         # Add all joints that are available in the neutral pose
         joint_list = [
             "mixamorig:Hips",
@@ -727,12 +722,6 @@ class SignLanguagePoseEditor(QWidget):
         # Add groups to layout
         controls_layout.addLayout(export_layout)
 
-        # Refresh button
-        refresh_layout = QHBoxLayout()
-        self.refresh_btn = QPushButton("Capture Current Pose")
-        self.refresh_btn.clicked.connect(self.load_current_character_values)
-        refresh_layout.addWidget(self.refresh_btn)
-        controls_layout.addLayout(refresh_layout)
 
         layout.addWidget(controls_group)
         layout.addWidget(validation_group)
@@ -1165,12 +1154,67 @@ class SignLanguagePoseEditor(QWidget):
         self.update_pose_display()
 
     def reset_all_poses(self):
-        """Reset all poses to neutral."""
-        self.pose_manager.reset_to_neutral()
-        # Update existing joint editors
-        for joint_name, editor in self.joint_editors.items():
-            editor.load_current_pose()
-        self.update_pose_display()
+        """Reset all poses to default natural pose."""
+        print("DEBUG: Resetting all poses to default natural pose")
+        
+        try:
+            # First, clear any existing pose/animation on the character
+            if self.animate_panel and hasattr(self.animate_panel, "_actor") and self.animate_panel._actor:
+                print("DEBUG: Clearing existing pose/animation on character")
+                try:
+                    # Stop any active animations
+                    self.animate_panel._actor.stop()
+                    # Don't apply T-pose animation - we'll create hands-down pose via individual joints
+                    self.animate_panel._actor.update()
+                    print("DEBUG: Cleared animations, will create hands-down pose via individual joints")
+                except Exception as e:
+                    print(f"DEBUG: Error clearing/applying pose: {e}")
+            
+            # Reset the pose manager to neutral pose - this is the key fix!
+            self.pose_manager.reset_to_neutral()
+            
+            # Get the natural pose values from the pose manager
+            natural_poses = self.pose_manager.get_all_poses()
+            print(f"DEBUG: Loaded {len(natural_poses)} natural pose values")
+            
+            # Debug: Print some sample values
+            for joint_name, pose in list(natural_poses.items())[:3]:
+                print(f"DEBUG: {joint_name}: H={pose.heading}, P={pose.pitch}, R={pose.roll}")
+            
+            # Auto-populate joints list with natural pose joints
+            available_joints = list(natural_poses.keys())
+            self.auto_populate_joints_list(available_joints)
+
+            # Update existing joint editors to show the natural pose values
+            # Temporarily disconnect signals to prevent infinite loop
+            for joint_name, editor in self.joint_editors.items():
+                try:
+                    # Disconnect the pose_changed signal temporarily
+                    editor.pose_changed.disconnect()
+                    editor.load_current_pose()
+                    # Reconnect the signal
+                    editor.pose_changed.connect(self.on_pose_changed)
+                    print(f"DEBUG: Updated editor for {joint_name} with natural pose values")
+                except Exception as e:
+                    print(f"DEBUG: Error updating editor for {joint_name}: {e}")
+                    # Make sure to reconnect even if there's an error
+                    try:
+                        editor.pose_changed.connect(self.on_pose_changed)
+                    except:
+                        pass
+
+            # Apply all the pose values to the character
+            self.apply_all_poses_to_character()
+
+            # Update the pose display
+            self.update_pose_display()
+
+            print(f"Successfully reset to natural pose values for {len(natural_poses)} joints")
+
+        except Exception as e:
+            print(f"Error resetting to natural pose: {e}")
+            import traceback
+            traceback.print_exc()
 
     def apply_to_character(self):
         """Apply all poses to the character."""
