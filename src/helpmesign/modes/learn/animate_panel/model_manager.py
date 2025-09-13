@@ -210,11 +210,37 @@ class ModelManager:
                     # Check if this geometry is small (likely a joint)
                     bounds = geom_node.getBounds()
                     if bounds:
-                        size = bounds.getSize()
-                        if size.length() < 0.2:  # Small geometry threshold
-                            geom_node.setColor(black_color)
-                            colored_geometry += 1
-                            print(f"  ✓ Colored small geometry: {geom_node.getName()}")
+                        # Handle different bounding types
+                        from panda3d.core import BoundingSphere, BoundingBox
+                        if isinstance(bounds, BoundingSphere):
+                            # For spheres, use radius * 2 as diameter
+                            size = bounds.getRadius() * 2
+                        elif isinstance(bounds, BoundingBox):
+                            # For boxes, calculate size from min/max
+                            min_pt = bounds.getMin()
+                            max_pt = bounds.getMax()
+                            size = max_pt - min_pt
+                        else:
+                            # Fallback: try getSize() if available
+                            try:
+                                size = bounds.getSize()
+                            except AttributeError:
+                                # If no getSize method, skip this geometry
+                                continue
+                        
+                        # Check if geometry is small (likely a joint)
+                        if hasattr(size, 'length'):
+                            # Vector size
+                            if size.length() < 0.2:  # Small geometry threshold
+                                geom_node.setColor(black_color)
+                                colored_geometry += 1
+                                print(f"  ✓ Colored small geometry: {geom_node.getName()}")
+                        else:
+                            # Scalar size (radius)
+                            if size < 0.2:  # Small geometry threshold
+                                geom_node.setColor(black_color)
+                                colored_geometry += 1
+                                print(f"  ✓ Colored small geometry: {geom_node.getName()}")
                 except Exception as e:
                     print(f"  ✗ Could not color geometry {i}: {e}")
 
