@@ -34,18 +34,23 @@ from .rendering_manager import RenderingManager
 
 class ZoomLens(QLabel):
     """Super resolution zoom lens using OpenCV DNN"""
+    
+    # Zoom lens configuration constants
+    LENS_SIZE = 300
+    ZOOM_MAGNIFICATION = 6  # 4x zoom
+    SOURCE_REGION_SIZE = 50 # Base source region size (will be scaled by 8x for high-res)
 
     def __init__(self, parent_panel, parent=None):
         super().__init__(parent)
         self.parent_panel = parent_panel
-        self.setFixedSize(250, 250)
+        self.setFixedSize(self.LENS_SIZE, self.LENS_SIZE)
         self.setStyleSheet(
-            """
-            QLabel {
+            f"""
+            QLabel {{
                 border: 3px solid #007acc;
-                border-radius: 125px;
+                border-radius: {self.LENS_SIZE // 2}px;
                 background-color: transparent;
-            }
+            }}
         """
         )
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -120,27 +125,7 @@ class ZoomLens(QLabel):
                 # Use high-resolution image for better zoom quality
                 current_pixmap = QPixmap.fromImage(high_res_image)
                 self.parent_panel._log.debug(
-                    f"Using high-res image for zoom: {high_res_image.width()}x{high_res_image.height()}"
-                )
-
-                # Debug high-res image
-                self.parent_panel._log.debug(
-                    f"High-res image format: {high_res_image.format()}"
-                )
-                self.parent_panel._log.debug(
-                    f"High-res image isNull: {high_res_image.isNull()}"
-                )
-
-                # Convert to numpy to check pixel values
-                import numpy as np
-
-                ptr = high_res_image.bits()
-                data = bytes(ptr)
-                arr = np.frombuffer(data, dtype=np.uint8).reshape(
-                    high_res_image.height(), high_res_image.width(), 4
-                )
-                self.parent_panel._log.debug(
-                    f"High-res image pixel values min/max: {arr.min()}/{arr.max()}"
+                    f"Using high-res image: {high_res_image.width()}x{high_res_image.height()}"
                 )
             elif hasattr(self.parent_panel, "_display") and self.parent_panel._display:
                 current_pixmap = self.parent_panel._display.pixmap()
@@ -176,11 +161,11 @@ class ZoomLens(QLabel):
                 scale_factor = 8  # 8x high-res rendering
                 high_res_x = display_x * scale_factor
                 high_res_y = display_y * scale_factor
-                source_size = 125 * scale_factor  # 1000px source for 8x high-res
+                source_size = self.SOURCE_REGION_SIZE * scale_factor  # Scaled source for high-res
             else:
                 high_res_x = display_x
                 high_res_y = display_y
-                source_size = 125
+                source_size = self.SOURCE_REGION_SIZE
 
             source_x = max(0, high_res_x - source_size // 2)
             source_y = max(0, high_res_y - source_size // 2)
@@ -191,32 +176,19 @@ class ZoomLens(QLabel):
             source_x = max(0, source_x)
             source_y = max(0, source_y)
 
-            # Debug extraction coordinates
-            self.parent_panel._log.debug(
-                f"Display coordinates: ({display_x}, {display_y})"
-            )
+            # Debug extraction coordinates (simplified)
             if high_res_image and not high_res_image.isNull():
                 self.parent_panel._log.debug(
-                    f"High-res coordinates: ({high_res_x}, {high_res_y})"
+                    f"Extracting from high-res: ({source_x}, {source_y}) size: {source_size}"
                 )
-            self.parent_panel._log.debug(
-                f"Source extraction: ({source_x}, {source_y}) size: {source_size}"
-            )
-            self.parent_panel._log.debug(
-                f"Current pixmap size: {current_pixmap.width()}x{current_pixmap.height()}"
-            )
 
             # Extract the source area
             source_rect = QRect(source_x, source_y, source_size, source_size)
             cropped_pixmap = current_pixmap.copy(source_rect)
 
-            # Debug cropped pixmap
-            self.parent_panel._log.debug(
-                f"Cropped pixmap: {cropped_pixmap.width()}x{cropped_pixmap.height()}"
-            )
-            self.parent_panel._log.debug(
-                f"Cropped pixmap isNull: {cropped_pixmap.isNull()}"
-            )
+            # Debug cropped pixmap (simplified)
+            if cropped_pixmap.isNull():
+                self.parent_panel._log.warning("Failed to crop pixmap")
 
             if not cropped_pixmap.isNull():
                 # Try super resolution first, fallback to high-quality scaling
@@ -240,13 +212,9 @@ class ZoomLens(QLabel):
                     # Use the original image without forcing a white background
                     rgb_image = rgb.copy()
 
-                    # Debug input image
-                    self.parent_panel._log.debug(
-                        f"Input RGB image shape: {rgb_image.shape}, dtype: {rgb_image.dtype}"
-                    )
-                    self.parent_panel._log.debug(
-                        f"Input RGB image min/max: {rgb_image.min()}/{rgb_image.max()}"
-                    )
+                    # Debug input image (simplified)
+                    if rgb_image.min() == rgb_image.max():
+                        self.parent_panel._log.warning("Input image appears to be uniform")
 
                     # Apply super resolution if model is available
                     if self.sr_model is not None:
@@ -279,25 +247,21 @@ class ZoomLens(QLabel):
                             )
                             # Fallback to high-quality interpolation with enhancement
                             final_image = self._enhanced_interpolation(
-                                rgb_image, (250, 250)
+                                rgb_image, (self.LENS_SIZE, self.LENS_SIZE)
                             )
                     else:
                         # Use enhanced interpolation as fallback
                         final_image = self._enhanced_interpolation(
-                            rgb_image, (250, 250)
+                            rgb_image, (300, 300)
                         )
 
                     # Convert back to QPixmap - ensure contiguous memory
                     height, width, _ = final_image.shape
                     bytes_per_line = 3 * width
 
-                    # Debug logging
-                    self.parent_panel._log.debug(
-                        f"Final image shape: {final_image.shape}, dtype: {final_image.dtype}"
-                    )
-                    self.parent_panel._log.debug(
-                        f"Final image min/max: {final_image.min()}/{final_image.max()}"
-                    )
+                    # Debug logging (simplified)
+                    if final_image.min() == final_image.max():
+                        self.parent_panel._log.warning("Final image appears to be uniform")
 
                     # Ensure the array is contiguous in memory
                     final_image_contiguous = np.ascontiguousarray(final_image)
@@ -310,27 +274,21 @@ class ZoomLens(QLabel):
                         QImage.Format_RGB888,
                     )
 
-                    # Debug QImage
-                    self.parent_panel._log.debug(
-                        f"QImage created: {q_image.width()}x{q_image.height()}, format: {q_image.format()}"
-                    )
-                    self.parent_panel._log.debug(f"QImage isNull: {q_image.isNull()}")
+                    # Debug QImage (simplified)
+                    if q_image.isNull():
+                        self.parent_panel._log.warning("Failed to create QImage")
 
                     scaled_pixmap = QPixmap.fromImage(q_image)
 
-                    # Debug QPixmap
-                    self.parent_panel._log.debug(
-                        f"QPixmap created: {scaled_pixmap.width()}x{scaled_pixmap.height()}"
-                    )
-                    self.parent_panel._log.debug(
-                        f"QPixmap isNull: {scaled_pixmap.isNull()}"
-                    )
+                    # Debug QPixmap (simplified)
+                    if scaled_pixmap.isNull():
+                        self.parent_panel._log.warning("Failed to create QPixmap")
 
                     # Create a circular zoom lens with magnified content
                     from PySide6.QtGui import QPainter, QPainterPath
 
                     # Create a circular pixmap with theme-aware background
-                    circular_pixmap = QPixmap(250, 250)
+                    circular_pixmap = QPixmap(self.LENS_SIZE, self.LENS_SIZE)
                     # Use theme-appropriate background color
                     current_theme = self.parent_panel.get_current_theme()
                     if current_theme == "Light":
@@ -347,20 +305,16 @@ class ZoomLens(QLabel):
 
                     # Set circular clipping region
                     path = QPainterPath()
-                    path.addEllipse(0, 0, 250, 250)
+                    path.addEllipse(0, 0, self.LENS_SIZE, self.LENS_SIZE)
                     painter.setClipPath(path)
 
                     # Draw the magnified content
                     painter.drawPixmap(0, 0, scaled_pixmap)
                     painter.end()
 
-                    # Debug final circular pixmap
-                    self.parent_panel._log.debug(
-                        f"Circular pixmap created: {circular_pixmap.width()}x{circular_pixmap.height()}"
-                    )
-                    self.parent_panel._log.debug(
-                        f"Circular pixmap isNull: {circular_pixmap.isNull()}"
-                    )
+                    # Debug final circular pixmap (simplified)
+                    if circular_pixmap.isNull():
+                        self.parent_panel._log.warning("Failed to create circular pixmap")
 
                     self.setPixmap(circular_pixmap)
 
@@ -380,7 +334,7 @@ class ZoomLens(QLabel):
                     )
 
                     # Create a circular pixmap with theme-aware background
-                    circular_pixmap = QPixmap(250, 250)
+                    circular_pixmap = QPixmap(self.LENS_SIZE, self.LENS_SIZE)
                     # Use theme-appropriate background color
                     current_theme = self.parent_panel.get_current_theme()
                     if current_theme == "Light":
@@ -397,7 +351,7 @@ class ZoomLens(QLabel):
 
                     # Set circular clipping region
                     path = QPainterPath()
-                    path.addEllipse(0, 0, 250, 250)
+                    path.addEllipse(0, 0, self.LENS_SIZE, self.LENS_SIZE)
                     painter.setClipPath(path)
 
                     # Draw the magnified content
