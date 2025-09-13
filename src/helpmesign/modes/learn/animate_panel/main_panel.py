@@ -34,11 +34,13 @@ from .rendering_manager import RenderingManager
 
 class ZoomLens(QLabel):
     """Super resolution zoom lens using OpenCV DNN"""
-    
+
     # Zoom lens configuration constants
-    LENS_SIZE = 300
-    ZOOM_MAGNIFICATION = 6  # 4x zoom
-    SOURCE_REGION_SIZE = 50 # Base source region size (will be scaled by 8x for high-res)
+    LENS_SIZE = 300  # Physical size of the zoom lens
+    ZOOM_MAGNIFICATION = 3  # Reduced zoom to show wider area
+    SOURCE_REGION_SIZE = int(
+        LENS_SIZE / ZOOM_MAGNIFICATION
+    )  # Source region size (75), will be scaled by 8x for high-res
 
     def __init__(self, parent_panel, parent=None):
         super().__init__(parent)
@@ -90,9 +92,6 @@ class ZoomLens(QLabel):
                 "EDSR_x2.pb",
             )
 
-            self.parent_panel._log.debug(f"Looking for EDSR model at: {edsr_path}")
-            self.parent_panel._log.debug(f"Model exists: {os.path.exists(edsr_path)}")
-
             # Skip loading EDSR models - they're too slow for real-time use (2+ seconds per operation)
             # Use enhanced interpolation instead for fast, high-quality results
             self.parent_panel._log.info(
@@ -124,9 +123,6 @@ class ZoomLens(QLabel):
             if high_res_image and not high_res_image.isNull():
                 # Use high-resolution image for better zoom quality
                 current_pixmap = QPixmap.fromImage(high_res_image)
-                self.parent_panel._log.debug(
-                    f"Using high-res image: {high_res_image.width()}x{high_res_image.height()}"
-                )
             elif hasattr(self.parent_panel, "_display") and self.parent_panel._display:
                 current_pixmap = self.parent_panel._display.pixmap()
                 if not current_pixmap.isNull():
@@ -161,7 +157,9 @@ class ZoomLens(QLabel):
                 scale_factor = 8  # 8x high-res rendering
                 high_res_x = display_x * scale_factor
                 high_res_y = display_y * scale_factor
-                source_size = self.SOURCE_REGION_SIZE * scale_factor  # Scaled source for high-res
+                source_size = (
+                    self.SOURCE_REGION_SIZE * scale_factor
+                )  # Scaled source for high-res
             else:
                 high_res_x = display_x
                 high_res_y = display_y
@@ -175,12 +173,6 @@ class ZoomLens(QLabel):
             source_y = min(source_y, current_pixmap.height() - source_size)
             source_x = max(0, source_x)
             source_y = max(0, source_y)
-
-            # Debug extraction coordinates (simplified)
-            if high_res_image and not high_res_image.isNull():
-                self.parent_panel._log.debug(
-                    f"Extracting from high-res: ({source_x}, {source_y}) size: {source_size}"
-                )
 
             # Extract the source area
             source_rect = QRect(source_x, source_y, source_size, source_size)
@@ -214,7 +206,9 @@ class ZoomLens(QLabel):
 
                     # Debug input image (simplified)
                     if rgb_image.min() == rgb_image.max():
-                        self.parent_panel._log.warning("Input image appears to be uniform")
+                        self.parent_panel._log.warning(
+                            "Input image appears to be uniform"
+                        )
 
                     # Apply super resolution if model is available
                     if self.sr_model is not None:
@@ -237,10 +231,6 @@ class ZoomLens(QLabel):
                                 center_start_w : center_start_w + 250,
                             ]
 
-                            self.parent_panel._log.debug(
-                                f"Super resolution applied: {rgb_image.shape} -> {super_res_image.shape} -> {final_image.shape}"
-                            )
-
                         except Exception as sr_error:
                             self.parent_panel._log.warning(
                                 f"Super resolution failed, using fallback: {sr_error}"
@@ -261,7 +251,9 @@ class ZoomLens(QLabel):
 
                     # Debug logging (simplified)
                     if final_image.min() == final_image.max():
-                        self.parent_panel._log.warning("Final image appears to be uniform")
+                        self.parent_panel._log.warning(
+                            "Final image appears to be uniform"
+                        )
 
                     # Ensure the array is contiguous in memory
                     final_image_contiguous = np.ascontiguousarray(final_image)
@@ -314,7 +306,9 @@ class ZoomLens(QLabel):
 
                     # Debug final circular pixmap (simplified)
                     if circular_pixmap.isNull():
-                        self.parent_panel._log.warning("Failed to create circular pixmap")
+                        self.parent_panel._log.warning(
+                            "Failed to create circular pixmap"
+                        )
 
                     self.setPixmap(circular_pixmap)
 
@@ -390,11 +384,6 @@ class ZoomLens(QLabel):
 
             # Update the zoom view immediately
             self.update_zoom_view()
-
-            # Debug logging
-            self.parent_panel._log.debug(
-                f"Zoom lens positioned at ({lens_x}, {lens_y}) for click at ({x}, {y})"
-            )
 
     def hide_lens(self):
         """Hide the lens"""
@@ -485,7 +474,6 @@ class ZoomLens(QLabel):
             self.drag_start_pos = (
                 event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             )
-            self.parent_panel._log.debug("Zoom lens: Mouse press - dragging started")
             event.accept()
         else:
             super().mousePressEvent(event)
@@ -502,9 +490,6 @@ class ZoomLens(QLabel):
             self.move(new_pos)
             # Update the zoom view immediately after moving
             self.update_zoom_view()
-            self.parent_panel._log.debug(
-                f"Zoom lens: Mouse move - moved to ({new_pos.x()}, {new_pos.y()})"
-            )
             event.accept()
         else:
             super().mouseMoveEvent(event)
@@ -743,9 +728,11 @@ class AnimateGesturePanel(QWidget):
             self._zoom_mode_active = not self._zoom_mode_active
 
             if self._zoom_mode_active:
-                # Enable zoom mode - show zoom lens at center
+                # Enable zoom mode - show zoom lens positioned to capture hands and waist
                 center_x = self.width() // 2
-                center_y = self.height() // 2
+                center_y = (
+                    self.height() // 2 - 50
+                )  # Move up slightly to better capture hands and waist
                 if self._zoom_lens and hasattr(self._zoom_lens, "show_lens"):
                     self._zoom_lens.show_lens(center_x, center_y)
                 self._zoom_button.setStyleSheet(
