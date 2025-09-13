@@ -44,8 +44,9 @@ class Panda3DManager:
             loadPrcFileData("", "notify-level-display fatal")
             # Keep default notify output so we see critical issues in logs
             # loadPrcFileData("", "color-bits 32")
-            # Start tiny; we'll resize to the widget in resizeEvent
-            loadPrcFileData("", "win-size 640 640")
+            # High-resolution rendering for better zoom quality
+            # Render at 8x resolution (3200x3200) for ultra high-quality source material
+            loadPrcFileData("", "win-size 3200 3200")
             loadPrcFileData("", "framebuffer-multisample 1")
             # loadPrcFileData("", "multisamples 4")
 

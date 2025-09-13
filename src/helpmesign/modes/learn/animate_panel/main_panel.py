@@ -106,198 +106,307 @@ class ZoomLens(QLabel):
             if not self.isVisible():
                 return
 
-            if hasattr(self.parent_panel, "_display") and self.parent_panel._display:
+            # Try to get high-resolution image first, fallback to display pixmap
+            high_res_image = None
+            if (
+                hasattr(self.parent_panel, "_rendering_manager")
+                and self.parent_panel._rendering_manager
+            ):
+                high_res_image = (
+                    self.parent_panel._rendering_manager.get_high_res_image()
+                )
+
+            if high_res_image and not high_res_image.isNull():
+                # Use high-resolution image for better zoom quality
+                current_pixmap = QPixmap.fromImage(high_res_image)
+                self.parent_panel._log.debug(
+                    f"Using high-res image for zoom: {high_res_image.width()}x{high_res_image.height()}"
+                )
+
+                # Debug high-res image
+                self.parent_panel._log.debug(
+                    f"High-res image format: {high_res_image.format()}"
+                )
+                self.parent_panel._log.debug(
+                    f"High-res image isNull: {high_res_image.isNull()}"
+                )
+
+                # Convert to numpy to check pixel values
+                import numpy as np
+
+                ptr = high_res_image.bits()
+                data = bytes(ptr)
+                arr = np.frombuffer(data, dtype=np.uint8).reshape(
+                    high_res_image.height(), high_res_image.width(), 4
+                )
+                self.parent_panel._log.debug(
+                    f"High-res image pixel values min/max: {arr.min()}/{arr.max()}"
+                )
+            elif hasattr(self.parent_panel, "_display") and self.parent_panel._display:
                 current_pixmap = self.parent_panel._display.pixmap()
                 if not current_pixmap.isNull():
-                    # Get the lens center position relative to the main panel
-                    lens_center_relative_to_panel = self.mapTo(
-                        self.parent_panel, self.rect().center()
-                    )
-
-                    # Get the display widget position relative to the main panel
-                    display_widget = self.parent_panel._display
-                    display_top_left_relative = display_widget.mapTo(
-                        self.parent_panel, display_widget.rect().topLeft()
-                    )
-
-                    # Calculate the lens position within the display widget
-                    display_x = (
-                        lens_center_relative_to_panel.x()
-                        - display_top_left_relative.x()
-                    )
-                    display_y = (
-                        lens_center_relative_to_panel.y()
-                        - display_top_left_relative.y()
-                    )
-
-                # Extract a smaller area for more noticeable zoom effect
-                # Use 100x100 to get 2x zoom effect (200x200 output from 100x100 input)
-                source_size = 100
-                source_x = max(0, display_x - source_size // 2)
-                source_y = max(0, display_y - source_size // 2)
-
-                # Ensure we don't go beyond the pixmap bounds
-                source_x = min(source_x, current_pixmap.width() - source_size)
-                source_y = min(source_y, current_pixmap.height() - source_size)
-                source_x = max(0, source_x)
-                source_y = max(0, source_y)
-
-                # Extract the source area
-                source_rect = QRect(source_x, source_y, source_size, source_size)
-                cropped_pixmap = current_pixmap.copy(source_rect)
-
-                if not cropped_pixmap.isNull():
-                    # Try super resolution first, fallback to high-quality scaling
-                    try:
-                        # Convert QPixmap to OpenCV format
-                        qimage = cropped_pixmap.toImage()
-                        width = qimage.width()
-                        height = qimage.height()
-
-                        # Get image data
-                        ptr = qimage.bits()
-                        data = bytes(ptr)
-
-                        # Convert to numpy array (RGBA format)
-                        arr = np.frombuffer(data, dtype=np.uint8).reshape(
-                            height, width, 4
-                        )
-
-                        # Convert RGBA to RGB with proper alpha handling
-                        alpha = arr[:, :, 3]
-                        rgb = arr[:, :, :3]
-
-                        # Use the original image without forcing a white background
-                        rgb_image = rgb.copy()
-
-                        # Apply super resolution if model is available
-                        if self.sr_model is not None:
-                            try:
-                                # Preprocess image for better super resolution results
-                                preprocessed = self._preprocess_for_sr(rgb_image)
-
-                                # Use super resolution for 2x upscaling
-                                super_res_image = self.sr_model.upsample(preprocessed)
-
-                                # Postprocess for better quality
-                                enhanced = self._postprocess_sr_result(super_res_image)
-
-                                # Take center 250x250 from the super resolution result
-                                sr_height, sr_width = enhanced.shape[:2]
-                                center_start_h = (sr_height - 250) // 2
-                                center_start_w = (sr_width - 250) // 2
-                                final_image = enhanced[
-                                    center_start_h : center_start_h + 250,
-                                    center_start_w : center_start_w + 250,
-                                ]
-
-                                self.parent_panel._log.debug(
-                                    f"Super resolution applied: {rgb_image.shape} -> {super_res_image.shape} -> {final_image.shape}"
-                                )
-
-                            except Exception as sr_error:
-                                self.parent_panel._log.warning(
-                                    f"Super resolution failed, using fallback: {sr_error}"
-                                )
-                                # Fallback to high-quality interpolation with enhancement
-                            final_image = self._enhanced_interpolation(
-                                rgb_image, (250, 250)
-                            )
-                        else:
-                            # Use enhanced interpolation as fallback
-                            final_image = self._enhanced_interpolation(
-                                rgb_image, (250, 250)
-                            )
-
-                            # Convert back to QPixmap - ensure contiguous memory
-                            height, width, _ = final_image.shape
-                            bytes_per_line = 3 * width
-
-                            # Ensure the array is contiguous in memory
-                            final_image_contiguous = np.ascontiguousarray(final_image)
-
-                            q_image = QImage(
-                                final_image_contiguous.data,
-                                width,
-                                height,
-                                bytes_per_line,
-                                QImage.Format_RGB888,
-                            )
-                        scaled_pixmap = QPixmap.fromImage(q_image)
-
-                        # Create a circular zoom lens with magnified content
-                        from PySide6.QtGui import QPainter, QPainterPath
-
-                        # Create a circular pixmap with theme-aware background
-                        circular_pixmap = QPixmap(250, 250)
-                        # Use theme-appropriate background color
-                        current_theme = self.parent_panel.get_current_theme()
-                        if current_theme == "Light":
-                            circular_pixmap.fill(
-                                Qt.GlobalColor.white
-                            )  # White background for light theme
-                        else:
-                            circular_pixmap.fill(
-                                Qt.GlobalColor.transparent
-                            )  # Transparent for dark theme
-
-                        painter = QPainter(circular_pixmap)
-                        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-                        # Set circular clipping region
-                        path = QPainterPath()
-                        path.addEllipse(0, 0, 250, 250)
-                        painter.setClipPath(path)
-
-                        # Draw the magnified content
-                        painter.drawPixmap(0, 0, scaled_pixmap)
-                        painter.end()
-
-                        self.setPixmap(circular_pixmap)
-
-                    except Exception as cv_error:
-                        # Final fallback to Qt scaling
-                        self.parent_panel._log.warning(
-                            f"OpenCV processing failed, using Qt fallback: {cv_error}"
-                        )
-                        # Create a circular zoom lens with magnified content (fallback)
-                        from PySide6.QtGui import QPainter, QPainterPath
-
-                        fallback_scaled_pixmap = cropped_pixmap.scaled(
-                            250,
-                            250,
-                            Qt.AspectRatioMode.IgnoreAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation,
-                        )
-
-                        # Create a circular pixmap with theme-aware background
-                        circular_pixmap = QPixmap(250, 250)
-                        # Use theme-appropriate background color
-                        current_theme = self.parent_panel.get_current_theme()
-                        if current_theme == "Light":
-                            circular_pixmap.fill(
-                                Qt.GlobalColor.white
-                            )  # White background for light theme
-                        else:
-                            circular_pixmap.fill(
-                                Qt.GlobalColor.transparent
-                            )  # Transparent for dark theme
-
-                        painter = QPainter(circular_pixmap)
-                        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-                        # Set circular clipping region
-                        path = QPainterPath()
-                        path.addEllipse(0, 0, 250, 250)
-                        painter.setClipPath(path)
-
-                        # Draw the magnified content
-                        painter.drawPixmap(0, 0, fallback_scaled_pixmap)
-                        painter.end()
-
-                        self.setPixmap(circular_pixmap)
+                    pass
                 else:
-                    self.setText("No Image")
+                    return
+            else:
+                return
+
+            # Get the lens center position relative to the main panel
+            lens_center_relative_to_panel = self.mapTo(
+                self.parent_panel, self.rect().center()
+            )
+
+            # Get the display widget position relative to the main panel
+            display_widget = self.parent_panel._display
+            display_top_left_relative = display_widget.mapTo(
+                self.parent_panel, display_widget.rect().topLeft()
+            )
+
+            # Calculate the lens position within the display widget
+            display_x = (
+                lens_center_relative_to_panel.x() - display_top_left_relative.x()
+            )
+            display_y = (
+                lens_center_relative_to_panel.y() - display_top_left_relative.y()
+            )
+
+            # Scale coordinates for high-resolution image
+            # The high-res image is 8x larger than the display
+            if high_res_image and not high_res_image.isNull():
+                scale_factor = 8  # 8x high-res rendering
+                high_res_x = display_x * scale_factor
+                high_res_y = display_y * scale_factor
+                source_size = 125 * scale_factor  # 1000px source for 8x high-res
+            else:
+                high_res_x = display_x
+                high_res_y = display_y
+                source_size = 125
+
+            source_x = max(0, high_res_x - source_size // 2)
+            source_y = max(0, high_res_y - source_size // 2)
+
+            # Ensure we don't go beyond the pixmap bounds
+            source_x = min(source_x, current_pixmap.width() - source_size)
+            source_y = min(source_y, current_pixmap.height() - source_size)
+            source_x = max(0, source_x)
+            source_y = max(0, source_y)
+
+            # Debug extraction coordinates
+            self.parent_panel._log.debug(
+                f"Display coordinates: ({display_x}, {display_y})"
+            )
+            if high_res_image and not high_res_image.isNull():
+                self.parent_panel._log.debug(
+                    f"High-res coordinates: ({high_res_x}, {high_res_y})"
+                )
+            self.parent_panel._log.debug(
+                f"Source extraction: ({source_x}, {source_y}) size: {source_size}"
+            )
+            self.parent_panel._log.debug(
+                f"Current pixmap size: {current_pixmap.width()}x{current_pixmap.height()}"
+            )
+
+            # Extract the source area
+            source_rect = QRect(source_x, source_y, source_size, source_size)
+            cropped_pixmap = current_pixmap.copy(source_rect)
+
+            # Debug cropped pixmap
+            self.parent_panel._log.debug(
+                f"Cropped pixmap: {cropped_pixmap.width()}x{cropped_pixmap.height()}"
+            )
+            self.parent_panel._log.debug(
+                f"Cropped pixmap isNull: {cropped_pixmap.isNull()}"
+            )
+
+            if not cropped_pixmap.isNull():
+                # Try super resolution first, fallback to high-quality scaling
+                try:
+                    # Convert QPixmap to OpenCV format
+                    qimage = cropped_pixmap.toImage()
+                    width = qimage.width()
+                    height = qimage.height()
+
+                    # Get image data
+                    ptr = qimage.bits()
+                    data = bytes(ptr)
+
+                    # Convert to numpy array (RGBA format)
+                    arr = np.frombuffer(data, dtype=np.uint8).reshape(height, width, 4)
+
+                    # Convert RGBA to RGB with proper alpha handling
+                    alpha = arr[:, :, 3]
+                    rgb = arr[:, :, :3]
+
+                    # Use the original image without forcing a white background
+                    rgb_image = rgb.copy()
+
+                    # Debug input image
+                    self.parent_panel._log.debug(
+                        f"Input RGB image shape: {rgb_image.shape}, dtype: {rgb_image.dtype}"
+                    )
+                    self.parent_panel._log.debug(
+                        f"Input RGB image min/max: {rgb_image.min()}/{rgb_image.max()}"
+                    )
+
+                    # Apply super resolution if model is available
+                    if self.sr_model is not None:
+                        try:
+                            # Preprocess image for better super resolution results
+                            preprocessed = self._preprocess_for_sr(rgb_image)
+
+                            # Use super resolution for 2x upscaling
+                            super_res_image = self.sr_model.upsample(preprocessed)
+
+                            # Postprocess for better quality
+                            enhanced = self._postprocess_sr_result(super_res_image)
+
+                            # Take center 250x250 from the super resolution result
+                            sr_height, sr_width = enhanced.shape[:2]
+                            center_start_h = (sr_height - 250) // 2
+                            center_start_w = (sr_width - 250) // 2
+                            final_image = enhanced[
+                                center_start_h : center_start_h + 250,
+                                center_start_w : center_start_w + 250,
+                            ]
+
+                            self.parent_panel._log.debug(
+                                f"Super resolution applied: {rgb_image.shape} -> {super_res_image.shape} -> {final_image.shape}"
+                            )
+
+                        except Exception as sr_error:
+                            self.parent_panel._log.warning(
+                                f"Super resolution failed, using fallback: {sr_error}"
+                            )
+                            # Fallback to high-quality interpolation with enhancement
+                            final_image = self._enhanced_interpolation(
+                                rgb_image, (250, 250)
+                            )
+                    else:
+                        # Use enhanced interpolation as fallback
+                        final_image = self._enhanced_interpolation(
+                            rgb_image, (250, 250)
+                        )
+
+                    # Convert back to QPixmap - ensure contiguous memory
+                    height, width, _ = final_image.shape
+                    bytes_per_line = 3 * width
+
+                    # Debug logging
+                    self.parent_panel._log.debug(
+                        f"Final image shape: {final_image.shape}, dtype: {final_image.dtype}"
+                    )
+                    self.parent_panel._log.debug(
+                        f"Final image min/max: {final_image.min()}/{final_image.max()}"
+                    )
+
+                    # Ensure the array is contiguous in memory
+                    final_image_contiguous = np.ascontiguousarray(final_image)
+
+                    q_image = QImage(
+                        final_image_contiguous.data,
+                        width,
+                        height,
+                        bytes_per_line,
+                        QImage.Format_RGB888,
+                    )
+
+                    # Debug QImage
+                    self.parent_panel._log.debug(
+                        f"QImage created: {q_image.width()}x{q_image.height()}, format: {q_image.format()}"
+                    )
+                    self.parent_panel._log.debug(f"QImage isNull: {q_image.isNull()}")
+
+                    scaled_pixmap = QPixmap.fromImage(q_image)
+
+                    # Debug QPixmap
+                    self.parent_panel._log.debug(
+                        f"QPixmap created: {scaled_pixmap.width()}x{scaled_pixmap.height()}"
+                    )
+                    self.parent_panel._log.debug(
+                        f"QPixmap isNull: {scaled_pixmap.isNull()}"
+                    )
+
+                    # Create a circular zoom lens with magnified content
+                    from PySide6.QtGui import QPainter, QPainterPath
+
+                    # Create a circular pixmap with theme-aware background
+                    circular_pixmap = QPixmap(250, 250)
+                    # Use theme-appropriate background color
+                    current_theme = self.parent_panel.get_current_theme()
+                    if current_theme == "Light":
+                        circular_pixmap.fill(
+                            Qt.GlobalColor.white
+                        )  # White background for light theme
+                    else:
+                        circular_pixmap.fill(
+                            Qt.GlobalColor.transparent
+                        )  # Transparent for dark theme
+
+                    painter = QPainter(circular_pixmap)
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+                    # Set circular clipping region
+                    path = QPainterPath()
+                    path.addEllipse(0, 0, 250, 250)
+                    painter.setClipPath(path)
+
+                    # Draw the magnified content
+                    painter.drawPixmap(0, 0, scaled_pixmap)
+                    painter.end()
+
+                    # Debug final circular pixmap
+                    self.parent_panel._log.debug(
+                        f"Circular pixmap created: {circular_pixmap.width()}x{circular_pixmap.height()}"
+                    )
+                    self.parent_panel._log.debug(
+                        f"Circular pixmap isNull: {circular_pixmap.isNull()}"
+                    )
+
+                    self.setPixmap(circular_pixmap)
+
+                except Exception as cv_error:
+                    # Final fallback to Qt scaling
+                    self.parent_panel._log.warning(
+                        f"OpenCV processing failed, using Qt fallback: {cv_error}"
+                    )
+                    # Create a circular zoom lens with magnified content (fallback)
+                    from PySide6.QtGui import QPainter, QPainterPath
+
+                    fallback_scaled_pixmap = cropped_pixmap.scaled(
+                        250,
+                        250,
+                        Qt.AspectRatioMode.IgnoreAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+
+                    # Create a circular pixmap with theme-aware background
+                    circular_pixmap = QPixmap(250, 250)
+                    # Use theme-appropriate background color
+                    current_theme = self.parent_panel.get_current_theme()
+                    if current_theme == "Light":
+                        circular_pixmap.fill(
+                            Qt.GlobalColor.white
+                        )  # White background for light theme
+                    else:
+                        circular_pixmap.fill(
+                            Qt.GlobalColor.transparent
+                        )  # Transparent for dark theme
+
+                    painter = QPainter(circular_pixmap)
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+                    # Set circular clipping region
+                    path = QPainterPath()
+                    path.addEllipse(0, 0, 250, 250)
+                    painter.setClipPath(path)
+
+                    # Draw the magnified content
+                    painter.drawPixmap(0, 0, fallback_scaled_pixmap)
+                    painter.end()
+
+                    self.setPixmap(circular_pixmap)
+            else:
+                self.setText("No Image")
         except Exception as e:
             self.parent_panel._log.warning(f"Error updating zoom lens: {e}")
             self.setText("Error")
