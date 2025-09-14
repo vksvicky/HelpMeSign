@@ -87,38 +87,14 @@ class PoseManager(QObject):
         self._initialize_poses()
 
     def _create_neutral_pose(self) -> Dict[str, JointPose]:
-        """Create neutral pose using the actual character's natural pose values."""
-        print("DEBUG: Creating neutral pose with hardcoded natural pose values")
+        """Create neutral pose using the natural pose service."""
+        print("DEBUG: Creating neutral pose using natural pose service")
 
-        # Use the hardcoded natural pose values we discovered
-        natural_pose_data = {
-            "mixamorig:Hips": {"hpr": [0.0, -90.0, 0.0], "pos": [-0.0, 104.3, 1.6]},
-            "mixamorig:Spine": {"hpr": [0.0, 0.0, 0.0], "pos": [-0.0, 0.0, 10.2]},
-            "mixamorig:Spine1": {"hpr": [0.0, -0.0, 0.0], "pos": [-0.0, -0.0, 10.0]},
-            "mixamorig:Spine2": {"hpr": [0.0, 0.0, 0.0], "pos": [-0.0, 0.0, 9.3]},
-            "mixamorig:Neck": {"hpr": [-0.0, 0.0, -0.0], "pos": [0.0, 0.0, 16.9]},
-            "mixamorig:Head": {"hpr": [0.0, -0.0, 0.0], "pos": [-0.0, -2.8, 9.3]},
-            "mixamorig:RightShoulder": {
-                "hpr": [150.0, 90.0, 100.0],
-                "pos": [-4.6, 0.8, 11.2],
-            },
-            "mixamorig:RightArm": {"hpr": [0.0, 90.0, 30.0], "pos": [0.0, -0.0, 10.8]},
-            "mixamorig:RightForeArm": {
-                "hpr": [-20.0, 0.0, 0.0],
-                "pos": [-0.0, 0.0, 27.8],
-            },
-            "mixamorig:RightHand": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, -0.0, 28.3]},
-            "mixamorig:LeftShoulder": {
-                "hpr": [-150.0, 80.0, -100.0],
-                "pos": [4.6, 0.8, 11.2],
-            },
-            "mixamorig:LeftArm": {"hpr": [0.0, 80.0, -30.0], "pos": [-0.0, -0.0, 10.8]},
-            "mixamorig:LeftForeArm": {
-                "hpr": [20.0, 0.0, 0.0],
-                "pos": [-0.0, 0.0, 27.8],
-            },
-            "mixamorig:LeftHand": {"hpr": [-0.0, 0.0, 0.0], "pos": [0.0, -0.0, 28.3]},
-        }
+        # Load natural pose data from the service
+        from src.helpmesign.utils.natural_pose_service import get_natural_pose_service
+
+        natural_pose_service = get_natural_pose_service()
+        natural_pose_data = natural_pose_service.get_natural_pose_data()
 
         # Convert the natural pose values to JointPose objects
         neutral_poses = {}
@@ -132,7 +108,7 @@ class PoseManager(QObject):
             )
 
         print(
-            f"Created neutral pose with {len(neutral_poses)} joints using hardcoded natural pose values"
+            f"Created neutral pose with {len(neutral_poses)} joints using natural pose service"
         )
         print(f"Neutral pose joints: {list(neutral_poses.keys())}")
         return neutral_poses
@@ -676,6 +652,26 @@ class SignLanguagePoseEditor(QWidget):
 
         controls_layout.addLayout(export_layout)
 
+        # Print pose data button
+        self.print_pose_btn = QPushButton("Print Pose Data")
+        self.print_pose_btn.clicked.connect(self.print_current_pose_data)
+        self.print_pose_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """
+        )
+        controls_layout.addWidget(self.print_pose_btn)
+
         # Pose Validation Section
         validation_group = QGroupBox("Pose Validation")
         validation_layout = QVBoxLayout(validation_group)
@@ -721,7 +717,6 @@ class SignLanguagePoseEditor(QWidget):
 
         # Add groups to layout
         controls_layout.addLayout(export_layout)
-
 
         layout.addWidget(controls_group)
         layout.addWidget(validation_group)
@@ -848,11 +843,49 @@ class SignLanguagePoseEditor(QWidget):
                 f"Successfully loaded natural pose values for {len(natural_poses)} joints"
             )
 
+            # Print pose information in copyable format
+            self._print_pose_data_copyable(natural_poses)
+
         except Exception as e:
             print(f"Error loading natural pose values: {e}")
             import traceback
 
             traceback.print_exc()
+
+    def _print_pose_data_copyable(self, poses):
+        """Print pose data in a copyable format."""
+        print("\n" + "=" * 80)
+        print("COPYABLE POSE DATA")
+        print("=" * 80)
+        print("# Copy this data for use in other applications")
+        print("pose_data = {")
+
+        for joint_name, pose in poses.items():
+            print(f'    "{joint_name}": {{')
+            print(f'        "heading": {pose.heading:.6f},')
+            print(f'        "pitch": {pose.pitch:.6f},')
+            print(f'        "roll": {pose.roll:.6f}')
+            print(f"    }},")
+
+        print("}")
+        print("=" * 80)
+
+        # Also print in a more compact format
+        print("\nCOMPACT FORMAT:")
+        print("=" * 50)
+        for joint_name, pose in poses.items():
+            print(
+                f"{joint_name}: H={pose.heading:.3f} P={pose.pitch:.3f} R={pose.roll:.3f}"
+            )
+        print("=" * 50)
+
+    def print_current_pose_data(self):
+        """Print current pose data in copyable format."""
+        all_poses = self.pose_manager.get_all_poses()
+        if all_poses:
+            self._print_pose_data_copyable(all_poses)
+        else:
+            print("No pose data available to print.")
 
     def auto_populate_joints_list(self, available_joints):
         """Automatically populate the joints list with captured joints."""
@@ -1147,6 +1180,13 @@ class SignLanguagePoseEditor(QWidget):
             self.apply_pose_to_character(joint_name, pose)
         self.update_pose_display()
 
+        # Print updated pose data in copyable format
+        print(f"\nUPDATED POSE DATA for {joint_name}:")
+        print(
+            f"{joint_name}: H={pose.heading:.3f} P={pose.pitch:.3f} R={pose.roll:.3f}"
+        )
+        print("=" * 50)
+
     def on_pose_reset(self):
         """Handle pose reset."""
         for editor in self.joint_editors.values():
@@ -1156,31 +1196,39 @@ class SignLanguagePoseEditor(QWidget):
     def reset_all_poses(self):
         """Reset all poses to default natural pose."""
         print("DEBUG: Resetting all poses to default natural pose")
-        
+
         try:
             # First, clear any existing pose/animation on the character
-            if self.animate_panel and hasattr(self.animate_panel, "_actor") and self.animate_panel._actor:
+            if (
+                self.animate_panel
+                and hasattr(self.animate_panel, "_actor")
+                and self.animate_panel._actor
+            ):
                 print("DEBUG: Clearing existing pose/animation on character")
                 try:
                     # Stop any active animations
                     self.animate_panel._actor.stop()
                     # Don't apply T-pose animation - we'll create hands-down pose via individual joints
                     self.animate_panel._actor.update()
-                    print("DEBUG: Cleared animations, will create hands-down pose via individual joints")
+                    print(
+                        "DEBUG: Cleared animations, will create hands-down pose via individual joints"
+                    )
                 except Exception as e:
                     print(f"DEBUG: Error clearing/applying pose: {e}")
-            
+
             # Reset the pose manager to neutral pose - this is the key fix!
             self.pose_manager.reset_to_neutral()
-            
+
             # Get the natural pose values from the pose manager
             natural_poses = self.pose_manager.get_all_poses()
             print(f"DEBUG: Loaded {len(natural_poses)} natural pose values")
-            
+
             # Debug: Print some sample values
             for joint_name, pose in list(natural_poses.items())[:3]:
-                print(f"DEBUG: {joint_name}: H={pose.heading}, P={pose.pitch}, R={pose.roll}")
-            
+                print(
+                    f"DEBUG: {joint_name}: H={pose.heading}, P={pose.pitch}, R={pose.roll}"
+                )
+
             # Auto-populate joints list with natural pose joints
             available_joints = list(natural_poses.keys())
             self.auto_populate_joints_list(available_joints)
@@ -1194,7 +1242,9 @@ class SignLanguagePoseEditor(QWidget):
                     editor.load_current_pose()
                     # Reconnect the signal
                     editor.pose_changed.connect(self.on_pose_changed)
-                    print(f"DEBUG: Updated editor for {joint_name} with natural pose values")
+                    print(
+                        f"DEBUG: Updated editor for {joint_name} with natural pose values"
+                    )
                 except Exception as e:
                     print(f"DEBUG: Error updating editor for {joint_name}: {e}")
                     # Make sure to reconnect even if there's an error
@@ -1209,11 +1259,14 @@ class SignLanguagePoseEditor(QWidget):
             # Update the pose display
             self.update_pose_display()
 
-            print(f"Successfully reset to natural pose values for {len(natural_poses)} joints")
+            print(
+                f"Successfully reset to natural pose values for {len(natural_poses)} joints"
+            )
 
         except Exception as e:
             print(f"Error resetting to natural pose: {e}")
             import traceback
+
             traceback.print_exc()
 
     def apply_to_character(self):
@@ -1663,40 +1716,37 @@ class SignLanguagePoseEditor(QWidget):
                         bounds = geom_node.getBounds()
                         if bounds:
                             # Handle different bounding types
-                            from panda3d.core import BoundingSphere, BoundingBox
+                            from panda3d.core import BoundingBox, BoundingSphere
+
+                            is_small = False
                             if isinstance(bounds, BoundingSphere):
                                 # For spheres, use radius * 2 as diameter
-                                size = bounds.getRadius() * 2
+                                radius = bounds.getRadius()
+                                is_small = radius < 0.1  # Small threshold
                             elif isinstance(bounds, BoundingBox):
                                 # For boxes, calculate size from min/max
                                 min_pt = bounds.getMin()
                                 max_pt = bounds.getMax()
-                                size = max_pt - min_pt
+                                size_vector = max_pt - min_pt
+                                is_small = size_vector.length() < 0.1  # Small threshold
                             else:
                                 # Fallback: try getSize() if available
                                 try:
-                                    size = bounds.getSize()
+                                    size_vector = bounds.getSize()
+                                    is_small = (
+                                        size_vector.length() < 0.1
+                                    )  # Small threshold
                                 except AttributeError:
                                     # If no getSize method, skip this geometry
                                     continue
-                            
+
                             # Check if geometry is small (likely a joint)
-                            if hasattr(size, 'length'):
-                                # Vector size
-                                if size.length() < 0.1:  # Small threshold
-                                    geom_node.setColor(black_color)
-                                    print(
-                                        f"  ✓ Highlighted small geometry (likely joint): {geom_node.getName()}"
-                                    )
-                                    total_highlighted += 1
-                            else:
-                                # Scalar size (radius)
-                                if size < 0.1:  # Small threshold
-                                    geom_node.setColor(black_color)
-                                    print(
-                                        f"  ✓ Highlighted small geometry (likely joint): {geom_node.getName()}"
-                                    )
-                                    total_highlighted += 1
+                            if is_small:
+                                geom_node.setColor(black_color)
+                                print(
+                                    f"  ✓ Highlighted small geometry (likely joint): {geom_node.getName()}"
+                                )
+                                total_highlighted += 1
                     except Exception as e:
                         print(f"  ✗ Could not check size of {geom_node.getName()}: {e}")
 
@@ -2209,9 +2259,9 @@ class SignLanguagePoseEditor(QWidget):
                 "mixamorig:RightHandThumb1": VBase4(
                     1.0, 1.0, 0.0, 1.0
                 ),  # Bright yellow for thumb
-                "mixamorig:RightHandThumb2": VBase4(1.0, 1.0, 0.1, 1.0),
-                "mixamorig:RightHandThumb3": VBase4(1.0, 1.0, 0.2, 1.0),
-                "mixamorig:RightHandThumb4": VBase4(1.0, 1.0, 0.3, 1.0),
+                "mixamorig:RightHandThumb2": VBase4(1.0, -10.0, 0.1, 1.0),
+                "mixamorig:RightHandThumb3": VBase4(1.0, -15.0, 0.2, 1.0),
+                "mixamorig:RightHandThumb4": VBase4(1.0, -20.0, 0.3, 1.0),
                 # Left hand fingers - Bright green shades for maximum visibility
                 "mixamorig:LeftHandIndex1": VBase4(0.0, 1.0, 0.0, 1.0),
                 "mixamorig:LeftHandIndex2": VBase4(0.0, 1.0, 0.1, 1.0),

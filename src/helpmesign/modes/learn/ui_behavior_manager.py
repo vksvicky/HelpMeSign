@@ -413,15 +413,15 @@ class LearnModeUIBehaviorManager:
             if hasattr(self.learn_mode, "current_char_type"):
                 self.learn_mode.current_char_type = None
 
-            # Reset 3D animation to neutral pose
+            # Reset 3D animation to natural pose
             if (
                 hasattr(self.learn_mode, "animate_gesture_panel")
                 and self.learn_mode.animate_gesture_panel
             ):
                 try:
-                    # Reset to neutral pose
+                    # Reset to natural pose using the natural pose service
                     self.learn_mode.animate_gesture_panel.pause_animation_and_reset_to_default()
-                    self.learn_mode.logger.debug("3D animation reset to neutral pose")
+                    self.learn_mode.logger.debug("3D animation reset to natural pose")
                 except Exception as e:
                     self.learn_mode.logger.warning(f"Failed to reset 3D animation: {e}")
 

@@ -239,7 +239,7 @@ class AnimationManager:
             self._log.error(f"Error playing intro animation: {e}")
 
     def reset_to_neutral_pose(self) -> None:
-        """Reset character to neutral pose."""
+        """Reset character to natural pose using natural pose service."""
         try:
             if not self.parent_panel._actor:
                 return
@@ -249,24 +249,44 @@ class AnimationManager:
             self.parent_panel._wave_active = False
             self.parent_panel._intro_active = False
 
-            # Apply the hands-down pose as the neutral pose
+            # Load natural pose data from the service
+            from ....utils.natural_pose_service import get_natural_pose_service
+
+            natural_pose_service = get_natural_pose_service()
+            natural_pose_data = natural_pose_service.get_natural_pose_data()
+
             try:
                 self.parent_panel._actor.stop()
-                # Try using the bind pose first to clear any individual joint rotations
-                try:
-                    self.parent_panel._actor.pose("", 0)  # Bind pose
-                    self._log.info("Applied bind pose to clear joint rotations")
-                except Exception:
-                    pass
 
-                # Then apply the hands-down pose
-                self.parent_panel._actor.pose("Armature|mixamo.com|Layer0", 0)
+                # Apply natural pose values to each joint
+                for joint_name, pose_data in natural_pose_data.items():
+                    try:
+                        joint = self.parent_panel._actor.controlJoint(
+                            None, "modelRoot", joint_name
+                        )
+                        if joint:
+                            hpr = pose_data["hpr"]
+                            joint.setHpr(hpr[0], hpr[1], hpr[2])
+                    except Exception as joint_error:
+                        self._log.debug(
+                            f"Could not set pose for joint {joint_name}: {joint_error}"
+                        )
+
                 # Force update to ensure the pose is applied
                 self.parent_panel._actor.update()
-                self._log.info("Reset to neutral pose - applied hands-down pose")
+                self._log.info("Reset to natural pose from service")
+
             except Exception as pose_error:
-                self._log.warning(f"Could not apply hands-down pose: {pose_error}")
-                self._log.info("Using model's natural pose")
+                self._log.warning(f"Could not apply natural pose: {pose_error}")
+                # Fallback to hands-down pose
+                try:
+                    self.parent_panel._actor.pose("Armature|mixamo.com|Layer0", 0)
+                    self.parent_panel._actor.update()
+                    self._log.info("Fallback to hands-down pose")
+                except Exception as fallback_error:
+                    self._log.warning(
+                        f"Could not apply hands-down pose either: {fallback_error}"
+                    )
 
         except Exception as e:
             self._log.error(f"Error resetting to neutral pose: {e}")

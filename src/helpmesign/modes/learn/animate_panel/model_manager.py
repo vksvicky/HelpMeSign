@@ -100,40 +100,56 @@ class ModelManager:
             self._log.error(f"Error loading model: {e}")
 
     def _apply_default_neutral_pose(self):
-        """Apply default neutral pose to the model."""
+        """Apply default neutral pose to the model using natural pose service."""
         try:
             if not self.parent_panel._model_np:
                 return
 
-            # Use the hands-down pose from the GLB file as the default neutral pose
+            # Load natural pose data from the service
+            from ....utils.natural_pose_service import get_natural_pose_service
+
+            natural_pose_service = get_natural_pose_service()
+            natural_pose_data = natural_pose_service.get_natural_pose_data()
+
+            # Apply natural pose to the character
             if self.parent_panel._actor:
                 try:
                     # Stop any current animations
                     self.parent_panel._actor.stop()
 
-                    # Apply the hands-down pose (first animation frame 0)
-                    # This is the natural pose with arms by the sides
-                    self.parent_panel._actor.pose("Armature|mixamo.com|Layer0", 0)
-                    self._log.info("Applied hands-down pose as default neutral pose")
+                    # Apply natural pose values to each joint
+                    for joint_name, pose_data in natural_pose_data.items():
+                        try:
+                            joint = self.parent_panel._actor.controlJoint(
+                                None, "modelRoot", joint_name
+                            )
+                            if joint:
+                                hpr = pose_data["hpr"]
+                                joint.setHpr(hpr[0], hpr[1], hpr[2])
+                        except Exception as joint_error:
+                            self._log.debug(
+                                f"Could not set pose for joint {joint_name}: {joint_error}"
+                            )
+
+                    self._log.info(
+                        "Applied natural pose from service as default neutral pose"
+                    )
 
                 except Exception as e:
-                    self._log.warning(f"Could not apply hands-down pose: {e}")
-                    # Fallback to bind pose if animation fails
+                    self._log.warning(f"Could not apply natural pose: {e}")
+                    # Fallback to hands-down pose if natural pose fails
                     try:
-                        self.parent_panel._actor.pose("", 0)
-                        self._log.info("Fallback to bind pose")
+                        self.parent_panel._actor.pose("Armature|mixamo.com|Layer0", 0)
+                        self._log.info("Fallback to hands-down pose")
                     except Exception as fallback_error:
                         self._log.warning(
-                            f"Could not apply bind pose either: {fallback_error}"
+                            f"Could not apply hands-down pose either: {fallback_error}"
                         )
 
             # Set default position and orientation
             self.parent_panel._model_np.setPos(0, 0, 0)
             self.parent_panel._model_np.setHpr(0, 0, 0)
             self.parent_panel._model_np.setScale(1, 1, 1)
-
-            # Store the natural pose values for reference
-            # self._natural_pose_values = self._get_natural_pose_values()
 
         except Exception as e:
             self._log.error(f"Error applying default pose: {e}")
@@ -211,36 +227,37 @@ class ModelManager:
                     bounds = geom_node.getBounds()
                     if bounds:
                         # Handle different bounding types
-                        from panda3d.core import BoundingSphere, BoundingBox
+                        from panda3d.core import BoundingBox, BoundingSphere
+
+                        is_small = False
                         if isinstance(bounds, BoundingSphere):
                             # For spheres, use radius * 2 as diameter
-                            size = bounds.getRadius() * 2
+                            radius = bounds.getRadius()
+                            is_small = radius < 0.2  # Small geometry threshold
                         elif isinstance(bounds, BoundingBox):
                             # For boxes, calculate size from min/max
                             min_pt = bounds.getMin()
                             max_pt = bounds.getMax()
-                            size = max_pt - min_pt
+                            size_vector = max_pt - min_pt
+                            is_small = (
+                                size_vector.length() < 0.2
+                            )  # Small geometry threshold
                         else:
                             # Fallback: try getSize() if available
                             try:
-                                size = bounds.getSize()
+                                size_vector = bounds.getSize()
+                                is_small = (
+                                    size_vector.length() < 0.2
+                                )  # Small geometry threshold
                             except AttributeError:
                                 # If no getSize method, skip this geometry
                                 continue
-                        
+
                         # Check if geometry is small (likely a joint)
-                        if hasattr(size, 'length'):
-                            # Vector size
-                            if size.length() < 0.2:  # Small geometry threshold
-                                geom_node.setColor(black_color)
-                                colored_geometry += 1
-                                print(f"  ✓ Colored small geometry: {geom_node.getName()}")
-                        else:
-                            # Scalar size (radius)
-                            if size < 0.2:  # Small geometry threshold
-                                geom_node.setColor(black_color)
-                                colored_geometry += 1
-                                print(f"  ✓ Colored small geometry: {geom_node.getName()}")
+                        if is_small:
+                            geom_node.setColor(black_color)
+                            colored_geometry += 1
+                            print(f"  ✓ Colored small geometry: {geom_node.getName()}")
                 except Exception as e:
                     print(f"  ✗ Could not color geometry {i}: {e}")
 
