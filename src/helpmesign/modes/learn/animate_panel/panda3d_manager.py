@@ -50,22 +50,31 @@ class Panda3DManager:
             loadPrcFileData("", "framebuffer-multisample 1")
             # loadPrcFileData("", "multisamples 4")
 
-            # Check if ShowBase already exists
+            # Check if there's already a ShowBase instance and reuse it
+            # This prevents the "multiple ShowBase instances" error
             try:
                 from direct.showbase.ShowBaseGlobal import base
 
-                if hasattr(base, "render"):
+                if hasattr(base, "render") and base.render:
                     self.parent_panel._showbase = base
-                    self._log.info("Using existing ShowBase instance")
+                    self._log.info(
+                        f"Reusing existing ShowBase instance for panel {id(self.parent_panel)}"
+                    )
                 else:
-                    raise AttributeError("Existing ShowBase not properly initialized")
+                    raise AttributeError("No existing ShowBase found")
             except (ImportError, AttributeError):
-                # Create new ShowBase instance
+                # Create a new ShowBase only if none exists
                 self.parent_panel._showbase = ShowBase(windowType="offscreen")
+                self._log.info(
+                    f"Created new ShowBase instance for panel {id(self.parent_panel)}"
+                )
 
-            # Basic scene
+            # Basic scene - create unique scene name for each panel
+            import uuid
+
+            scene_name = f"scene_{id(self.parent_panel)}_{uuid.uuid4().hex[:8]}"
             self.parent_panel._scene = self.parent_panel._showbase.render.attachNewNode(
-                "scene"
+                scene_name
             )
             self.parent_panel._camera = self.parent_panel._showbase.cam
             # Transparent background; underlying Qt widget will show through

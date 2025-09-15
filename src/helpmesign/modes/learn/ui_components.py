@@ -772,6 +772,8 @@ class LearnModeUIComponents:
 
         # Add HPR Editor and Pose Validation buttons
         hpr_button_layout = QHBoxLayout()
+
+        # HPR Editor button
         self.learn_mode.hpr_editor_btn = QPushButton("Open HPR Editor")
         self.learn_mode.hpr_editor_btn.setToolTip(
             "Open the HPR (Heading, Pitch, Roll) editor with pose validation for real-time 3D character pose management"
@@ -779,7 +781,59 @@ class LearnModeUIComponents:
         self.learn_mode.hpr_editor_btn.clicked.connect(
             self.learn_mode.open_pose_validation
         )
+        # Style the HPR Editor button to match
+        self.learn_mode.hpr_editor_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 14px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #21618c;
+            }
+        """
+        )
         hpr_button_layout.addWidget(self.learn_mode.hpr_editor_btn)
+
+        # Hand Pose Editor button
+        self.learn_mode.hand_pose_editor_btn = QPushButton("🖐️ Hand Pose Editor")
+        self.learn_mode.hand_pose_editor_btn.setToolTip(
+            "Open specialized editor for hand, finger, and arm poses with 6x zoom view"
+        )
+        self.learn_mode.hand_pose_editor_btn.clicked.connect(
+            self.learn_mode.open_hand_pose_editor
+        )
+        # Style the Hand Pose Editor button to match
+        self.learn_mode.hand_pose_editor_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #9b59b6;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 14px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #8e44ad;
+            }
+            QPushButton:pressed {
+                background-color: #7d3c98;
+            }
+        """
+        )
+        hpr_button_layout.addWidget(self.learn_mode.hand_pose_editor_btn)
 
         hpr_button_layout.addStretch()
         layout.addLayout(hpr_button_layout)

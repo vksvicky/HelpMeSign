@@ -376,8 +376,8 @@ class SignLanguagePoseEditor(QWidget):
 
     def setup_ui(self) -> None:
         self.setWindowTitle("Sign Language Pose Editor - sign.mt Style")
-        self.setMinimumSize(1000, 800)
-        self.resize(1000, 800)
+        self.setMinimumSize(1400, 1000)
+        self.resize(1400, 1000)
 
         layout = QVBoxLayout(self)
 
@@ -431,103 +431,345 @@ class SignLanguagePoseEditor(QWidget):
         right_panel = self.create_right_panel()
         splitter.addWidget(right_panel)
 
-        # Set splitter proportions
-        splitter.setSizes([600, 400])
+        # Set splitter proportions - give more space to left panel
+        splitter.setSizes([800, 600])
 
     def create_left_panel(self) -> QWidget:
         """Create the left panel with joint editors."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
 
-        # Joint selection
-        joint_group = QGroupBox("Joint Selection")
-        joint_layout = QHBoxLayout(joint_group)
+        # Hand-focused joint selection
+        joint_group = QGroupBox("Hand & Finger Joints")
+        joint_layout = QVBoxLayout(joint_group)
+
+        # Hand-specific joint categories
+        hand_categories_layout = QHBoxLayout()
+
+        # Right Hand Category
+        right_hand_group = QGroupBox("Right Hand")
+        right_hand_layout = QVBoxLayout(right_hand_group)
+
+        self.right_hand_combo = QComboBox()
+        # Create more readable joint names
+        right_hand_joints = [
+            "Right Hand (Base)",
+            "Right Thumb 1",
+            "Right Thumb 2",
+            "Right Thumb 3",
+            "Right Thumb 4",
+            "Right Index 1",
+            "Right Index 2",
+            "Right Index 3",
+            "Right Index 4",
+            "Right Middle 1",
+            "Right Middle 2",
+            "Right Middle 3",
+            "Right Middle 4",
+            "Right Ring 1",
+            "Right Ring 2",
+            "Right Ring 3",
+            "Right Ring 4",
+            "Right Pinky 1",
+            "Right Pinky 2",
+            "Right Pinky 3",
+            "Right Pinky 4",
+        ]
+        # Store mapping from readable names to actual joint names
+        self.right_hand_joint_mapping = {
+            "Right Hand (Base)": "mixamorig:RightHand",
+            "Right Thumb 1": "mixamorig:RightHandThumb1",
+            "Right Thumb 2": "mixamorig:RightHandThumb2",
+            "Right Thumb 3": "mixamorig:RightHandThumb3",
+            "Right Thumb 4": "mixamorig:RightHandThumb4",
+            "Right Index 1": "mixamorig:RightHandIndex1",
+            "Right Index 2": "mixamorig:RightHandIndex2",
+            "Right Index 3": "mixamorig:RightHandIndex3",
+            "Right Index 4": "mixamorig:RightHandIndex4",
+            "Right Middle 1": "mixamorig:RightHandMiddle1",
+            "Right Middle 2": "mixamorig:RightHandMiddle2",
+            "Right Middle 3": "mixamorig:RightHandMiddle3",
+            "Right Middle 4": "mixamorig:RightHandMiddle4",
+            "Right Ring 1": "mixamorig:RightHandRing1",
+            "Right Ring 2": "mixamorig:RightHandRing2",
+            "Right Ring 3": "mixamorig:RightHandRing3",
+            "Right Ring 4": "mixamorig:RightHandRing4",
+            "Right Pinky 1": "mixamorig:RightHandPinky1",
+            "Right Pinky 2": "mixamorig:RightHandPinky2",
+            "Right Pinky 3": "mixamorig:RightHandPinky3",
+            "Right Pinky 4": "mixamorig:RightHandPinky4",
+        }
+        self.right_hand_combo.addItems(right_hand_joints)
+        self.right_hand_combo.setMinimumWidth(250)  # Make dropdown wider
+        right_hand_layout.addWidget(QLabel("Right Hand:"))
+        right_hand_layout.addWidget(self.right_hand_combo)
+
+        # Left Hand Category
+        left_hand_group = QGroupBox("Left Hand")
+        left_hand_layout = QVBoxLayout(left_hand_group)
+
+        self.left_hand_combo = QComboBox()
+        # Create more readable joint names
+        left_hand_joints = [
+            "Left Hand (Base)",
+            "Left Thumb 1",
+            "Left Thumb 2",
+            "Left Thumb 3",
+            "Left Thumb 4",
+            "Left Index 1",
+            "Left Index 2",
+            "Left Index 3",
+            "Left Index 4",
+            "Left Middle 1",
+            "Left Middle 2",
+            "Left Middle 3",
+            "Left Middle 4",
+            "Left Ring 1",
+            "Left Ring 2",
+            "Left Ring 3",
+            "Left Ring 4",
+            "Left Pinky 1",
+            "Left Pinky 2",
+            "Left Pinky 3",
+            "Left Pinky 4",
+        ]
+        # Store mapping from readable names to actual joint names
+        self.left_hand_joint_mapping = {
+            "Left Hand (Base)": "mixamorig:LeftHand",
+            "Left Thumb 1": "mixamorig:LeftHandThumb1",
+            "Left Thumb 2": "mixamorig:LeftHandThumb2",
+            "Left Thumb 3": "mixamorig:LeftHandThumb3",
+            "Left Thumb 4": "mixamorig:LeftHandThumb4",
+            "Left Index 1": "mixamorig:LeftHandIndex1",
+            "Left Index 2": "mixamorig:LeftHandIndex2",
+            "Left Index 3": "mixamorig:LeftHandIndex3",
+            "Left Index 4": "mixamorig:LeftHandIndex4",
+            "Left Middle 1": "mixamorig:LeftHandMiddle1",
+            "Left Middle 2": "mixamorig:LeftHandMiddle2",
+            "Left Middle 3": "mixamorig:LeftHandMiddle3",
+            "Left Middle 4": "mixamorig:LeftHandMiddle4",
+            "Left Ring 1": "mixamorig:LeftHandRing1",
+            "Left Ring 2": "mixamorig:LeftHandRing2",
+            "Left Ring 3": "mixamorig:LeftHandRing3",
+            "Left Ring 4": "mixamorig:LeftHandRing4",
+            "Left Pinky 1": "mixamorig:LeftHandPinky1",
+            "Left Pinky 2": "mixamorig:LeftHandPinky2",
+            "Left Pinky 3": "mixamorig:LeftHandPinky3",
+            "Left Pinky 4": "mixamorig:LeftHandPinky4",
+        }
+        self.left_hand_combo.addItems(left_hand_joints)
+        self.left_hand_combo.setMinimumWidth(250)  # Make dropdown wider
+        left_hand_layout.addWidget(QLabel("Left Hand:"))
+        left_hand_layout.addWidget(self.left_hand_combo)
+
+        hand_categories_layout.addWidget(right_hand_group)
+        hand_categories_layout.addWidget(left_hand_group)
+        joint_layout.addLayout(hand_categories_layout)
+
+        # Other joints (collapsed by default)
+        other_joints_group = QGroupBox("Other Body Joints")
+        other_joints_layout = QVBoxLayout(other_joints_group)
 
         self.joint_combo = QComboBox()
-
-        # Add all joints that are available in the neutral pose
-        joint_list = [
-            "mixamorig:Hips",
-            "mixamorig:Spine",
-            "mixamorig:Spine1",
-            "mixamorig:Spine2",
-            "mixamorig:Spine3",
-            "mixamorig:Neck",
-            "mixamorig:Head",
-            "mixamorig:RightShoulder",
-            "mixamorig:LeftShoulder",
-            "mixamorig:RightArm",
-            "mixamorig:LeftArm",
-            "mixamorig:RightForeArm",
-            "mixamorig:LeftForeArm",
-            "mixamorig:RightHand",
-            "mixamorig:LeftHand",
-            # Right Hand Fingers
-            "mixamorig:RightHandIndex1",
-            "mixamorig:RightHandIndex2",
-            "mixamorig:RightHandIndex3",
-            "mixamorig:RightHandIndex4",
-            "mixamorig:RightHandMiddle1",
-            "mixamorig:RightHandMiddle2",
-            "mixamorig:RightHandMiddle3",
-            "mixamorig:RightHandMiddle4",
-            "mixamorig:RightHandRing1",
-            "mixamorig:RightHandRing2",
-            "mixamorig:RightHandRing3",
-            "mixamorig:RightHandRing4",
-            "mixamorig:RightHandPinky1",
-            "mixamorig:RightHandPinky2",
-            "mixamorig:RightHandPinky3",
-            "mixamorig:RightHandPinky4",
-            "mixamorig:RightHandThumb1",
-            "mixamorig:RightHandThumb2",
-            "mixamorig:RightHandThumb3",
-            "mixamorig:RightHandThumb4",
-            # Left Hand Fingers
-            "mixamorig:LeftHandIndex1",
-            "mixamorig:LeftHandIndex2",
-            "mixamorig:LeftHandIndex3",
-            "mixamorig:LeftHandIndex4",
-            "mixamorig:LeftHandMiddle1",
-            "mixamorig:LeftHandMiddle2",
-            "mixamorig:LeftHandMiddle3",
-            "mixamorig:LeftHandMiddle4",
-            "mixamorig:LeftHandRing1",
-            "mixamorig:LeftHandRing2",
-            "mixamorig:LeftHandRing3",
-            "mixamorig:LeftHandRing4",
-            "mixamorig:LeftHandPinky1",
-            "mixamorig:LeftHandPinky2",
-            "mixamorig:LeftHandPinky3",
-            "mixamorig:LeftHandPinky4",
-            "mixamorig:LeftHandThumb1",
-            "mixamorig:LeftHandThumb2",
-            "mixamorig:LeftHandThumb3",
-            "mixamorig:LeftHandThumb4",
-            # Legs
-            "mixamorig:RightUpLeg",
-            "mixamorig:LeftUpLeg",
-            "mixamorig:RightLeg",
-            "mixamorig:LeftLeg",
-            "mixamorig:RightFoot",
-            "mixamorig:LeftFoot",
-            "mixamorig:RightToeBase",
-            "mixamorig:LeftToeBase",
+        # Create more readable joint names for body joints
+        other_joint_list = [
+            "Hips",
+            "Spine",
+            "Spine 1",
+            "Spine 2",
+            "Spine 3",
+            "Neck",
+            "Head",
+            "Right Shoulder",
+            "Left Shoulder",
+            "Right Arm",
+            "Left Arm",
+            "Right Forearm",
+            "Left Forearm",
+            "Right Thigh",
+            "Left Thigh",
+            "Right Leg",
+            "Left Leg",
+            "Right Foot",
+            "Left Foot",
+            "Right Toe",
+            "Left Toe",
         ]
-        # Add joints to combo box immediately
-        self.joint_combo.addItems(joint_list)
-        # Set default selection to first item
-        if joint_list:
-            self.joint_combo.setCurrentIndex(0)
-        # Connect the signal as fallback (will be reconnected with valid joints)
+        # Store mapping from readable names to actual joint names
+        self.other_joint_mapping = {
+            "Hips": "mixamorig:Hips",
+            "Spine": "mixamorig:Spine",
+            "Spine 1": "mixamorig:Spine1",
+            "Spine 2": "mixamorig:Spine2",
+            "Spine 3": "mixamorig:Spine3",
+            "Neck": "mixamorig:Neck",
+            "Head": "mixamorig:Head",
+            "Right Shoulder": "mixamorig:RightShoulder",
+            "Left Shoulder": "mixamorig:LeftShoulder",
+            "Right Arm": "mixamorig:RightArm",
+            "Left Arm": "mixamorig:LeftArm",
+            "Right Forearm": "mixamorig:RightForeArm",
+            "Left Forearm": "mixamorig:LeftForeArm",
+            "Right Thigh": "mixamorig:RightUpLeg",
+            "Left Thigh": "mixamorig:LeftUpLeg",
+            "Right Leg": "mixamorig:RightLeg",
+            "Left Leg": "mixamorig:LeftLeg",
+            "Right Foot": "mixamorig:RightFoot",
+            "Left Foot": "mixamorig:LeftFoot",
+            "Right Toe": "mixamorig:RightToeBase",
+            "Left Toe": "mixamorig:LeftToeBase",
+        }
+        self.joint_combo.addItems(other_joint_list)
+        self.joint_combo.setMinimumWidth(250)  # Make dropdown wider
+        other_joints_layout.addWidget(QLabel("Body:"))
+        other_joints_layout.addWidget(self.joint_combo)
+
+        joint_layout.addWidget(other_joints_group)
+
+        # Connect signals for all combo boxes
+        self.right_hand_combo.currentTextChanged.connect(self.on_joint_selected)
+        self.left_hand_combo.currentTextChanged.connect(self.on_joint_selected)
         self.joint_combo.currentTextChanged.connect(self.on_joint_selected)
 
-        joint_layout.addWidget(QLabel("Joint:"))
-        joint_layout.addWidget(self.joint_combo)
+        # Set default selections to hand joints for focus
+        if right_hand_joints:
+            self.right_hand_combo.setCurrentIndex(0)  # RightHand
+        if left_hand_joints:
+            self.left_hand_combo.setCurrentIndex(0)  # LeftHand
+        if other_joint_list:
+            self.joint_combo.setCurrentIndex(0)
+
         layout.addWidget(joint_group)
 
+        # Hand pose presets section
+        hand_presets_group = QGroupBox("Hand Presets")
+        hand_presets_layout = QVBoxLayout(hand_presets_group)
+
+        # Quick hand pose buttons
+        preset_buttons_layout = QHBoxLayout()
+
+        # Right hand presets
+        right_preset_btn = QPushButton("Right Hand: Open")
+        right_preset_btn.clicked.connect(
+            lambda: self.apply_hand_preset("right", "open")
+        )
+        preset_buttons_layout.addWidget(right_preset_btn)
+
+        right_fist_btn = QPushButton("Right Hand: Fist")
+        right_fist_btn.clicked.connect(lambda: self.apply_hand_preset("right", "fist"))
+        preset_buttons_layout.addWidget(right_fist_btn)
+
+        right_point_btn = QPushButton("Right Hand: Point")
+        right_point_btn.clicked.connect(
+            lambda: self.apply_hand_preset("right", "point")
+        )
+        preset_buttons_layout.addWidget(right_point_btn)
+
+        hand_presets_layout.addLayout(preset_buttons_layout)
+
+        # Left hand presets
+        left_preset_buttons_layout = QHBoxLayout()
+
+        left_preset_btn = QPushButton("Left Hand: Open")
+        left_preset_btn.clicked.connect(lambda: self.apply_hand_preset("left", "open"))
+        left_preset_buttons_layout.addWidget(left_preset_btn)
+
+        left_fist_btn = QPushButton("Left Hand: Fist")
+        left_fist_btn.clicked.connect(lambda: self.apply_hand_preset("left", "fist"))
+        left_preset_buttons_layout.addWidget(left_fist_btn)
+
+        left_point_btn = QPushButton("Left Hand: Point")
+        left_point_btn.clicked.connect(lambda: self.apply_hand_preset("left", "point"))
+        left_preset_buttons_layout.addWidget(left_point_btn)
+
+        hand_presets_layout.addLayout(left_preset_buttons_layout)
+
+        # Finger grouping controls
+        finger_grouping_layout = QHBoxLayout()
+
+        all_fingers_btn = QPushButton("All Fingers: Open")
+        all_fingers_btn.clicked.connect(
+            lambda: self.apply_finger_group_preset("all", "open")
+        )
+        finger_grouping_layout.addWidget(all_fingers_btn)
+
+        all_fingers_fist_btn = QPushButton("All Fingers: Fist")
+        all_fingers_fist_btn.clicked.connect(
+            lambda: self.apply_finger_group_preset("all", "fist")
+        )
+        finger_grouping_layout.addWidget(all_fingers_fist_btn)
+
+        natural_fist_btn = QPushButton("Natural Fist")
+        natural_fist_btn.clicked.connect(
+            lambda: self.apply_finger_group_preset("all", "natural_fist")
+        )
+        natural_fist_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                padding: 6px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """
+        )
+        finger_grouping_layout.addWidget(natural_fist_btn)
+
+        hand_presets_layout.addLayout(finger_grouping_layout)
+
+        # Finger constraints section
+        finger_constraints_layout = QHBoxLayout()
+
+        enable_constraints_btn = QPushButton("Enable Finger Constraints")
+        enable_constraints_btn.clicked.connect(self.enable_finger_constraints)
+        enable_constraints_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                padding: 6px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+        """
+        )
+        finger_constraints_layout.addWidget(enable_constraints_btn)
+
+        disable_constraints_btn = QPushButton("Disable Constraints")
+        disable_constraints_btn.clicked.connect(self.disable_finger_constraints)
+        disable_constraints_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: 1px solid #5a6268;
+                padding: 6px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+                border-color: #495057;
+            }
+        """
+        )
+        finger_constraints_layout.addWidget(disable_constraints_btn)
+
+        hand_presets_layout.addLayout(finger_constraints_layout)
+
+        layout.addWidget(hand_presets_group)
+
         # Color testing section
-        color_group = QGroupBox("Color Testing for Visibility")
+        color_group = QGroupBox("Color & Visibility")
         color_layout = QVBoxLayout(color_group)
 
         # Color selection dropdown
@@ -586,6 +828,26 @@ class SignLanguagePoseEditor(QWidget):
         highlight_hands_btn = QPushButton("Highlight Hands Only")
         highlight_hands_btn.clicked.connect(self.highlight_hands_only)
         color_layout.addWidget(highlight_hands_btn)
+
+        # Hand-focused visibility controls
+        hand_visibility_btn = QPushButton("Focus on Hand Joints")
+        hand_visibility_btn.clicked.connect(self.focus_on_hand_joints)
+        hand_visibility_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """
+        )
+        color_layout.addWidget(hand_visibility_btn)
 
         # Alternative visibility approaches
         enhance_lighting_btn = QPushButton("Enhance Lighting")
@@ -707,11 +969,52 @@ class SignLanguagePoseEditor(QWidget):
 
         validation_layout.addLayout(validation_btn_layout)
 
+        # Refresh JSON data button
+        refresh_layout = QHBoxLayout()
+
+        self.refresh_json_btn = QPushButton("🔄 Reload JSON Data")
+        self.refresh_json_btn.clicked.connect(self.reload_json_data)
+        self.refresh_json_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                border: none;
+                padding: 8px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+            }
+        """
+        )
+        refresh_layout.addWidget(self.refresh_json_btn)
+
+        validation_layout.addLayout(refresh_layout)
+
         # Validation results
         self.validation_results = QTextEdit()
         self.validation_results.setMaximumHeight(150)
         self.validation_results.setPlaceholderText(
             "Validation results will appear here..."
+        )
+        # Improve readability with better styling
+        self.validation_results.setStyleSheet(
+            """
+            QTextEdit {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                padding: 8px;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 11px;
+                color: #212529;
+            }
+            QTextEdit:focus {
+                border-color: #007bff;
+            }
+        """
         )
         validation_layout.addWidget(self.validation_results)
 
@@ -728,6 +1031,21 @@ class SignLanguagePoseEditor(QWidget):
         self.pose_display = QTextEdit()
         self.pose_display.setMaximumHeight(300)
         self.pose_display.setReadOnly(True)
+        # Improve readability with better styling
+        self.pose_display.setStyleSheet(
+            """
+            QTextEdit {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                padding: 8px;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 10px;
+                color: #212529;
+                line-height: 1.4;
+            }
+        """
+        )
         info_layout.addWidget(self.pose_display)
 
         layout.addWidget(info_group)
@@ -1154,16 +1472,36 @@ class SignLanguagePoseEditor(QWidget):
             print("Invalid joint name, skipping")
             return
 
-        if joint_name not in self.joint_editors:
-            print(f"Creating editor for joint: {joint_name}")
-            editor = JointEditor(joint_name, self.pose_manager)
-            self.joint_editors[joint_name] = editor
+        # Convert readable name to actual joint name if needed
+        actual_joint_name = joint_name
+        if (
+            hasattr(self, "right_hand_joint_mapping")
+            and joint_name in self.right_hand_joint_mapping
+        ):
+            actual_joint_name = self.right_hand_joint_mapping[joint_name]
+        elif (
+            hasattr(self, "left_hand_joint_mapping")
+            and joint_name in self.left_hand_joint_mapping
+        ):
+            actual_joint_name = self.left_hand_joint_mapping[joint_name]
+        elif (
+            hasattr(self, "other_joint_mapping")
+            and joint_name in self.other_joint_mapping
+        ):
+            actual_joint_name = self.other_joint_mapping[joint_name]
+
+        print(f"Using actual joint name: {actual_joint_name}")
+
+        if actual_joint_name not in self.joint_editors:
+            print(f"Creating editor for joint: {actual_joint_name}")
+            editor = JointEditor(actual_joint_name, self.pose_manager)
+            self.joint_editors[actual_joint_name] = editor
             self.joint_editors_layout.addWidget(editor)
             editor.pose_changed.connect(self.on_pose_changed)
             editor.editor_closed.connect(self.on_joint_editor_closed)
-            print(f"Created editor for {joint_name}")
+            print(f"Created editor for {actual_joint_name}")
         else:
-            print(f"Editor already exists for {joint_name}")
+            print(f"Editor already exists for {actual_joint_name}")
 
     def on_joint_editor_closed(self, joint_name: str):
         """Handle joint editor being closed."""
@@ -1491,6 +1829,56 @@ class SignLanguagePoseEditor(QWidget):
 
         except Exception as e:
             self.validation_results.setText(f"Error loading reference pose: {str(e)}")
+
+    def reload_json_data(self):
+        """Reload JSON data from disk and refresh the current pose."""
+        try:
+            language = self.lang_combo.currentText()
+            letter = self.letter_combo.currentText()
+
+            # Clear any cached data by reloading the reference pose data
+            reference_poses = self._load_reference_pose_data(language, letter)
+
+            if not reference_poses:
+                self.validation_results.setText(
+                    f"❌ No reference pose found for {language} {letter}\n"
+                    f"Make sure the JSON file exists and contains the letter '{letter}'"
+                )
+                return
+
+            # Apply the reloaded poses to the pose manager
+            for joint_name, pose_data in reference_poses.items():
+                if len(pose_data) >= 3:
+                    pose = JointPose(
+                        joint_name=joint_name,
+                        heading=pose_data[0],
+                        pitch=pose_data[1],
+                        roll=pose_data[2],
+                    )
+                    self.pose_manager.set_pose(joint_name, pose)
+
+            # Update all joint editors to reflect the new pose data
+            for joint_name, editor in self.joint_editors.items():
+                editor.load_current_pose()
+
+            # Update the pose display
+            self.update_pose_display()
+
+            # Apply the new pose to the character
+            self.apply_to_character()
+
+            # Show success message
+            self.validation_results.setText(
+                f"✅ Successfully reloaded JSON data for {language} {letter}\n"
+                f"📁 Data refreshed from: resources/data/signs/{language.lower()}/asl_right_hand.json\n"
+                f"🔄 All pose values updated and applied to character"
+            )
+
+        except Exception as e:
+            self.validation_results.setText(
+                f"❌ Error reloading JSON data: {str(e)}\n"
+                f"💡 Make sure the JSON file exists and is valid"
+            )
 
     def _load_reference_pose_data(
         self, language: str, letter: str
@@ -2473,6 +2861,701 @@ class SignLanguagePoseEditor(QWidget):
 
         except Exception as e:
             print(f"Error resetting visibility effects: {e}")
+
+    def apply_hand_preset(self, hand_side: str, preset_type: str):
+        """Apply a hand pose preset for the specified hand."""
+        try:
+            print(f"Applying {preset_type} preset to {hand_side} hand")
+
+            # Define hand pose presets
+            hand_presets = {
+                "open": {
+                    # Open hand - fingers extended
+                    "hand": {"hpr": [0.0, 0.0, 0.0]},
+                    "thumb1": {"hpr": [0.0, 25.0, 0.0]},
+                    "thumb2": {"hpr": [0.0, 0.0, 0.0]},
+                    "thumb3": {"hpr": [0.0, 0.0, 0.0]},
+                    "thumb4": {"hpr": [0.0, 0.0, 0.0]},
+                    "index1": {"hpr": [0.0, 10.0, 0.0]},
+                    "index2": {"hpr": [0.0, 0.0, 0.0]},
+                    "index3": {"hpr": [0.0, 0.0, 0.0]},
+                    "index4": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle1": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle2": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle3": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle4": {"hpr": [0.0, 0.0, 0.0]},
+                    "ring1": {"hpr": [0.0, 30.0, 0.0]},
+                    "ring2": {"hpr": [0.0, 0.0, 0.0]},
+                    "ring3": {"hpr": [0.0, 0.0, 0.0]},
+                    "ring4": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky1": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky2": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky3": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky4": {"hpr": [0.0, 0.0, 0.0]},
+                },
+                "fist": {
+                    # Closed fist - all fingers curled, thumbs curled inward
+                    "hand": {"hpr": [0.0, 0.0, 0.0]},
+                    "thumb1": {"hpr": [0.0, 15.0, 0.0]},
+                    "thumb2": {"hpr": [0.0, 60.0, 0.0]},
+                    "thumb3": {"hpr": [0.0, 75.0, 0.0]},
+                    "thumb4": {"hpr": [0.0, 45.0, 0.0]},
+                    "index1": {"hpr": [0.0, 5.0, 0.0]},
+                    "index2": {"hpr": [0.0, 90.0, 0.0]},
+                    "index3": {"hpr": [0.0, 90.0, 0.0]},
+                    "index4": {"hpr": [0.0, 45.0, 0.0]},
+                    "middle1": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle2": {"hpr": [0.0, 90.0, 0.0]},
+                    "middle3": {"hpr": [0.0, 90.0, 0.0]},
+                    "middle4": {"hpr": [0.0, 45.0, 0.0]},
+                    "ring1": {"hpr": [0.0, 15.0, 0.0]},
+                    "ring2": {"hpr": [0.0, 90.0, 0.0]},
+                    "ring3": {"hpr": [0.0, 90.0, 0.0]},
+                    "ring4": {"hpr": [0.0, 45.0, 0.0]},
+                    "pinky1": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky2": {"hpr": [0.0, 90.0, 0.0]},
+                    "pinky3": {"hpr": [0.0, 90.0, 0.0]},
+                    "pinky4": {"hpr": [0.0, 45.0, 0.0]},
+                },
+                "point": {
+                    # Pointing gesture - index finger extended, others curled
+                    "hand": {"hpr": [0.0, 0.0, 0.0]},
+                    "thumb1": {"hpr": [0.0, 25.0, 0.0]},
+                    "thumb2": {"hpr": [0.0, 45.0, 0.0]},
+                    "thumb3": {"hpr": [0.0, 60.0, 0.0]},
+                    "thumb4": {"hpr": [0.0, 30.0, 0.0]},
+                    "index1": {"hpr": [0.0, 10.0, 0.0]},
+                    "index2": {"hpr": [0.0, 0.0, 0.0]},
+                    "index3": {"hpr": [0.0, 0.0, 0.0]},
+                    "index4": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle1": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle2": {"hpr": [0.0, 90.0, 0.0]},
+                    "middle3": {"hpr": [0.0, 90.0, 0.0]},
+                    "middle4": {"hpr": [0.0, 45.0, 0.0]},
+                    "ring1": {"hpr": [0.0, 30.0, 0.0]},
+                    "ring2": {"hpr": [0.0, 90.0, 0.0]},
+                    "ring3": {"hpr": [0.0, 90.0, 0.0]},
+                    "ring4": {"hpr": [0.0, 45.0, 0.0]},
+                    "pinky1": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky2": {"hpr": [0.0, 90.0, 0.0]},
+                    "pinky3": {"hpr": [0.0, 90.0, 0.0]},
+                    "pinky4": {"hpr": [0.0, 45.0, 0.0]},
+                },
+            }
+
+            if preset_type not in hand_presets:
+                print(f"Unknown preset type: {preset_type}")
+                return
+
+            preset = hand_presets[preset_type]
+            hand_prefix = "Right" if hand_side == "right" else "Left"
+
+            # Apply the preset to all hand joints
+            for joint_type, pose_data in preset.items():
+                if joint_type == "hand":
+                    joint_name = f"mixamorig:{hand_prefix}Hand"
+                else:
+                    joint_name = f"mixamorig:{hand_prefix}Hand{joint_type.capitalize()}"
+
+                # Create JointPose object
+                pose = JointPose(
+                    joint_name=joint_name,
+                    heading=pose_data["hpr"][0],
+                    pitch=pose_data["hpr"][1],
+                    roll=pose_data["hpr"][2],
+                )
+
+                # Apply to pose manager
+                self.pose_manager.set_pose(joint_name, pose)
+
+                # Create or update joint editor if it exists
+                if joint_name in self.joint_editors:
+                    self.joint_editors[joint_name].load_current_pose()
+
+            # Apply all changes to character
+            self.apply_to_character()
+            self.update_pose_display()
+
+            print(f"Applied {preset_type} preset to {hand_side} hand successfully")
+
+        except Exception as e:
+            print(f"Error applying hand preset: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    def apply_finger_group_preset(self, finger_group: str, preset_type: str):
+        """Apply a finger group preset (all fingers, specific finger, etc.)."""
+        try:
+            print(f"Applying {preset_type} preset to {finger_group} fingers")
+
+            # Define finger group presets
+            finger_presets = {
+                "open": {
+                    "thumb1": {"hpr": [0.0, 25.0, 0.0]},
+                    "thumb2": {"hpr": [0.0, 0.0, 0.0]},
+                    "thumb3": {"hpr": [0.0, 0.0, 0.0]},
+                    "thumb4": {"hpr": [0.0, 0.0, 0.0]},
+                    "index1": {"hpr": [0.0, 10.0, 0.0]},
+                    "index2": {"hpr": [0.0, 0.0, 0.0]},
+                    "index3": {"hpr": [0.0, 0.0, 0.0]},
+                    "index4": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle1": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle2": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle3": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle4": {"hpr": [0.0, 0.0, 0.0]},
+                    "ring1": {"hpr": [0.0, 30.0, 0.0]},
+                    "ring2": {"hpr": [0.0, 0.0, 0.0]},
+                    "ring3": {"hpr": [0.0, 0.0, 0.0]},
+                    "ring4": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky1": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky2": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky3": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky4": {"hpr": [0.0, 0.0, 0.0]},
+                },
+                "fist": {
+                    # Realistic fist - much more natural angles
+                    "thumb1": {"hpr": [0.0, 5.0, 0.0]},
+                    "thumb2": {"hpr": [0.0, 30.0, 0.0]},
+                    "thumb3": {"hpr": [0.0, 45.0, 0.0]},
+                    "thumb4": {"hpr": [0.0, 25.0, 0.0]},
+                    "index1": {"hpr": [0.0, 0.0, 0.0]},
+                    "index2": {"hpr": [0.0, 60.0, 0.0]},
+                    "index3": {"hpr": [0.0, 70.0, 0.0]},
+                    "index4": {"hpr": [0.0, 30.0, 0.0]},
+                    "middle1": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle2": {"hpr": [0.0, 60.0, 0.0]},
+                    "middle3": {"hpr": [0.0, 70.0, 0.0]},
+                    "middle4": {"hpr": [0.0, 30.0, 0.0]},
+                    "ring1": {"hpr": [0.0, 5.0, 0.0]},
+                    "ring2": {"hpr": [0.0, 60.0, 0.0]},
+                    "ring3": {"hpr": [0.0, 70.0, 0.0]},
+                    "ring4": {"hpr": [0.0, 30.0, 0.0]},
+                    "pinky1": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky2": {"hpr": [0.0, 60.0, 0.0]},
+                    "pinky3": {"hpr": [0.0, 70.0, 0.0]},
+                    "pinky4": {"hpr": [0.0, 30.0, 0.0]},
+                },
+                "natural_fist": {
+                    # Very natural fist - subtle, realistic angles
+                    "thumb1": {"hpr": [0.0, 3.0, 0.0]},
+                    "thumb2": {"hpr": [0.0, 25.0, 0.0]},
+                    "thumb3": {"hpr": [0.0, 35.0, 0.0]},
+                    "thumb4": {"hpr": [0.0, 20.0, 0.0]},
+                    "index1": {"hpr": [0.0, 0.0, 0.0]},
+                    "index2": {"hpr": [0.0, 50.0, 0.0]},
+                    "index3": {"hpr": [0.0, 60.0, 0.0]},
+                    "index4": {"hpr": [0.0, 25.0, 0.0]},
+                    "middle1": {"hpr": [0.0, 0.0, 0.0]},
+                    "middle2": {"hpr": [0.0, 50.0, 0.0]},
+                    "middle3": {"hpr": [0.0, 60.0, 0.0]},
+                    "middle4": {"hpr": [0.0, 25.0, 0.0]},
+                    "ring1": {"hpr": [0.0, 3.0, 0.0]},
+                    "ring2": {"hpr": [0.0, 50.0, 0.0]},
+                    "ring3": {"hpr": [0.0, 60.0, 0.0]},
+                    "ring4": {"hpr": [0.0, 25.0, 0.0]},
+                    "pinky1": {"hpr": [0.0, 0.0, 0.0]},
+                    "pinky2": {"hpr": [0.0, 50.0, 0.0]},
+                    "pinky3": {"hpr": [0.0, 60.0, 0.0]},
+                    "pinky4": {"hpr": [0.0, 25.0, 0.0]},
+                },
+            }
+
+            if preset_type not in finger_presets:
+                print(f"Unknown preset type: {preset_type}")
+                return
+
+            preset = finger_presets[preset_type]
+
+            # Apply to both hands if "all" is specified
+            hands = (
+                ["Right", "Left"]
+                if finger_group == "all"
+                else [finger_group.capitalize()]
+            )
+
+            for hand_prefix in hands:
+                for joint_type, pose_data in preset.items():
+                    joint_name = f"mixamorig:{hand_prefix}Hand{joint_type.capitalize()}"
+
+                    # Create JointPose object
+                    pose = JointPose(
+                        joint_name=joint_name,
+                        heading=pose_data["hpr"][0],
+                        pitch=pose_data["hpr"][1],
+                        roll=pose_data["hpr"][2],
+                    )
+
+                    # Apply to pose manager
+                    self.pose_manager.set_pose(joint_name, pose)
+
+                    # Create or update joint editor if it exists
+                    if joint_name in self.joint_editors:
+                        self.joint_editors[joint_name].load_current_pose()
+
+            # Apply all changes to character
+            self.apply_to_character()
+            self.update_pose_display()
+
+            print(
+                f"Applied {preset_type} preset to {finger_group} fingers successfully"
+            )
+
+        except Exception as e:
+            print(f"Error applying finger group preset: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    def focus_on_hand_joints(self):
+        """Focus the view and highlighting specifically on hand joints for better editing."""
+        try:
+            if not self.animate_panel or not hasattr(self.animate_panel, "_model_np"):
+                print("No model found for hand focus")
+                return
+
+            model_np = self.animate_panel._model_np
+            if model_np is None:
+                print("Model node path not available")
+                return
+
+            print("=== Focusing on Hand Joints for Pose Editing ===")
+
+            # First, reset any existing effects
+            self.reset_all_visibility_effects()
+
+            # Apply hand-specific highlighting
+            self.highlight_hands_only()
+
+            # Create enhanced joint markers specifically for hands
+            self._create_enhanced_hand_joint_markers(model_np)
+
+            # Add hand-specific lighting
+            self._add_hand_focused_lighting()
+
+            # Auto-populate hand joint editors
+            self._auto_populate_hand_joint_editors()
+
+            print("Hand joint focus applied successfully")
+
+        except Exception as e:
+            print(f"Error focusing on hand joints: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    def _create_enhanced_hand_joint_markers(self, model_np):
+        """Create enhanced visual markers specifically for hand joints."""
+        try:
+            from panda3d.core import CardMaker, VBase4, Vec3
+
+            print("=== Creating Enhanced Hand Joint Markers ===")
+
+            # Hand joint names with enhanced visibility
+            hand_joints = [
+                # Right hand
+                "mixamorig:RightHand",
+                "mixamorig:RightHandThumb1",
+                "mixamorig:RightHandThumb2",
+                "mixamorig:RightHandThumb3",
+                "mixamorig:RightHandThumb4",
+                "mixamorig:RightHandIndex1",
+                "mixamorig:RightHandIndex2",
+                "mixamorig:RightHandIndex3",
+                "mixamorig:RightHandIndex4",
+                "mixamorig:RightHandMiddle1",
+                "mixamorig:RightHandMiddle2",
+                "mixamorig:RightHandMiddle3",
+                "mixamorig:RightHandMiddle4",
+                "mixamorig:RightHandRing1",
+                "mixamorig:RightHandRing2",
+                "mixamorig:RightHandRing3",
+                "mixamorig:RightHandRing4",
+                "mixamorig:RightHandPinky1",
+                "mixamorig:RightHandPinky2",
+                "mixamorig:RightHandPinky3",
+                "mixamorig:RightHandPinky4",
+                # Left hand
+                "mixamorig:LeftHand",
+                "mixamorig:LeftHandThumb1",
+                "mixamorig:LeftHandThumb2",
+                "mixamorig:LeftHandThumb3",
+                "mixamorig:LeftHandThumb4",
+                "mixamorig:LeftHandIndex1",
+                "mixamorig:LeftHandIndex2",
+                "mixamorig:LeftHandIndex3",
+                "mixamorig:LeftHandIndex4",
+                "mixamorig:LeftHandMiddle1",
+                "mixamorig:LeftHandMiddle2",
+                "mixamorig:LeftHandMiddle3",
+                "mixamorig:LeftHandMiddle4",
+                "mixamorig:LeftHandRing1",
+                "mixamorig:LeftHandRing2",
+                "mixamorig:LeftHandRing3",
+                "mixamorig:LeftHandRing4",
+                "mixamorig:LeftHandPinky1",
+                "mixamorig:LeftHandPinky2",
+                "mixamorig:LeftHandPinky3",
+                "mixamorig:LeftHandPinky4",
+            ]
+
+            # Create enhanced markers
+            card_maker = CardMaker("enhanced_hand_marker")
+            card_maker.setFrame(-0.05, 0.05, -0.05, 0.05)  # Larger markers for hands
+
+            markers_created = 0
+
+            for joint_name in hand_joints:
+                try:
+                    # Find the actual joint node in the model
+                    joint_node = model_np.find(f"**/{joint_name}")
+                    if joint_node and not joint_node.isEmpty():
+                        # Get the actual world position of the joint
+                        joint_pos = joint_node.getPos(model_np)
+
+                        # Create a marker node at the joint position
+                        marker_node = model_np.attachNewNode(
+                            f"enhanced_hand_marker_{joint_name}"
+                        )
+                        marker_node.setPos(joint_pos)
+
+                        # Create the card geometry with enhanced visibility
+                        card_node = marker_node.attachNewNode(card_maker.generate())
+
+                        # Color code by finger type
+                        if "Thumb" in joint_name:
+                            card_node.setColor(
+                                VBase4(1.0, 1.0, 0.0, 1.0)
+                            )  # Yellow for thumb
+                        elif "Index" in joint_name:
+                            card_node.setColor(
+                                VBase4(1.0, 0.0, 0.0, 1.0)
+                            )  # Red for index
+                        elif "Middle" in joint_name:
+                            card_node.setColor(
+                                VBase4(0.0, 1.0, 0.0, 1.0)
+                            )  # Green for middle
+                        elif "Ring" in joint_name:
+                            card_node.setColor(
+                                VBase4(0.0, 0.0, 1.0, 1.0)
+                            )  # Blue for ring
+                        elif "Pinky" in joint_name:
+                            card_node.setColor(
+                                VBase4(1.0, 0.0, 1.0, 1.0)
+                            )  # Magenta for pinky
+                        else:
+                            card_node.setColor(
+                                VBase4(1.0, 1.0, 1.0, 1.0)
+                            )  # White for hand base
+
+                        card_node.setBillboardAxis()  # Always face the camera
+                        card_node.setTransparency(1)
+                        card_node.setAlphaScale(0.8)
+
+                        print(
+                            f"  ✓ Created enhanced marker for {joint_name} at {joint_pos}"
+                        )
+                        markers_created += 1
+                    else:
+                        print(f"  ✗ Could not find joint {joint_name}")
+
+                except Exception as e:
+                    print(f"  ✗ Could not create enhanced marker for {joint_name}: {e}")
+
+            print(f"=== Created {markers_created} enhanced hand joint markers ===")
+
+        except Exception as e:
+            print(f"Enhanced hand marker creation failed: {e}")
+
+    def _add_hand_focused_lighting(self):
+        """Add lighting specifically focused on the hands."""
+        try:
+            if not self.animate_panel or not hasattr(
+                self.animate_panel, "_model_manager"
+            ):
+                print("No model manager found for hand lighting")
+                return
+
+            model_manager = self.animate_panel._model_manager
+            if not model_manager:
+                print("Model manager not available")
+                return
+
+            # Add spotlights focused on each hand
+            from panda3d.core import Spotlight, VBase4, Vec3
+
+            # Right hand spotlight
+            right_hand_light = Spotlight("right_hand_focus_light")
+            right_hand_light.setColor(VBase4(1.0, 1.0, 1.0, 1.0))
+            right_hand_light.setSpecularColor(VBase4(1.0, 1.0, 1.0, 1.0))
+            right_hand_light.setAttenuation(Vec3(1.0, 0.0, 0.0))
+            right_hand_light.setExponent(15.0)
+            right_hand_light.setShadowCaster(True)
+
+            right_light_np = model_manager.parent_panel.render.attachNewNode(
+                right_hand_light
+            )
+            right_light_np.setPos(0.5, 2.0, 1.5)  # Position to illuminate right hand
+            right_light_np.lookAt(0.3, 0.0, 1.0)  # Point towards right hand area
+
+            # Left hand spotlight
+            left_hand_light = Spotlight("left_hand_focus_light")
+            left_hand_light.setColor(VBase4(1.0, 1.0, 1.0, 1.0))
+            left_hand_light.setSpecularColor(VBase4(1.0, 1.0, 1.0, 1.0))
+            left_hand_light.setAttenuation(Vec3(1.0, 0.0, 0.0))
+            left_hand_light.setExponent(15.0)
+            left_hand_light.setShadowCaster(True)
+
+            left_light_np = model_manager.parent_panel.render.attachNewNode(
+                left_hand_light
+            )
+            left_light_np.setPos(-0.5, 2.0, 1.5)  # Position to illuminate left hand
+            left_light_np.lookAt(-0.3, 0.0, 1.0)  # Point towards left hand area
+
+            # Store references for later removal
+            if not hasattr(self, "_hand_focus_lights"):
+                self._hand_focus_lights = []
+            self._hand_focus_lights.extend([right_light_np, left_light_np])
+
+            print("Hand-focused lighting added")
+
+        except Exception as e:
+            print(f"Error adding hand-focused lighting: {e}")
+
+    def _auto_populate_hand_joint_editors(self):
+        """Automatically create joint editors for all hand joints."""
+        try:
+            print("=== Auto-populating hand joint editors ===")
+
+            # Hand joint names
+            hand_joints = [
+                # Right hand
+                "mixamorig:RightHand",
+                "mixamorig:RightHandThumb1",
+                "mixamorig:RightHandThumb2",
+                "mixamorig:RightHandThumb3",
+                "mixamorig:RightHandThumb4",
+                "mixamorig:RightHandIndex1",
+                "mixamorig:RightHandIndex2",
+                "mixamorig:RightHandIndex3",
+                "mixamorig:RightHandIndex4",
+                "mixamorig:RightHandMiddle1",
+                "mixamorig:RightHandMiddle2",
+                "mixamorig:RightHandMiddle3",
+                "mixamorig:RightHandMiddle4",
+                "mixamorig:RightHandRing1",
+                "mixamorig:RightHandRing2",
+                "mixamorig:RightHandRing3",
+                "mixamorig:RightHandRing4",
+                "mixamorig:RightHandPinky1",
+                "mixamorig:RightHandPinky2",
+                "mixamorig:RightHandPinky3",
+                "mixamorig:RightHandPinky4",
+                # Left hand
+                "mixamorig:LeftHand",
+                "mixamorig:LeftHandThumb1",
+                "mixamorig:LeftHandThumb2",
+                "mixamorig:LeftHandThumb3",
+                "mixamorig:LeftHandThumb4",
+                "mixamorig:LeftHandIndex1",
+                "mixamorig:LeftHandIndex2",
+                "mixamorig:LeftHandIndex3",
+                "mixamorig:LeftHandIndex4",
+                "mixamorig:LeftHandMiddle1",
+                "mixamorig:LeftHandMiddle2",
+                "mixamorig:LeftHandMiddle3",
+                "mixamorig:LeftHandMiddle4",
+                "mixamorig:LeftHandRing1",
+                "mixamorig:LeftHandRing2",
+                "mixamorig:LeftHandRing3",
+                "mixamorig:LeftHandRing4",
+                "mixamorig:LeftHandPinky1",
+                "mixamorig:LeftHandPinky2",
+                "mixamorig:LeftHandPinky3",
+                "mixamorig:LeftHandPinky4",
+            ]
+
+            editors_created = 0
+
+            for joint_name in hand_joints:
+                if joint_name not in self.joint_editors:
+                    print(f"Creating editor for hand joint: {joint_name}")
+                    editor = JointEditor(joint_name, self.pose_manager)
+                    self.joint_editors[joint_name] = editor
+                    self.joint_editors_layout.addWidget(editor)
+                    editor.pose_changed.connect(self.on_pose_changed)
+                    editor.editor_closed.connect(self.on_joint_editor_closed)
+                    editors_created += 1
+                else:
+                    print(f"Editor already exists for {joint_name}")
+
+            print(f"Created {editors_created} new hand joint editors")
+            self.update_pose_display()
+
+        except Exception as e:
+            print(f"Error auto-populating hand joint editors: {e}")
+
+    def enable_finger_constraints(self):
+        """Enable finger constraints to prevent unnatural poses."""
+        try:
+            print("=== Enabling Finger Constraints ===")
+
+            # Define finger constraints (min/max values for each joint)
+            self.finger_constraints = {
+                # Thumb constraints - more anatomically correct
+                "mixamorig:RightHandThumb1": {"hpr": [(-45, 45), (0, 30), (-30, 30)]},
+                "mixamorig:RightHandThumb2": {"hpr": [(-30, 30), (0, 90), (-30, 30)]},
+                "mixamorig:RightHandThumb3": {"hpr": [(-30, 30), (0, 90), (-30, 30)]},
+                "mixamorig:RightHandThumb4": {"hpr": [(-30, 30), (0, 60), (-30, 30)]},
+                "mixamorig:LeftHandThumb1": {"hpr": [(-45, 45), (0, 30), (-30, 30)]},
+                "mixamorig:LeftHandThumb2": {"hpr": [(-30, 30), (0, 90), (-30, 30)]},
+                "mixamorig:LeftHandThumb3": {"hpr": [(-30, 30), (0, 90), (-30, 30)]},
+                "mixamorig:LeftHandThumb4": {"hpr": [(-30, 30), (0, 60), (-30, 30)]},
+                # Index finger constraints
+                "mixamorig:RightHandIndex1": {"hpr": [(-20, 20), (0, 30), (-20, 20)]},
+                "mixamorig:RightHandIndex2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandIndex3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandIndex4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+                "mixamorig:LeftHandIndex1": {"hpr": [(-20, 20), (0, 30), (-20, 20)]},
+                "mixamorig:LeftHandIndex2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandIndex3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandIndex4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+                # Middle finger constraints
+                "mixamorig:RightHandMiddle1": {"hpr": [(-20, 20), (0, 20), (-20, 20)]},
+                "mixamorig:RightHandMiddle2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandMiddle3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandMiddle4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+                "mixamorig:LeftHandMiddle1": {"hpr": [(-20, 20), (0, 20), (-20, 20)]},
+                "mixamorig:LeftHandMiddle2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandMiddle3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandMiddle4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+                # Ring finger constraints
+                "mixamorig:RightHandRing1": {"hpr": [(-20, 20), (0, 40), (-20, 20)]},
+                "mixamorig:RightHandRing2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandRing3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandRing4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+                "mixamorig:LeftHandRing1": {"hpr": [(-20, 20), (0, 40), (-20, 20)]},
+                "mixamorig:LeftHandRing2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandRing3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandRing4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+                # Pinky finger constraints
+                "mixamorig:RightHandPinky1": {"hpr": [(-20, 20), (0, 20), (-20, 20)]},
+                "mixamorig:RightHandPinky2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandPinky3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:RightHandPinky4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+                "mixamorig:LeftHandPinky1": {"hpr": [(-20, 20), (0, 20), (-20, 20)]},
+                "mixamorig:LeftHandPinky2": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandPinky3": {"hpr": [(-20, 20), (0, 120), (-20, 20)]},
+                "mixamorig:LeftHandPinky4": {"hpr": [(-20, 20), (0, 90), (-20, 20)]},
+            }
+
+            # Apply constraints to existing joint editors
+            for joint_name, editor in self.joint_editors.items():
+                if joint_name in self.finger_constraints:
+                    constraints = self.finger_constraints[joint_name]
+                    self._apply_constraints_to_editor(editor, constraints)
+                    print(f"Applied constraints to {joint_name}")
+
+            print("Finger constraints enabled successfully")
+
+        except Exception as e:
+            print(f"Error enabling finger constraints: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    def disable_finger_constraints(self):
+        """Disable finger constraints."""
+        try:
+            print("=== Disabling Finger Constraints ===")
+
+            if hasattr(self, "finger_constraints"):
+                delattr(self, "finger_constraints")
+
+            # Reset all joint editors to default ranges
+            for joint_name, editor in self.joint_editors.items():
+                self._reset_editor_constraints(editor)
+                print(f"Reset constraints for {joint_name}")
+
+            print("Finger constraints disabled successfully")
+
+        except Exception as e:
+            print(f"Error disabling finger constraints: {e}")
+
+    def _apply_constraints_to_editor(self, editor, constraints):
+        """Apply constraints to a joint editor."""
+        try:
+            h_min, h_max = constraints["hpr"][0]
+            p_min, p_max = constraints["hpr"][1]
+            r_min, r_max = constraints["hpr"][2]
+
+            # Update slider ranges
+            editor.h_slider.slider.setRange(int(h_min * 10), int(h_max * 10))
+            editor.h_slider.spinbox.setRange(int(h_min), int(h_max))
+
+            editor.p_slider.slider.setRange(int(p_min * 10), int(p_max * 10))
+            editor.p_slider.spinbox.setRange(int(p_min), int(p_max))
+
+            editor.r_slider.slider.setRange(int(r_min * 10), int(r_max * 10))
+            editor.r_slider.spinbox.setRange(int(r_min), int(r_max))
+
+        except Exception as e:
+            print(f"Error applying constraints to editor: {e}")
+
+    def _reset_editor_constraints(self, editor):
+        """Reset editor constraints to default ranges."""
+        try:
+            # Reset to default ranges (-180 to 180)
+            editor.h_slider.slider.setRange(-1800, 1800)
+            editor.h_slider.spinbox.setRange(-180, 180)
+
+            editor.p_slider.slider.setRange(-1800, 1800)
+            editor.p_slider.spinbox.setRange(-180, 180)
+
+            editor.r_slider.slider.setRange(-1800, 1800)
+            editor.r_slider.spinbox.setRange(-180, 180)
+
+        except Exception as e:
+            print(f"Error resetting editor constraints: {e}")
+
+    def _validate_pose_with_constraints(
+        self, joint_name: str, pose: JointPose
+    ) -> JointPose:
+        """Validate and constrain a pose if constraints are enabled."""
+        try:
+            if (
+                not hasattr(self, "finger_constraints")
+                or joint_name not in self.finger_constraints
+            ):
+                return pose
+
+            constraints = self.finger_constraints[joint_name]
+            h_min, h_max = constraints["hpr"][0]
+            p_min, p_max = constraints["hpr"][1]
+            r_min, r_max = constraints["hpr"][2]
+
+            # Clamp values to constraints
+            constrained_h = max(h_min, min(h_max, pose.heading))
+            constrained_p = max(p_min, min(p_max, pose.pitch))
+            constrained_r = max(r_min, min(r_max, pose.roll))
+
+            if (
+                constrained_h != pose.heading
+                or constrained_p != pose.pitch
+                or constrained_r != pose.roll
+            ):
+                print(
+                    f"Constrained {joint_name}: H={pose.heading:.1f}→{constrained_h:.1f}, P={pose.pitch:.1f}→{constrained_p:.1f}, R={pose.roll:.1f}→{constrained_r:.1f}"
+                )
+                return JointPose(
+                    joint_name, constrained_h, constrained_p, constrained_r
+                )
+
+            return pose
+
+        except Exception as e:
+            print(f"Error validating pose constraints: {e}")
+            return pose
 
 
 # Legacy compatibility - keep the old class name for existing code

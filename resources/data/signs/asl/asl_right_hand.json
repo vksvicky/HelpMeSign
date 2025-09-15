@@ -29,35 +29,25 @@
           -30,
           0
         ],
-        "mixamorig:Head": [
+        "mixamorig:RightHandThumb1": [
+          -45,
           0,
-          0,
-          0
+          10
         ],
-        "mixamorig:Neck": [
-          0,
-          0,
-          0
+        "mixamorig:RightHandThumb2": [
+          0.0,
+          0.0,
+          0.0
         ],
-        "mixamorig:LeftShoulder": [
-          -160,
-          80,
-          -100
+        "mixamorig:RightHandThumb3": [
+          0.0,
+          0.0,
+          0.0
         ],
-        "mixamorig:LeftArm": [
-          -15,
-          80,
-          0
-        ],
-        "mixamorig:LeftForeArm": [
-          10,
-          0,
-          0
-        ],
-        "mixamorig:LeftHand": [
-          0,
-          0,
-          0
+        "mixamorig:RightHandThumb4": [
+          0.0,
+          0.0,
+          0.0
         ],
         "mixamorig:RightHandIndex1": [
           0,
@@ -66,73 +56,78 @@
         ],
         "mixamorig:RightHandIndex2": [
           0,
-          80,
+          70,
           0
         ],
         "mixamorig:RightHandIndex3": [
           0,
-          75,
+          70,
           0
+        ],
+        "mixamorig:RightHandIndex4": [
+          0.0,
+          0.0,
+          0.0
         ],
         "mixamorig:RightHandMiddle1": [
           0,
-          75,
+          70,
           0
         ],
         "mixamorig:RightHandMiddle2": [
           0,
-          85,
+          70,
           0
         ],
         "mixamorig:RightHandMiddle3": [
           0,
-          80,
+          70,
           0
+        ],
+        "mixamorig:RightHandMiddle4": [
+          0.0,
+          0.0,
+          0.0
         ],
         "mixamorig:RightHandRing1": [
           0,
-          80,
+          70,
           0
         ],
         "mixamorig:RightHandRing2": [
           0,
-          90,
+          70,
           0
         ],
         "mixamorig:RightHandRing3": [
           0,
-          85,
+          70,
           0
+        ],
+        "mixamorig:RightHandRing4": [
+          0.0,
+          0.0,
+          0.0
         ],
         "mixamorig:RightHandPinky1": [
           0,
-          85,
+          70,
           0
         ],
         "mixamorig:RightHandPinky2": [
           0,
-          95,
+          70,
           0
         ],
         "mixamorig:RightHandPinky3": [
           0,
-          90,
+          70,
           0
         ],
-        "mixamorig:RightHandThumb1": [
-          -45,
-          0,
-          0
-        ],
-        "mixamorig:RightHandThumb2": [
-          0,
-          0,
-          0
-        ],
-        "mixamorig:RightHandThumb3": [
-          0,
-          0,
-          0
+        "mixamorig:RightHandPinky4": [
+          0.0,
+          0.0,
+          0.0
         ]
       }
     },

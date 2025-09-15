@@ -79,8 +79,21 @@ class ModelManager:
                 self.parent_panel._actor = None
                 self._log.info("Loaded model as regular NodePath")
 
-            # Add to scene
+            # Add to scene with unique positioning to prevent overlap
             self.parent_panel._model_np.reparentTo(self.parent_panel._scene)
+
+            # Position this character instance at the origin for normal quality
+            # The separation will be handled by hiding the main window character
+            self.parent_panel._model_np.setPos(0, 0, 0)
+            self._log.info("Positioned character at origin for normal quality")
+
+            # Create a unique name for this character instance to prevent conflicts
+            panel_id = id(self.parent_panel)
+            unique_name = (
+                f"character_{panel_id}_{self.parent_panel._model_np.getName()}"
+            )
+            self.parent_panel._model_np.setName(unique_name)
+            self._log.info(f"Created unique character instance: {unique_name}")
 
             # Apply default pose and camera setup
             self._apply_default_neutral_pose()

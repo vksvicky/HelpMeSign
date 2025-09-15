@@ -36,8 +36,8 @@ class ZoomLens(QLabel):
     """Super resolution zoom lens using OpenCV DNN"""
 
     # Zoom lens configuration constants
-    LENS_SIZE = 300  # Physical size of the zoom lens
-    ZOOM_MAGNIFICATION = 3  # Reduced zoom to show wider area
+    LENS_SIZE = 300  # Physical size of the zoom lens (large enough to see hands/fingers clearly)
+    ZOOM_MAGNIFICATION = 2  # 6x zoom magnification for detailed hand/finger viewing
     SOURCE_REGION_SIZE = int(
         LENS_SIZE / ZOOM_MAGNIFICATION
     )  # Source region size (75), will be scaled by 8x for high-res
@@ -51,7 +51,7 @@ class ZoomLens(QLabel):
             QLabel {{
                 border: 3px solid #007acc;
                 border-radius: {self.LENS_SIZE // 2}px;
-                background-color: transparent;
+                background-color: rgba(0, 122, 204, 0.1);
             }}
         """
         )
@@ -692,7 +692,7 @@ class AnimateGesturePanel(QWidget):
             )
             self._zoom_button.clicked.connect(self._toggle_zoom_mode)
             self._zoom_button.setToolTip(
-                "Toggle Zoom Lens (Click to activate, click again to deactivate)"
+                "Toggle 6x Zoom Lens (Click to activate, click again to deactivate)"
             )
 
             # Position button in top-right corner
@@ -728,11 +728,11 @@ class AnimateGesturePanel(QWidget):
             self._zoom_mode_active = not self._zoom_mode_active
 
             if self._zoom_mode_active:
-                # Enable zoom mode - show zoom lens positioned to capture hands and waist
-                center_x = self.width() // 2
+                # Enable zoom mode - show zoom lens positioned to capture hands and head
+                center_x = self.width() // 2  # Center horizontally
                 center_y = (
-                    self.height() // 2 - 50
-                )  # Move up slightly to better capture hands and waist
+                    self.height() // 2
+                )  # Center vertically to capture hands and head
                 if self._zoom_lens and hasattr(self._zoom_lens, "show_lens"):
                     self._zoom_lens.show_lens(center_x, center_y)
                 self._zoom_button.setStyleSheet(

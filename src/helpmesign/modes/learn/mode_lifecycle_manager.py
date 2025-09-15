@@ -522,9 +522,17 @@ class LearnModeLifecycleManager:
                 )
 
             # Set up HPR editor button handler
-            if hasattr(self.learn_mode, "hpr_editor_btn"):
-                btn = self.learn_mode.hpr_editor_btn
-                btn.clicked.connect(self.learn_mode.ui_behavior_manager.open_hpr_editor)
+            # Set up HPR Editor button handler
+            # Note: Connection is already set up in ui_components.py to avoid duplication
+            # if hasattr(self.learn_mode, "hpr_editor_btn"):
+            #     btn = self.learn_mode.hpr_editor_btn
+            #     btn.clicked.connect(self.learn_mode.ui_behavior_manager.open_hpr_editor)
+
+            # Set up Hand Pose Editor button handler
+            # Note: Connection is already set up in ui_components.py to avoid duplication
+            # if hasattr(self.learn_mode, "hand_pose_editor_btn"):
+            #     btn = self.learn_mode.hand_pose_editor_btn
+            #     btn.clicked.connect(self.learn_mode.open_hand_pose_editor)
 
             # Set up pose validation button handler
             if hasattr(self.learn_mode, "pose_validation_btn"):
