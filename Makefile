@@ -33,6 +33,7 @@ help:
 	@echo "Development:"
 	@echo "  run        - Run the application in development mode (with debug features)"
 	@echo "  run-prod   - Run the application in production mode (clean UI)"
+	@echo "  run-hand   - Run GLB Viewer with hot reload (requires entr)"
 	@echo "  test       - Run all tests"
 	@echo "  test-coverage - Run tests with coverage report (auto-detects PySide6)"
 	@echo "  test-coverage-quick - Quick coverage report (auto-detects PySide6)"
@@ -69,6 +70,17 @@ run-prod:
 	@echo "🚀 Starting HelpMeSign application (production mode)..."
 	$(check_venv)
 	@$(VENV_PYTHON) run_app.py --env prod
+
+# run-editor:
+# 	@echo "🖐️ Starting Hand Pose Editor independently (dual instance mode)..."
+# 	$(check_venv)
+# 	@PYTHONPATH=/Users/vivek/Development/HelpMeSign $(VENV_PYTHON) src/helpmesign/modes/learn/hand_pose_editor.py
+
+run-hand:
+	@echo "🖐️ Starting GLB Viewer with hot reload (entr)..."
+	$(check_venv)
+	@which entr > /dev/null || (echo "❌ entr not found. Please install with: brew install entr" && exit 1)
+	@echo "glb_viewer.py" | entr -r $(VENV_PYTHON) glb_viewer.py
 
 test:
 	@echo "🧪 Running tests..."

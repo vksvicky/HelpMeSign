@@ -347,7 +347,7 @@ class HandPoseEditor(QWidget):
         header_layout.addWidget(self.lang_combo)
 
         self.letter_combo = QComboBox()
-        for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+        for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789":
             self.letter_combo.addItem(letter)
         self.letter_combo.setCurrentText("A")
         header_layout.addWidget(QLabel("Letter:"))
