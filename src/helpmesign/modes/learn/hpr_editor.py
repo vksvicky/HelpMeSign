@@ -91,9 +91,9 @@ class PoseManager(QObject):
         print("DEBUG: Creating neutral pose using natural pose service")
 
         # Load natural pose data from the service
-        from src.helpmesign.utils.natural_pose_service import get_natural_pose_service
+        from src.helpmesign.utils.natural_pose_service import NaturalPoseService
 
-        natural_pose_service = get_natural_pose_service()
+        natural_pose_service = NaturalPoseService()
         natural_pose_data = natural_pose_service.get_natural_pose_data()
 
         # Convert the natural pose values to JointPose objects
@@ -1227,40 +1227,6 @@ class SignLanguagePoseEditor(QWidget):
 
         except Exception as e:
             print(f"Error auto-populating joints list: {e}")
-
-    def load_current_pose_from_service(self):
-        """Load the current pose from pose_data_service into the pose manager."""
-        try:
-            # Import and get the pose from pose_data_service
-            from ...utils.pose_data_service import PoseDataService
-
-            pose_service = PoseDataService()
-            current_pose_data = pose_service.get_neutral_pose()
-
-            # Temporarily disconnect pose_changed signal to prevent applying to character
-            self.pose_manager.pose_changed.disconnect()
-
-            # Convert the pose data to JointPose objects
-            for joint_name, hpr_values in current_pose_data.joints.items():
-                if len(hpr_values) >= 3:
-                    h, p, r = hpr_values[0], hpr_values[1], hpr_values[2]
-                    joint_pose = JointPose(joint_name, h, p, r)
-                    self.pose_manager.set_pose(joint_name, joint_pose)
-
-            # Reconnect the signal
-            self.pose_manager.pose_changed.connect(self.on_pose_changed)
-
-            print(
-                f"Loaded current pose from pose_data_service for {len(current_pose_data.joints)} joints"
-            )
-
-        except Exception as e:
-            print(f"Error loading pose from service: {e}")
-            # Make sure to reconnect signal even if there's an error
-            try:
-                self.pose_manager.pose_changed.connect(self.on_pose_changed)
-            except:
-                pass
 
     def capture_current_pose_as_neutral(self, actor, available_joints):
         """Capture the current character pose and use it as the neutral pose."""

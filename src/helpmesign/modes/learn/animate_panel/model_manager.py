@@ -119,9 +119,9 @@ class ModelManager:
                 return
 
             # Load natural pose data from the service
-            from ....utils.natural_pose_service import get_natural_pose_service
+            from ....utils.natural_pose_service import NaturalPoseService
 
-            natural_pose_service = get_natural_pose_service()
+            natural_pose_service = NaturalPoseService()
             natural_pose_data = natural_pose_service.get_natural_pose_data()
 
             # Apply natural pose to the character

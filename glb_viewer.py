@@ -4,6 +4,7 @@ GLB Viewer with PySide6 UI and Offscreen Panda3D Rendering
 Based on the proven approach used in the main HelpMeSign app
 """
 
+from multiprocessing import parent_process
 import sys
 import os
 from pathlib import Path
@@ -61,7 +62,6 @@ except ImportError as e:
     print("Install with: pip install pygltflib")
     GLTF_AVAILABLE = False
 
-
 def build_joint_hierarchy(glb_path):
     """Extract joint hierarchy from GLB file using pygltflib."""
     if not GLTF_AVAILABLE:
@@ -111,19 +111,6 @@ def build_joint_hierarchy(glb_path):
     except Exception as e:
         print(f"Error extracting joint hierarchy: {e}")
         return None, None
-
-
-def print_joint_hierarchy(joint_hierarchy, root_joints, level=0):
-    """Print the joint hierarchy in a tree format."""
-    for root in root_joints:
-        joint = joint_hierarchy[root]
-        indent = "  " * level
-        print(f"{indent}{joint['name']} (index: {joint['index']})")
-        
-        if joint['children']:
-            print_joint_hierarchy(joint_hierarchy, joint['children'], level + 1)
-
-
 class GLBViewerWindow(QMainWindow):
     """Main window with PySide6 UI and embedded Panda3D rendering."""
     
@@ -154,10 +141,11 @@ class GLBViewerWindow(QMainWindow):
         
         # Initialize body part controls (HPR = Heading, Pitch, Roll; XYZ = Position)
         self.body_parts = {}
-        body_part_names = [
+        self.body_part_names = [
             'neck', 'spine',  # Single joints (hips removed due to persistent issues)
             'left_shoulder', 'right_shoulder',
-            'left_arm', 'right_arm', 'left_hand', 'right_hand',
+            'left_arm', 'right_arm', 'left_forearm', 'right_forearm',
+            'left_hand', 'right_hand',
             'left_fingers_thumb', 'right_fingers_thumb', 
             'left_fingers_index', 'right_fingers_index',
             'left_fingers_middle', 'right_fingers_middle', 
@@ -166,11 +154,23 @@ class GLBViewerWindow(QMainWindow):
             'left_leg', 'right_leg', 'left_foot', 'right_foot'
         ]
         
-        for part in body_part_names:
-            self.body_parts[part] = {
-                'hpr': [0.0, 0.0, 0.0],  # Heading, Pitch, Roll
-                'xyz': [0.0, 0.0, 0.0]   # X, Y, Z position
-            }
+        # Get natural pose data from service
+        from helpmesign.utils.natural_pose_service import NaturalPoseService
+        pose_service = NaturalPoseService()
+        natural_pose_data = pose_service.get_all_body_parts_pose()
+        
+        for part in self.body_part_names:
+            # Use natural pose values if available, otherwise default to zero
+            if part in natural_pose_data:
+                self.body_parts[part] = {
+                    'hpr': natural_pose_data[part]['hpr'].copy(),
+                    'xyz': natural_pose_data[part]['xyz'].copy()
+                }
+            else:
+                self.body_parts[part] = {
+                    'hpr': [0.0, 0.0, 0.0],  # Heading, Pitch, Roll
+                    'xyz': [0.0, 0.0, 0.0]   # X, Y, Z position
+                }
         
         # Create UI
         self.create_ui()
@@ -185,8 +185,13 @@ class GLBViewerWindow(QMainWindow):
         
     def get_default_values(self):
         """Get the default values for all controls."""
+        # Import NaturalPoseService to get body parts data
+        from helpmesign.utils.natural_pose_service import NaturalPoseService
+        pose_service = NaturalPoseService()
+        body_parts_data = pose_service.get_all_body_parts_pose()
+        
         return {
-            'camera_scale': 7.0,  # Back to working scale
+            'camera_scale': 6.5,
             'camera_distance': 9.0,  # Back to working distance
             'camera_x_rot': 0.0,
             'camera_y_rot': 1.0,  # Back to working rotation
@@ -194,9 +199,10 @@ class GLBViewerWindow(QMainWindow):
             'ambient_light': 0.3,
             'character_x': 0.0,
             'character_y': 3.0,  # Back to working position
-            'character_z': -5.0  # Back to working position
+            'character_z': -5.0,  # Back to working position
+            'body_parts': body_parts_data
         }
-        
+
     def create_ui(self):
         """Create the PySide6 UI with native system fonts."""
         central_widget = QWidget()
@@ -212,7 +218,7 @@ class GLBViewerWindow(QMainWindow):
         
         # Right panel - Controls
         self.create_control_panel(main_layout)
-        
+
     def create_viewer_panel(self, parent_layout):
         """Create the 3D viewer panel."""
         viewer_widget = QWidget()
@@ -234,7 +240,7 @@ class GLBViewerWindow(QMainWindow):
         viewer_layout.addWidget(self.display_label)
         
         parent_layout.addWidget(viewer_widget)
-        
+
     def create_control_panel(self, parent_layout):
         """Create the control panel with native system fonts."""
         control_widget = QWidget()
@@ -341,7 +347,7 @@ class GLBViewerWindow(QMainWindow):
         control_layout.addStretch()
         
         parent_layout.addWidget(control_widget)
-        
+
     def create_slider_control(self, layout, label_text, row, min_val, max_val, initial_value, callback):
         """Create a slider control with native system fonts."""
         # Label
@@ -368,7 +374,7 @@ class GLBViewerWindow(QMainWindow):
         value_name = label_text.lower().replace('-', '_').replace(' ', '_') + '_value'
         setattr(self, slider_name, slider)
         setattr(self, value_name, value_label)
-        
+
     def create_body_parts_table(self, parent_layout):
         """Create the body parts control table with HPR and XYZ controls in top-down layout."""
         # Create control group with consistent styling
@@ -408,6 +414,7 @@ class GLBViewerWindow(QMainWindow):
             ("Spine", "Spinal column movement"),
             ("Shoulder", "Shoulder joint rotation"),
             ("Arm", "Upper arm rotation"),
+            ("ForeArm", "Forearm rotation"),
             ("Hand", "Hand and wrist movement"),
             ("Fingers (Thumb)", "Thumb finger control"),
             ("Fingers (Index)", "Index finger control"),
@@ -480,7 +487,7 @@ class GLBViewerWindow(QMainWindow):
         
         parent_layout.addWidget(body_group)
         
-        
+
     def create_hpr_xyz_controls_with_labels(self, part_name, display_name):
         """Create HPR and XYZ controls for a body part with clear labels."""
         widget = QWidget()
@@ -545,11 +552,16 @@ class GLBViewerWindow(QMainWindow):
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(-1800)  # -180.0 * 10
             slider.setMaximum(1800)   # 180.0 * 10
-            slider.setValue(0)
+            
+            # Set initial value from natural pose data
+            initial_value = 0
+            if part_name in self.body_parts:
+                initial_value = int(self.body_parts[part_name]['hpr'][i] * 10)
+            slider.setValue(initial_value)
             slider.setFixedHeight(18)
             
             # Value label
-            value_label = QLabel("0.0")
+            value_label = QLabel(f"{initial_value / 10.0:.1f}")
             value_label.setStyleSheet("font-size: 8px; color: #777; min-width: 30px;")
             value_label.setFixedWidth(30)
             
@@ -566,7 +578,7 @@ class GLBViewerWindow(QMainWindow):
             # Store reference
             slider_name = f"{part_name}_hpr_{axis.lower()}_slider"
             setattr(self, slider_name, slider)
-            
+        
             control_layout.addWidget(slider)
             control_layout.addWidget(value_label)
             hpr_layout.addLayout(control_layout)
@@ -593,11 +605,16 @@ class GLBViewerWindow(QMainWindow):
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(-1800)  # -180.0 * 10
             slider.setMaximum(1800)   # 180.0 * 10
-            slider.setValue(0)
+            
+            # Set initial value from natural pose data
+            initial_value = 0
+            if part_name in self.body_parts:
+                initial_value = int(self.body_parts[part_name]['xyz'][i] * 10)
+            slider.setValue(initial_value)
             slider.setFixedHeight(18)
             
             # Value label
-            value_label = QLabel("0.0")
+            value_label = QLabel(f"{initial_value / 10.0:.1f}")
             value_label.setStyleSheet("font-size: 8px; color: #777; min-width: 30px;")
             value_label.setFixedWidth(30)
             
@@ -614,7 +631,7 @@ class GLBViewerWindow(QMainWindow):
             # Store reference
             slider_name = f"{part_name}_xyz_{axis.lower()}_slider"
             setattr(self, slider_name, slider)
-            
+        
             control_layout.addWidget(slider)
             control_layout.addWidget(value_label)
             xyz_layout.addLayout(control_layout)
@@ -622,45 +639,67 @@ class GLBViewerWindow(QMainWindow):
         layout.addLayout(xyz_layout)
         
         return widget
-    
+
     def reset_body_part(self, part_name):
-        """Reset a specific body part to its default values."""
+        """Reset a specific body part to its natural pose values."""
         if part_name not in self.body_parts:
             return
             
         try:
-            # Reset the body part values to zero
-            self.body_parts[part_name]['hpr'] = [0.0, 0.0, 0.0]
-            self.body_parts[part_name]['xyz'] = [0.0, 0.0, 0.0]
+            # Get natural pose values from service
+            from helpmesign.utils.natural_pose_service import NaturalPoseService
+            pose_service = NaturalPoseService()
+            natural_pose_data = pose_service.get_all_body_parts_pose()
             
-            # Reset all sliders to zero
-            for axis in ['h', 'p', 'r']:
+            # Reset to natural pose values if available, otherwise zero
+            if part_name in natural_pose_data:
+                self.body_parts[part_name]['hpr'] = natural_pose_data[part_name]['hpr'].copy()
+                self.body_parts[part_name]['xyz'] = natural_pose_data[part_name]['xyz'].copy()
+            else:
+                self.body_parts[part_name]['hpr'] = [0.0, 0.0, 0.0]
+                self.body_parts[part_name]['xyz'] = [0.0, 0.0, 0.0]
+            
+            # Reset all sliders to natural pose values
+            for i, axis in enumerate(['h', 'p', 'r']):
                 slider_name = f"{part_name}_hpr_{axis}_slider"
                 if hasattr(self, slider_name):
-                    getattr(self, slider_name).setValue(0)
+                    value = int(self.body_parts[part_name]['hpr'][i] * 10)  # Convert to slider scale
+                    getattr(self, slider_name).setValue(value)
             
-            for axis in ['x', 'y', 'z']:
+            for i, axis in enumerate(['x', 'y', 'z']):
                 slider_name = f"{part_name}_xyz_{axis}_slider"
                 if hasattr(self, slider_name):
-                    getattr(self, slider_name).setValue(0)
+                    value = int(self.body_parts[part_name]['xyz'][i] * 10)  # Convert to slider scale
+                    getattr(self, slider_name).setValue(value)
             
-            # Reset the joint to its original position if we have it stored
+            # Apply the natural pose values to the joint
             gltf_joint_name = self.get_gltf_joint_name(part_name)
-            if gltf_joint_name and hasattr(self, 'original_joint_positions'):
-                original_data = self.original_joint_positions.get(gltf_joint_name)
-                if original_data:
-                    try:
-                        joint = self.character.controlJoint(None, "modelRoot", gltf_joint_name)
-                        if joint and not joint.isEmpty():
-                            joint.setHpr(original_data['hpr'])
-                            joint.setPos(original_data['pos'])
-                            self.character.update()
-                    except Exception as e:
-                        print(f"Could not reset joint {gltf_joint_name}: {e}")
+            if gltf_joint_name and self.character:
+                try:
+                    joint = self.character.controlJoint(None, "modelRoot", gltf_joint_name)
+                    if joint and not joint.isEmpty():
+                        # Apply the natural pose HPR values
+                        hpr_values = self.body_parts[part_name]['hpr']
+                        joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
+                        
+                        # Apply XYZ values relative to original position
+                        original_pos = self.get_original_joint_position(gltf_joint_name)
+                        if original_pos:
+                            xyz_values = self.body_parts[part_name]['xyz']
+                            joint.setPos(
+                                original_pos[0] + xyz_values[0],
+                                original_pos[1] + xyz_values[1], 
+                                original_pos[2] + xyz_values[2]
+                            )
+                        
+                        self.character.update()
+                        print(f"Reset {part_name} to natural pose: HPR={hpr_values}, XYZ={xyz_values}")
+                except Exception as e:
+                    print(f"Could not reset joint {gltf_joint_name}: {e}")
                         
         except Exception as e:
             print(f"Error resetting body part {part_name}: {e}")
-        
+
     def update_body_part(self, part_name, control_type, axis_index, value):
         """Update a body part's HPR or XYZ value and apply it to the character."""
         if part_name in self.body_parts:
@@ -668,6 +707,7 @@ class GLBViewerWindow(QMainWindow):
             
             # Apply the transformation to the character
             self.apply_body_part_transform(part_name, control_type, axis_index, value)    
+    
     def apply_body_part_transform(self, part_name, control_type, axis_index, value):
         """Apply the body part transformation using controlJoint method like hand_pose_editor."""
         if not self.character:
@@ -771,52 +811,6 @@ class GLBViewerWindow(QMainWindow):
         
         return search_for_bone(self.character)
     
-    def apply_differentiated_transform(self, part_name, hpr_values, xyz_values):
-        """Apply differentiated transformations to create the illusion of individual control."""
-        # Get the base node (Beta_Joints or Armature)
-        base_node = self.character.find("**/Beta_Joints")
-        if not base_node or base_node.isEmpty():
-            base_node = self.character.find("**/Armature")
-        
-        if not base_node or base_node.isEmpty():
-            return
-        
-        # Create different transformation patterns for different body parts
-        # This simulates individual control by applying different scaling/offset patterns
-        transform_multipliers = {
-            'neck': (0.3, 0.3, 0.3, 0.0, 0.0, 0.0),      # Reduced transformation
-            'spine': (0.5, 0.5, 0.5, 0.0, 0.0, 0.0),     # Medium transformation
-            'left_shoulder': (0.4, 0.4, 0.4, -0.1, 0.0, 0.0),  # Left side offset
-            'right_shoulder': (0.4, 0.4, 0.4, 0.1, 0.0, 0.0),   # Right side offset
-            'left_arm': (0.6, 0.6, 0.6, -0.2, 0.0, 0.0),       # Left arm pattern
-            'right_arm': (0.6, 0.6, 0.6, 0.2, 0.0, 0.0),       # Right arm pattern
-            'left_hand': (0.8, 0.8, 0.8, -0.3, 0.0, 0.0),      # Left hand pattern
-            'right_hand': (0.8, 0.8, 0.8, 0.3, 0.0, 0.0),      # Right h    and pattern
-            'left_leg': (0.7, 0.7, 0.7, -0.1, 0.0, -0.1),      # Left leg pattern
-            'right_leg': (0.7, 0.7, 0.7, 0.1, 0.0, -0.1),      # Right leg pattern
-            'left_foot': (0.9, 0.9, 0.9, -0.2, 0.0, -0.2),     # Left foot pattern
-            'right_foot': (0.9, 0.9, 0.9, 0.2, 0.0, -0.2),     # Right foot pattern
-        }
-        
-        # Get the transformation pattern for this body part
-        pattern = transform_multipliers.get(part_name, (0.5, 0.5, 0.5, 0.0, 0.0, 0.0))
-        hpr_mult, xyz_mult, _, x_offset, y_offset, z_offset = pattern
-        
-        # Apply the differentiated transformation
-        base_node.setHpr(
-            hpr_values[0] * hpr_mult,
-            hpr_values[1] * hpr_mult, 
-            hpr_values[2] * hpr_mult
-        )
-        
-        # Apply position with offset
-        original_pos = self.get_original_joint_position(part_name)
-        if original_pos:
-            base_node.setPos(
-                original_pos[0] + (xyz_values[0] * xyz_mult) + x_offset,
-                original_pos[1] + (xyz_values[1] * xyz_mult) + y_offset,
-                original_pos[2] + (xyz_values[2] * xyz_mult) + z_offset
-            )
         
     
     def get_joint_name_from_part(self, part_name):
@@ -928,7 +922,7 @@ class GLBViewerWindow(QMainWindow):
             return parent_joint.getChild(0)
         
         return None
-    
+
     def get_gltf_joint_name(self, part_name):
         """Get the GLTF joint name for a body part."""
         gltf_mapping = {
@@ -938,6 +932,8 @@ class GLBViewerWindow(QMainWindow):
             'right_shoulder': 'mixamorig:RightShoulder',
             'left_arm': 'mixamorig:LeftArm',
             'right_arm': 'mixamorig:RightArm',
+            'left_forearm': 'mixamorig:LeftForeArm',
+            'right_forearm': 'mixamorig:RightForeArm',
             'left_hand': 'mixamorig:LeftHand',
             'right_hand': 'mixamorig:RightHand',
             'left_fingers_thumb': 'mixamorig:LeftHandThumb1',
@@ -956,7 +952,7 @@ class GLBViewerWindow(QMainWindow):
             'right_foot': 'mixamorig:RightFoot'
         }
         return gltf_mapping.get(part_name)
-    
+
     def find_joint_by_index(self, joint_index):
         """Find a Panda3D joint node by its GLTF index using skeleton system."""
         if not self.character:
@@ -1074,7 +1070,7 @@ class GLBViewerWindow(QMainWindow):
         
         # Set up lighting
         ambient_light = AmbientLight('ambient_light')
-        ambient_light.setColor(VBase4(0.5, 0.5, 0.5, 1))  # Brighter ambient
+        ambient_light.setColor(VBase4(self.ambient_light, self.ambient_light, self.ambient_light, 1))  # Use default ambient light value
         self.ambient_light_node = self.showbase.render.attachNewNode(ambient_light)
         self.showbase.render.setLight(self.ambient_light_node)
         
@@ -1084,9 +1080,11 @@ class GLBViewerWindow(QMainWindow):
         directional_light_node = self.showbase.render.attachNewNode(directional_light)
         self.showbase.render.setLight(directional_light_node)
         
-        # Set up camera
+        # Set up camera with default values
         self.camera = self.showbase.camera
-        self.camera.setPos(0, -8, 1)  # Lower camera to see full character height
+        # Apply default camera values
+        self.camera.setPos(0, -self.camera_distance, 1)
+        self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
         self.camera.lookAt(0, 0, 1)   # Look at character center height
         
         # Set camera lens for better view
@@ -1103,21 +1101,26 @@ class GLBViewerWindow(QMainWindow):
                 
             # Load as Actor instead of regular model to enable controlJoint
             self.character = Actor(glb_path)
-            
+        
             if not self.character:
                 print(f"Failed to load GLB file: {glb_path}")
                 return
-                
+        
             self.character.setPos(self.character_x, self.character_y, self.character_z)
             self.character.setHpr(0, 0, 0)  # Keep original orientation
-            self.character.setScale(3.0)    # Start at scale 3
+            self.character.setScale(self.camera_scale)    # Use default scale
             self.character.reparentTo(self.showbase.render)
+            
+            # Apply camera settings after character is loaded
+            if self.camera:
+                self.camera.setPos(0, -self.camera_distance, 1)
+                self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
             
             # Initialize original joint positions for body part controls
             self.initialize_joint_positions()
             
             # Apply natural pose if available
-            self.apply_natural_pose()
+            # self.apply_natural_pose()
             
         except Exception as e:
             print(f"Error loading GLB file: {e}")
@@ -1130,18 +1133,14 @@ class GLBViewerWindow(QMainWindow):
         self.original_joint_positions = {}
         
         # First, discover all available joints in the character
-        self.discover_joints()
+        # self.discover_joints()
         
-        # Store original positions for all body part joints
-        body_part_names = [
-            'neck', 'spine', 'left_shoulder', 'right_shoulder',
-            'left_arm', 'right_arm', 'left_hand', 'right_hand',
-            'left_fingers_thumb', 'right_fingers_thumb', 'left_fingers_index', 'right_fingers_index',
-            'left_fingers_middle', 'right_fingers_middle', 'left_fingers_ring', 'right_fingers_ring',
-            'left_fingers_pinky', 'right_fingers_pinky', 'left_leg', 'right_leg', 'left_foot', 'right_foot'
-        ]
+        # Get natural pose data
+        from helpmesign.utils.natural_pose_service import NaturalPoseService
+        pose_service = NaturalPoseService()
+        natural_pose = pose_service.get_natural_pose_data()
         
-        for part_name in body_part_names:
+        for part_name in self.body_part_names:
             gltf_joint_name = self.get_gltf_joint_name(part_name)
             if gltf_joint_name:
                 try:
@@ -1155,15 +1154,68 @@ class GLBViewerWindow(QMainWindow):
                             'hpr': original_hpr,
                             'pos': original_pos
                         }
-                        print(f"Initialized joint position for {gltf_joint_name}: HPR={original_hpr}, POS={original_pos}")
+                                                
+                        # Apply natural pose using slider values from self.body_parts
+                        # Find the corresponding body part for this joint
+                        body_part_name = None
+                        for part_name, part_gltf_name in [
+                            ('neck', 'mixamorig:Neck'),
+                            ('spine', 'mixamorig:Spine'),
+                            # ('left_shoulder', 'mixamorig:LeftShoulder'),
+                            # ('right_shoulder', 'mixamorig:RightShoulder'),
+                            ('left_arm', 'mixamorig:LeftArm'),
+                            ('right_arm', 'mixamorig:RightArm'),
+                            ('left_forearm', 'mixamorig:LeftForeArm'),
+                            ('right_forearm', 'mixamorig:RightForeArm'),
+                            ('left_hand', 'mixamorig:LeftHand'),
+                            ('right_hand', 'mixamorig:RightHand'),
+                            ('left_fingers_thumb', 'mixamorig:LeftHandThumb1'),
+                            ('right_fingers_thumb', 'mixamorig:RightHandThumb1'),
+                            ('left_fingers_index', 'mixamorig:LeftHandIndex1'),
+                            ('right_fingers_index', 'mixamorig:RightHandIndex1'),
+                            ('left_fingers_middle', 'mixamorig:LeftHandMiddle1'),
+                            ('right_fingers_middle', 'mixamorig:RightHandMiddle1'),
+                            ('left_fingers_ring', 'mixamorig:LeftHandRing1'),
+                            ('right_fingers_ring', 'mixamorig:RightHandRing1'),
+                            ('left_fingers_pinky', 'mixamorig:LeftHandPinky1'),
+                            ('right_fingers_pinky', 'mixamorig:RightHandPinky1'),
+                            # ('left_leg', 'mixamorig:LeftUpLeg'),
+                            # ('right_leg', 'mixamorig:RightUpLeg'),
+                            ('left_foot', 'mixamorig:LeftFoot'),
+                            ('right_foot', 'mixamorig:RightFoot')
+                        ]:
+                            if gltf_joint_name == part_gltf_name:
+                                body_part_name = part_name
+                                break
+                        
+                        # Apply slider values if we found a matching body part
+                        if body_part_name and body_part_name in self.body_parts:
+                            body_part_data = self.body_parts[body_part_name]
+                            hpr = body_part_data['hpr']
+                            xyz = body_part_data['xyz']
+                            
+                            # Apply HPR values
+                            joint.setHpr(hpr[0], hpr[1], hpr[2])
+                            
+                            # Apply XYZ values relative to original position
+                            original_pos = self.original_joint_positions[gltf_joint_name]['pos']
+                            joint.setPos(
+                                original_pos[0] + xyz[0],
+                                original_pos[1] + xyz[1], 
+                                original_pos[2] + xyz[2]
+                            )
+                                                        
                 except Exception as e:
                     print(f"Could not initialize position for {gltf_joint_name}: {e}")
+    
+        # Update the character after applying all natural poses
+        self.character.update()
+        print("Natural pose applied during initialization")
     
     def discover_joints(self):
         """Discover all joints in the character model using GLTF extraction."""
         if not self.character:
             return
-            
         
         # Try GLTF-based joint extraction first
         glb_path = os.path.join(os.path.dirname(__file__), "resources", "characters", "arivo.glb")
@@ -1197,9 +1249,6 @@ class GLBViewerWindow(QMainWindow):
                         self.gltf_to_panda_mapping[joint_name] = panda_node
                     else:
                         print(f"Could not find Panda3D node for GLTF joint: {joint_name}")
-            
-            
-            
         else:
             # Fallback to original Panda3D traversal
             self.discovered_joints = []
@@ -1207,7 +1256,7 @@ class GLBViewerWindow(QMainWindow):
             def traverse_node(node, depth=0, max_depth=10):
                 if depth > max_depth:
                     return
-                    
+            
                 indent = "  " * depth
                 node_name = node.getName()
                 if node_name and node_name != "Scene":
@@ -1249,7 +1298,7 @@ class GLBViewerWindow(QMainWindow):
                             joint = char_node.get_joint(j)                            
                         except:
                             pass
-                            
+                    
                 except Exception as e:
                     print(f"  Error accessing character: {e}")
             
@@ -1320,30 +1369,41 @@ class GLBViewerWindow(QMainWindow):
             
     def apply_natural_pose(self):
         """Apply a natural pose to the character."""
-        try:
-            from helpmesign.utils.natural_pose_service import NaturalPoseService
+        parent_process
+        # if not self.character:
+        #     return
             
-            pose_service = NaturalPoseService()
-            if hasattr(pose_service, 'get_natural_pose'):
-                natural_pose = pose_service.get_natural_pose()
+        # try:
+        #     # Set neck pose directly - very small value to avoid distortion
+        #     neck_joint = self.character.controlJoint(None, "modelRoot", "mixamorig:Neck")
+        #     if neck_joint and not neck_joint.isEmpty():
+        #         # Set a small neck pitch (4 degrees instead of 40)
+        #         neck_joint.setHpr(0, 40, 0)
                 
-                if natural_pose and self.character:
-                    for joint_name, pose_data in natural_pose.items():
-                        joint_node = self.character.find(f"**/{joint_name}")
-                        if not joint_node.isEmpty():
-                            if 'rotation' in pose_data:
-                                rotation = pose_data['rotation']
-                                joint_node.setHpr(rotation['x'], rotation['y'], rotation['z'])
-                            
-                            if 'position' in pose_data:
-                                position = pose_data['position']
-                                joint_node.setPos(position['x'], position['y'], position['z'])
-                                
-        except ImportError:
-            pass
-        except Exception as e:
-            print(f"Error applying natural pose: {e}")
+        #     from helpmesign.utils.natural_pose_service import NaturalPoseService
+        #     pose_service = NaturalPoseService()
+        #     natural_pose = pose_service.get_natural_pose_data()
             
+        #     if not natural_pose:
+        #         print("No natural pose data available")
+        #         return
+            
+        #     for joint_name, pose_data in natural_pose.items():
+        #         print("Debug: ", joint_name, pose_data);
+        #         joint = self.character.controlJoint(None, "modelRoot", joint_name)
+        #         if joint and not joint.isEmpty():
+        #             print("Debug: ", joint_name, pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2]);
+        #             # joint.setHpr(pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2])
+        #     #     joint = self.character.controlJoint(None, "modelRoot", joint_name)
+        #     #     if joint and not joint.isEmpty():
+        #     #         # print("Debug: ", joint.setHpr(pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2]));
+        #     #         print("Debug: ", joint_name, pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2]);
+        #     #         joint.setHpr(pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2])
+                
+        #     self.character.update()
+        # except Exception as e:
+        #     print(f"Error setting neck pose: {e}")
+
     def render_frame(self):
         """Render a frame from Panda3D and display it (same as learn module)."""
         if not self.panda_ready or not self.showbase:
@@ -1399,8 +1459,8 @@ class GLBViewerWindow(QMainWindow):
                         img = QImage(width, height, QImage.Format_RGBA8888)
                         
                         # Fill the QImage with PNMImage data
-                        for y in range(height):
-                            for x in range(width):
+                    for y in range(height):
+                        for x in range(width):
                                 r, g, b = pimg.getXelVal(x, y)
                                 r = max(0, min(255, int(r * 255)))
                                 g = max(0, min(255, int(g * 255))) 
@@ -1422,7 +1482,7 @@ class GLBViewerWindow(QMainWindow):
                         self.display_label.setPixmap(QPixmap.fromImage(display_img))
                 except Exception as e:
                     print(f"Error with screenshot fallback: {e}")
-                
+
         except Exception as e:
             print(f"Error rendering frame: {e}")
             
@@ -1433,63 +1493,60 @@ class GLBViewerWindow(QMainWindow):
             # Keep character at current position
             self.character.setPos(self.character_x, self.character_y, self.character_z)
             self.character.setScale(value)
-            # Keep camera at a fixed distance - don't move it based on scale
-            # The character will get larger/smaller but stay in frame
-            self.camera.setPos(0, -8, 1)
+            # Keep camera at current distance setting
+            self.camera.setPos(0, -self.camera_distance, 1)
         self.scale_value.setText(f"{value:.1f}")
-        
+
     def update_camera_distance(self, value):
         """Update camera distance."""
         self.camera_distance = value
         if self.camera:
             # Simple distance control - just move camera closer/further
-            # Base distance of 8, with slider range 2-15, so offset from 6 (middle)
-            adjusted_distance = 8 + (value - 6)  # Offset from default distance of 6
-            self.camera.setPos(0, -adjusted_distance, 1)
+            self.camera.setPos(0, -value, 1)
         self.distance_value.setText(f"{value:.1f}")
-        
+
     def update_character_x(self, value):
         """Update character X position."""
         self.character_x = value
         if self.character:
             self.character.setPos(value, self.character_y, self.character_z)
         self.pos_x_value.setText(f"{value:.1f}")
-        
+
     def update_character_y(self, value):
         """Update character Y position."""
         self.character_y = value
         if self.character:
             self.character.setPos(self.character_x, value, self.character_z)
         self.pos_y_value.setText(f"{value:.1f}")
-        
+
     def update_character_z(self, value):
         """Update character Z position."""
         self.character_z = value
         if self.character:
             self.character.setPos(self.character_x, self.character_y, value)
         self.pos_z_value.setText(f"{value:.1f}")
-        
+
     def update_camera_x_rot(self, value):
         """Update camera X rotation."""
         self.camera_x_rot = value
         if self.camera:
             self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
         self.x_rot_value.setText(f"{value:.1f}")
-        
+
     def update_camera_y_rot(self, value):
         """Update camera Y rotation."""
         self.camera_y_rot = value
         if self.camera:
             self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
         self.y_rot_value.setText(f"{value:.1f}")
-        
+
     def update_camera_z_rot(self, value):
         """Update camera Z rotation."""
         self.camera_z_rot = value
         if self.camera:
             self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
         self.z_rot_value.setText(f"{value:.1f}")
-        
+
     def update_ambient_light(self, value):
         """Update ambient light."""
         self.ambient_light = value
@@ -1499,7 +1556,7 @@ class GLBViewerWindow(QMainWindow):
             if light:
                 light.setColor(VBase4(value, value, value, 1))
         self.ambient_value.setText(f"{value:.1f}")
-        
+
     def reset_all_controls(self):
         """Reset all controls to their default values."""
         try:
@@ -1530,24 +1587,31 @@ class GLBViewerWindow(QMainWindow):
                 if hasattr(self, value_attr):
                     getattr(self, value_attr).setText(f"{value:.1f}")
             
-            # Reset all body part controls to zero
+            # Reset all body part controls to natural pose values
+            natural_pose_data = defaults['body_parts']
             for part_name in self.body_parts:
-                self.body_parts[part_name]['hpr'] = [0.0, 0.0, 0.0]
-                self.body_parts[part_name]['xyz'] = [0.0, 0.0, 0.0]
+                if part_name in natural_pose_data:
+                    self.body_parts[part_name]['hpr'] = natural_pose_data[part_name]['hpr'].copy()
+                    self.body_parts[part_name]['xyz'] = natural_pose_data[part_name]['xyz'].copy()
+                else:
+                    self.body_parts[part_name]['hpr'] = [0.0, 0.0, 0.0]
+                    self.body_parts[part_name]['xyz'] = [0.0, 0.0, 0.0]
             
-            # Reset all body part sliders to zero
+            # Reset all body part sliders to natural pose values
             for part_name in self.body_parts:
-                # Reset HPR sliders
-                for axis in ['h', 'p', 'r']:
+                # Reset HPR sliders to natural pose values
+                for i, axis in enumerate(['h', 'p', 'r']):
                     slider_attr = f"{part_name}_hpr_{axis}_slider"
                     if hasattr(self, slider_attr):
-                        getattr(self, slider_attr).setValue(0)
+                        value = int(self.body_parts[part_name]['hpr'][i] * 10)  # Convert to slider scale
+                        getattr(self, slider_attr).setValue(value)
                 
-                # Reset XYZ sliders
-                for axis in ['x', 'y', 'z']:
+                # Reset XYZ sliders to natural pose values
+                for i, axis in enumerate(['x', 'y', 'z']):
                     slider_attr = f"{part_name}_xyz_{axis}_slider"
                     if hasattr(self, slider_attr):
-                        getattr(self, slider_attr).setValue(0)
+                        value = int(self.body_parts[part_name]['xyz'][i] * 10)  # Convert to slider scale
+                        getattr(self, slider_attr).setValue(value)
             
             # Reset all joints to their original positions and rotations
             if self.character and hasattr(self, 'original_joint_positions'):
@@ -1569,19 +1633,19 @@ class GLBViewerWindow(QMainWindow):
             if self.character:
                 self.character.setPos(self.character_x, self.character_y, self.character_z)
                 self.character.setScale(self.camera_scale)
-                
+            
             if self.camera:
-                self.camera.setPos(0, -8, 1)
+                self.camera.setPos(0, -self.camera_distance, 1)
                 self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
-                
+            
             if self.ambient_light_node:
                 light = self.ambient_light_node.node()
                 if light:
                     light.setColor(VBase4(self.ambient_light, self.ambient_light, self.ambient_light, 1))
-                    
+            
         except Exception as e:
             print(f"Error in reset function: {e}")
-            
+
     def export_values(self):
         """Export current control values to clipboard and console."""
         try:
@@ -1636,7 +1700,7 @@ class GLBViewerWindow(QMainWindow):
                 print("✅ Values copied to clipboard!")
             except Exception as e:
                 print(f"⚠️  Could not copy to clipboard: {e}")
-                
+            
         except Exception as e:
             print(f"Error exporting values: {e}")
 

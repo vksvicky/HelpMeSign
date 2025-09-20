@@ -14,7 +14,6 @@ from src.helpmesign.utils.joint_constraints import (
     JointConstraintValidator,
     joint_validator,
 )
-from src.helpmesign.utils.pose_data_service import PoseData, PoseDataService
 
 
 class TestBSLAccuracy:

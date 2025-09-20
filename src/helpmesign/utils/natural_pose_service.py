@@ -1,23 +1,22 @@
 """
-Natural Pose Service - Centralized source of truth for character natural pose values.
-Provides consistent natural pose data across all components.
+Natural Pose Service
+
+This service provides the natural pose data for the character.
+The natural pose is a hands-down relaxed stance.
 """
 
 from typing import Any, Dict
 
 
 class NaturalPoseService:
-    """Service providing centralized natural pose values for the character."""
-
-    # Singleton instance
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    """Service to manage natural pose data for character."""
 
     def __init__(self):
+        """Initialize the natural pose service."""
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize the service if not already done."""
         if hasattr(self, "_initialized"):
             return
         self._initialized = True
@@ -26,229 +25,119 @@ class NaturalPoseService:
     def _create_natural_pose_data(self) -> Dict[str, Dict[str, Any]]:
         """Create the natural pose data for the character (hands-down pose)."""
         return {
-            "mixamorig:Hips": {"hpr": [-90.0, -90.0, -87.0], "pos": [-0.0, 104.3, 1.6]},
-            "mixamorig:Spine": {"hpr": [0.0, 0.0, -5.0], "pos": [-0.0, 0.0, 10.2]},
-            "mixamorig:Spine1": {"hpr": [0.0, -0.0, 0.0], "pos": [-0.0, -0.0, 10.0]},
-            "mixamorig:Spine2": {"hpr": [0.0, 0.0, 0.0], "pos": [-0.0, 0.0, 9.3]},
-            "mixamorig:Neck": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 16.9]},
-            "mixamorig:Head": {"hpr": [0.0, 0.0, 0.0], "pos": [-0.0, -2.8, 9.3]},
-            "mixamorig:RightShoulder": {
-                "hpr": [128.0, 75.0, 130.0],
-                "pos": [-4.6, 0.8, 11.2],
-            },
-            "mixamorig:RightArm": {
-                "hpr": [-55.0, 40.0, 60.0],
-                "pos": [0.0, -0.0, 10.8],
-            },
-            "mixamorig:RightForeArm": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [-0.0, 0.0, 27.8],
-            },
-            "mixamorig:RightHand": {
-                "hpr": [30.0, 5.0, 0.0],
-                "pos": [0.0, -0.0, 28.3],
-            },
-            # Right hand fingers - natural relaxed position (straight, slightly spread)
-            "mixamorig:RightHandThumb1": {
-                "hpr": [0.0, 25.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandThumb2": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandThumb3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandThumb4": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandIndex1": {
-                "hpr": [0.0, 10.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandIndex2": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandIndex3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandIndex4": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandMiddle1": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandMiddle2": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandMiddle3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandMiddle4": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandRing1": {
-                "hpr": [0.0, 30.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandRing2": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandRing3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandRing4": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandPinky1": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandPinky2": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandPinky3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:RightHandPinky4": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftShoulder": {
-                "hpr": [-123.9, 74.1, -139.7],
-                "pos": [4.6, 0.8, 11.2],
-            },
-            "mixamorig:LeftArm": {
-                "hpr": [48.6, 44.4, -52.1],
-                "pos": [-0.0, -0.0, 10.8],
-            },
-            "mixamorig:LeftForeArm": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [-0.0, 0.0, 27.8],
-            },
-            "mixamorig:LeftHand": {
-                "hpr": [-40.0, 0.0, 0.0],
-                "pos": [0.0, -0.0, 28.3],
-            },
-            # Left hand fingers - natural relaxed position (straight, slightly spread)
+            "mixamorig:Hips": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:Spine": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:Head": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:Neck": {"hpr": [0.0, 40.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:LeftShoulder": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightShoulder": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:LeftArm": {"hpr": [0.0, 72.9, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightArm": {"hpr": [0.0, 72.9, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:LeftForeArm": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightForeArm": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:LeftHand": {"hpr": [15.6, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightHand": {"hpr": [-15.6, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:LeftHandThumb1": {
                 "hpr": [0.0, 20.0, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
-            "mixamorig:LeftHandThumb2": {
-                "hpr": [0.0, 10.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftHandThumb3": {
-                "hpr": [0.0, 30.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftHandThumb4": {
+            "mixamorig:RightHandThumb1": {
                 "hpr": [0.0, 20.0, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftHandIndex1": {
-                "hpr": [0.0, 25.0, 0.0],
+                "hpr": [0.0, 8.6, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
-            "mixamorig:LeftHandIndex2": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftHandIndex3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftHandIndex4": {
-                "hpr": [0.0, 0.0, 0.0],
+            "mixamorig:RightHandIndex1": {
+                "hpr": [0.0, 8.6, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftHandMiddle1": {
-                "hpr": [0.0, 10.0, 0.0],
+                "hpr": [0.0, 33.3, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
-            "mixamorig:LeftHandMiddle2": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftHandMiddle3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftHandMiddle4": {
-                "hpr": [0.0, 0.0, 0.0],
+            "mixamorig:RightHandMiddle1": {
+                "hpr": [0.0, 35.2, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftHandRing1": {
-                "hpr": [0.0, 30.0, 0.0],
+                "hpr": [0.0, 38.6, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
-            "mixamorig:LeftHandRing2": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:LeftHandRing3": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:LeftHandRing4": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightHandRing1": {
+                "hpr": [0.0, 12.9, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
             "mixamorig:LeftHandPinky1": {
-                "hpr": [0.0, 0.0, 0.0],
+                "hpr": [0.0, 55.7, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
-            "mixamorig:LeftHandPinky2": {
-                "hpr": [0.0, 0.0, 0.0],
+            "mixamorig:RightHandPinky1": {
+                "hpr": [0.0, 42.9, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
-            "mixamorig:LeftHandPinky3": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
-            "mixamorig:LeftHandPinky4": {
-                "hpr": [0.0, 0.0, 0.0],
-                "pos": [0.0, 0.0, 0.0],
-            },
+            "mixamorig:LeftUpLeg": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightUpLeg": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:LeftFoot": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightFoot": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
         }
 
     def get_natural_pose_data(self) -> Dict[str, Dict[str, Any]]:
-        """Get the natural pose data."""
+        """Get the natural pose data in mixamorig format."""
         return self._natural_pose_data.copy()
 
-    def get_natural_pose_hpr(self, joint_name: str) -> tuple[float, float, float]:
-        """Get the natural HPR values for a specific joint."""
-        if joint_name in self._natural_pose_data:
-            hpr = self._natural_pose_data[joint_name]["hpr"]
-            return (float(hpr[0]), float(hpr[1]), float(hpr[2]))
-        return (0.0, 0.0, 0.0)
+    def get_all_body_parts_pose(self) -> Dict[str, Dict[str, Any]]:
+        """Get pose data for all body parts using internal GLB viewer naming."""
+        # Mapping from GLB viewer internal names to mixamorig names
+        body_part_mapping = {
+            "hips": "mixamorig:Hips",
+            "spine": "mixamorig:Spine",
+            "head": "mixamorig:Head",
+            "neck": "mixamorig:Neck",
+            "left_shoulder": "mixamorig:LeftShoulder",
+            "right_shoulder": "mixamorig:RightShoulder",
+            "left_arm": "mixamorig:LeftArm",
+            "right_arm": "mixamorig:RightArm",
+            "left_forearm": "mixamorig:LeftForeArm",
+            "right_forearm": "mixamorig:RightForeArm",
+            "left_hand": "mixamorig:LeftHand",
+            "right_hand": "mixamorig:RightHand",
+            "left_fingers_thumb": "mixamorig:LeftHandThumb1",
+            "right_fingers_thumb": "mixamorig:RightHandThumb1",
+            "left_fingers_index": "mixamorig:LeftHandIndex1",
+            "right_fingers_index": "mixamorig:RightHandIndex1",
+            "left_fingers_middle": "mixamorig:LeftHandMiddle1",
+            "right_fingers_middle": "mixamorig:RightHandMiddle1",
+            "left_fingers_ring": "mixamorig:LeftHandRing1",
+            "right_fingers_ring": "mixamorig:RightHandRing1",
+            "left_fingers_pinky": "mixamorig:LeftHandPinky1",
+            "right_fingers_pinky": "mixamorig:RightHandPinky1",
+            "left_leg": "mixamorig:LeftUpLeg",
+            "right_leg": "mixamorig:RightUpLeg",
+            "left_foot": "mixamorig:LeftFoot",
+            "right_foot": "mixamorig:RightFoot",
+        }
 
-    def get_natural_pose_pos(self, joint_name: str) -> tuple[float, float, float]:
-        """Get the natural position values for a specific joint."""
-        if joint_name in self._natural_pose_data:
-            pos = self._natural_pose_data[joint_name]["pos"]
-            return (float(pos[0]), float(pos[1]), float(pos[2]))
-        return (0.0, 0.0, 0.0)
+        pose_data = {}
+        for body_part, mixamorig_name in body_part_mapping.items():
+            if mixamorig_name in self._natural_pose_data:
+                data = self._natural_pose_data[mixamorig_name]
+                pose_data[body_part] = {
+                    "hpr": data["hpr"].copy(),
+                    "xyz": data[
+                        "pos"
+                    ].copy(),  # Using 'xyz' for GLB viewer compatibility
+                }
+            else:
+                # Return default values if not found
+                pose_data[body_part] = {"hpr": [0.0, 0.0, 0.0], "xyz": [0.0, 0.0, 0.0]}
 
-    def has_joint(self, joint_name: str) -> bool:
-        """Check if a joint exists in the natural pose data."""
-        return joint_name in self._natural_pose_data
+        return pose_data
 
-
-# Global instance for easy access
-_natural_pose_service = None
-
-
-def get_natural_pose_service() -> NaturalPoseService:
-    """Get the global natural pose service instance."""
-    global _natural_pose_service
-    if _natural_pose_service is None:
-        _natural_pose_service = NaturalPoseService()
-    return _natural_pose_service
+    def get_pose_for_body_part(self, body_part: str) -> Dict[str, Any]:
+        """Get pose data for a specific body part using internal GLB viewer naming."""
+        all_poses = self.get_all_body_parts_pose()
+        return all_poses.get(
+            body_part, {"hpr": [0.0, 0.0, 0.0], "xyz": [0.0, 0.0, 0.0]}
+        )
