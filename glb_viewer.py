@@ -7,8 +7,9 @@ Based on the proven approach used in the main HelpMeSign app
 from multiprocessing import parent_process
 import sys
 import os
+import json
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, Dict, List
 
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -29,6 +30,7 @@ try:
         QWidget,
         QGroupBox,
         QGridLayout,
+        QComboBox,
     )
 except ImportError as e:
     print(f"Error importing PySide6: {e}")
@@ -139,6 +141,11 @@ class GLBViewerWindow(QMainWindow):
         self.character_y = defaults['character_y']
         self.character_z = defaults['character_z']
         
+        # Load language and sign data
+        self.available_languages = self.load_available_languages()
+        self.current_language = "ASL"  # Default language
+        self.available_signs = self.load_available_signs(self.current_language)
+        
         # Initialize body part controls (HPR = Heading, Pitch, Roll; XYZ = Position)
         self.body_parts = {}
         self.body_part_names = [
@@ -203,6 +210,92 @@ class GLBViewerWindow(QMainWindow):
             'body_parts': body_parts_data
         }
 
+    def load_available_languages(self) -> List[Dict]:
+        """Load available sign languages from languages.json."""
+        try:
+            languages_path = os.path.join(os.path.dirname(__file__), "resources", "data", "languages.json")
+            with open(languages_path, 'r', encoding='utf-8') as f:
+                languages = json.load(f)
+            return languages
+        except Exception as e:
+            print(f"Error loading languages: {e}")
+            return []
+
+
+    def load_available_signs(self, language_code: str) -> Dict[str, Dict]:
+        """Load available signs for a given language based on its hand support."""
+        try:
+            signs_path = os.path.join(os.path.dirname(__file__), "resources", "data", "signs", language_code.lower())
+            signs = {}
+            
+            if not os.path.exists(signs_path):
+                return signs
+            
+            # Get language metadata to determine hand support
+            language_info = self.get_language_info(language_code)
+            hand_support = language_info.get('handSupport', 'single') if language_info else 'single'
+            
+            if hand_support == 'both':
+                # For languages that support both hands, look for single combined file
+                # e.g., bsl_hand.json
+                combined_file = os.path.join(signs_path, f"{language_code.lower()}_hand.json")
+                if os.path.exists(combined_file):
+                    self._load_hand_data(combined_file, 'both', signs)
+                else:
+                    print(f"Combined hand file not found for {language_code}: {combined_file}")
+            else:
+                # For single hand languages, look for separate left/right files
+                # e.g., asl_left_hand.json, asl_right_hand.json
+                # Prefer right hand, fallback to left
+                for hand in ["right", "left"]:
+                    hand_file = os.path.join(signs_path, f"{language_code.lower()}_{hand}_hand.json")
+                    if os.path.exists(hand_file):
+                        self._load_hand_data(hand_file, hand, signs)
+                        break  # Only load one hand for single hand languages
+            
+            return signs
+        except Exception as e:
+            print(f"Error loading signs for {language_code}: {e}")
+            return {}
+
+    def get_language_info(self, language_code: str) -> Dict:
+        """Get language information from the available languages."""
+        for lang in self.available_languages:
+            if lang.get('code') == language_code:
+                return lang.get('metadata', {})
+        return {}
+
+    def _load_hand_data(self, hand_file: str, hand: str, signs: Dict):
+        """Helper method to load sign data from a hand file."""
+        with open(hand_file, 'r', encoding='utf-8') as f:
+            hand_data = json.load(f)
+            
+            # Load alphabet letters
+            if 'alphabet' in hand_data:
+                for letter, data in hand_data['alphabet'].items():
+                    sign_key = letter  # Default: just use the letter/number
+                    
+                    signs[sign_key] = {
+                        'letter': letter,
+                        'hand': hand,
+                        'pose': data.get('pose', {}),
+                        'description': data.get('description', ''),
+                        'instructions': data.get('instructions', '')
+                    }
+            
+            # Load numbers
+            if 'numbers' in hand_data:
+                for number, data in hand_data['numbers'].items():
+                    sign_key = number  # Default: just use the letter/number
+                    
+                    signs[sign_key] = {
+                        'letter': number,
+                        'hand': hand,
+                        'pose': data.get('pose', {}),
+                        'description': data.get('description', ''),
+                        'instructions': data.get('instructions', '')
+                    }
+
     def create_ui(self):
         """Create the PySide6 UI with native system fonts."""
         central_widget = QWidget()
@@ -250,7 +343,7 @@ class GLBViewerWindow(QMainWindow):
         # Title and Export button row
         title_row = QHBoxLayout()
         
-        title_label = QLabel("Camera Controls")
+        title_label = QLabel("GLB Viewer Controls")
         title_label.setStyleSheet("""
             QLabel {
                 font-size: 18px;
@@ -284,6 +377,9 @@ class GLBViewerWindow(QMainWindow):
         title_row.addWidget(export_button)
         
         control_layout.addLayout(title_row)
+        
+        # Add sign language selection controls
+        self.create_selection_controls(control_layout)
         
         # Create control group
         control_group = QGroupBox("Camera Settings")
@@ -347,6 +443,126 @@ class GLBViewerWindow(QMainWindow):
         control_layout.addStretch()
         
         parent_layout.addWidget(control_widget)
+
+    def create_selection_controls(self, parent_layout):
+        """Create sign language, character, and sign selection dropdowns."""
+        selection_group = QGroupBox("Sign Language Selection")
+        selection_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #ccc;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        
+        selection_layout = QVBoxLayout(selection_group)
+        
+        # Language selection
+        lang_layout = QHBoxLayout()
+        lang_label = QLabel("Language:")
+        lang_label.setStyleSheet("font-size: 12px; color: #555; min-width: 70px;")
+        lang_layout.addWidget(lang_label)
+        
+        self.language_combo = QComboBox()
+        self.language_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 4px;
+                font-size: 11px;
+            }
+        """)
+        for lang in self.available_languages:
+            display_name = f"{lang['flag']} {lang['name']} ({lang['code']})"
+            self.language_combo.addItem(display_name, lang['code'])
+        
+        # Set default selection
+        for i in range(self.language_combo.count()):
+            if self.language_combo.itemData(i) == self.current_language:
+                self.language_combo.setCurrentIndex(i)
+                break
+        
+        self.language_combo.currentTextChanged.connect(self.on_language_changed)
+        lang_layout.addWidget(self.language_combo)
+        selection_layout.addLayout(lang_layout)
+        
+        # Sign selection
+        sign_layout = QHBoxLayout()
+        sign_label = QLabel("Sign:")
+        sign_label.setStyleSheet("font-size: 12px; color: #555; min-width: 70px;")
+        sign_layout.addWidget(sign_label)
+        
+        self.sign_combo = QComboBox()
+        self.sign_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                padding: 4px;
+                font-size: 11px;
+            }
+        """)
+        self.populate_signs_combo()
+        self.sign_combo.currentTextChanged.connect(self.on_sign_changed)
+        sign_layout.addWidget(self.sign_combo)
+        selection_layout.addLayout(sign_layout)
+        
+        # Buttons layout
+        buttons_layout = QHBoxLayout()
+        
+        # Apply Sign button
+        apply_button = QPushButton("Apply Sign")
+        apply_button.clicked.connect(self.apply_selected_sign)
+        apply_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #1565C0;
+            }
+        """)
+        buttons_layout.addWidget(apply_button)
+        
+        # Test Joint Control button
+        test_button = QPushButton("Test Joint")
+        test_button.clicked.connect(self.test_basic_joint_control)
+        test_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+            QPushButton:pressed {
+                background-color: #EF6C00;
+            }
+        """)
+        buttons_layout.addWidget(test_button)
+        
+        selection_layout.addLayout(buttons_layout)
+        
+        parent_layout.addWidget(selection_group)
 
     def create_slider_control(self, layout, label_text, row, min_val, max_val, initial_value, callback):
         """Create a slider control with native system fonts."""
@@ -1703,6 +1919,256 @@ class GLBViewerWindow(QMainWindow):
             
         except Exception as e:
             print(f"Error exporting values: {e}")
+
+    def populate_signs_combo(self):
+        """Populate the signs combo box with available signs for the current language."""
+        self.sign_combo.clear()
+        self.sign_combo.addItem("-- Select a Sign --", None)
+        
+        # Separate letters and numbers for better sorting
+        letters = {k: v for k, v in self.available_signs.items() if k.isalpha()}
+        numbers = {k: v for k, v in self.available_signs.items() if k.isdigit()}
+        
+        # Sort letters alphabetically and numbers numerically
+        sorted_letters = sorted(letters.items(), key=lambda x: x[0])
+        sorted_numbers = sorted(numbers.items(), key=lambda x: int(x[0]))
+        
+        # Add numbers first (0-9), then letters (A-Z)
+        for number, sign_data in sorted_numbers:
+            self.sign_combo.addItem(number, sign_data)
+        
+        for letter, sign_data in sorted_letters:
+            self.sign_combo.addItem(letter, sign_data)
+
+    def on_language_changed(self):
+        """Handle language selection change."""
+        current_data = self.language_combo.currentData()
+        if current_data:
+            self.current_language = current_data
+            self.available_signs = self.load_available_signs(self.current_language)
+            self.populate_signs_combo()
+            print(f"Language changed to: {self.current_language}")
+
+
+    def on_sign_changed(self):
+        """Handle sign selection change."""
+        current_data = self.sign_combo.currentData()
+        if current_data:
+            # Update description or show instructions
+            instructions = current_data.get('instructions', '')
+            description = current_data.get('description', '')
+            if instructions or description:
+                print(f"Sign: {current_data.get('letter', 'Unknown')}")
+                if description:
+                    print(f"Description: {description}")
+                if instructions:
+                    print(f"Instructions: {instructions}")
+
+    def apply_selected_sign(self):
+        """Apply the selected sign pose to the character."""
+        current_data = self.sign_combo.currentData()
+        if not current_data or not self.character:
+            print("❌ No sign selected or character not loaded")
+            return
+        
+        pose_data = current_data.get('pose', {})
+        if not pose_data:
+            print("❌ No pose data available for selected sign")
+            return
+        
+        print(f"🎭 Applying sign: {current_data.get('letter', 'Unknown')} ({current_data.get('hand', 'unknown')} hand)")
+        print(f"📝 Pose has {len(pose_data)} joint definitions")
+        
+        # Debug: Check if character is loaded properly
+        if self.character:
+            print(f"✅ Character loaded: {type(self.character)}")
+        else:
+            print("❌ Character is None!")
+            return
+        
+        # First, reset to natural pose to ensure we start from a clean state
+        print("🔄 Resetting to natural pose first...")
+        self.reset_to_natural_pose_for_sign()
+        
+        # Apply pose to character joints (SAFE MODE - skip problematic joints)
+        applied_count = 0
+        not_found_count = 0
+        error_count = 0
+        skipped_count = 0
+        
+        # Define safe joints (arms, hands, fingers only - skip shoulders, legs, spine)
+        safe_joints = [
+            'mixamorig:RightArm', 'mixamorig:LeftArm',
+            'mixamorig:RightForeArm', 'mixamorig:LeftForeArm', 
+            'mixamorig:RightHand', 'mixamorig:LeftHand',
+            # All finger joints
+            'mixamorig:RightHandThumb1', 'mixamorig:RightHandThumb2', 'mixamorig:RightHandThumb3', 'mixamorig:RightHandThumb4',
+            'mixamorig:LeftHandThumb1', 'mixamorig:LeftHandThumb2', 'mixamorig:LeftHandThumb3', 'mixamorig:LeftHandThumb4',
+            'mixamorig:RightHandIndex1', 'mixamorig:RightHandIndex2', 'mixamorig:RightHandIndex3', 'mixamorig:RightHandIndex4',
+            'mixamorig:LeftHandIndex1', 'mixamorig:LeftHandIndex2', 'mixamorig:LeftHandIndex3', 'mixamorig:LeftHandIndex4',
+            'mixamorig:RightHandMiddle1', 'mixamorig:RightHandMiddle2', 'mixamorig:RightHandMiddle3', 'mixamorig:RightHandMiddle4',
+            'mixamorig:LeftHandMiddle1', 'mixamorig:LeftHandMiddle2', 'mixamorig:LeftHandMiddle3', 'mixamorig:LeftHandMiddle4',
+            'mixamorig:RightHandRing1', 'mixamorig:RightHandRing2', 'mixamorig:RightHandRing3', 'mixamorig:RightHandRing4',
+            'mixamorig:LeftHandRing1', 'mixamorig:LeftHandRing2', 'mixamorig:LeftHandRing3', 'mixamorig:LeftHandRing4',
+            'mixamorig:RightHandPinky1', 'mixamorig:RightHandPinky2', 'mixamorig:RightHandPinky3', 'mixamorig:RightHandPinky4',
+            'mixamorig:LeftHandPinky1', 'mixamorig:LeftHandPinky2', 'mixamorig:LeftHandPinky3', 'mixamorig:LeftHandPinky4'
+        ]
+        
+        for joint_name, hpr_values in pose_data.items():
+            # Skip problematic joints that cause major distortions
+            if joint_name not in safe_joints:
+                print(f"⚠️ Skipped {joint_name}: Not in safe joints list")
+                skipped_count += 1
+                continue
+                
+            try:
+                # Use controlJoint method like the body part controls
+                joint = self.character.controlJoint(None, "modelRoot", joint_name)
+                if joint and not joint.isEmpty():
+                    # Apply HPR values (assuming pose data is in [H, P, R] format)
+                    if isinstance(hpr_values, list) and len(hpr_values) >= 3:
+                        # Store original values for comparison
+                        original_hpr = joint.getHpr()
+                        joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
+                        new_hpr = joint.getHpr()
+                        applied_count += 1
+                        print(f"✅ {joint_name}: {hpr_values} (was: {[round(x, 1) for x in original_hpr]}, now: {[round(x, 1) for x in new_hpr]})")
+                    else:
+                        print(f"❌ Invalid pose data for {joint_name}: {hpr_values}")
+                        error_count += 1
+                else:
+                    print(f"❌ Joint not found: {joint_name}")
+                    not_found_count += 1
+            except Exception as e:
+                print(f"❌ Error applying pose to {joint_name}: {e}")
+                error_count += 1
+        
+        # Summary
+        print(f"\n📊 Pose Application Results:")
+        print(f"  ✅ Applied: {applied_count}")
+        print(f"  ⚠️ Skipped: {skipped_count} (problematic joints)")
+        print(f"  ❌ Not found: {not_found_count}")
+        print(f"  ❌ Errors: {error_count}")
+        print(f"  📈 Safe joints success rate: {applied_count / (len(pose_data) - skipped_count) * 100:.1f}%" if (len(pose_data) - skipped_count) > 0 else "  📈 No safe joints to apply")
+        
+        if applied_count > 0:
+            # Update the character
+            self.character.update()
+            print(f"🔄 Character updated with {applied_count} joint changes")
+            
+            # Adjust camera to better see the sign (rotate around character)
+            if self.camera:
+                # Rotate camera to see the character from the front-right angle
+                self.camera.setPos(2, -self.camera_distance, 1)  # Move slightly to the right
+                self.camera.lookAt(0, 0, 1)  # Look at character center
+                print("📷 Adjusted camera to better view the sign")
+            
+            # Force a render update
+            if hasattr(self, 'render_frame'):
+                self.render_frame()
+                print("🎬 Forced render update")
+        else:
+            print("❌ No joints were successfully updated - character pose unchanged")
+
+    def reset_to_natural_pose_for_sign(self):
+        """Reset character to natural pose before applying a sign."""
+        try:
+            # Get natural pose data
+            from helpmesign.utils.natural_pose_service import NaturalPoseService
+            pose_service = NaturalPoseService()
+            natural_pose_data = pose_service.get_all_body_parts_pose()
+            
+            reset_count = 0
+            for part_name in self.body_part_names:
+                gltf_joint_name = self.get_gltf_joint_name(part_name)
+                if gltf_joint_name and part_name in natural_pose_data:
+                    try:
+                        joint = self.character.controlJoint(None, "modelRoot", gltf_joint_name)
+                        if joint and not joint.isEmpty():
+                            hpr_values = natural_pose_data[part_name]['hpr']
+                            joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
+                            reset_count += 1
+                    except Exception as e:
+                        print(f"❌ Error resetting {gltf_joint_name}: {e}")
+            
+            if reset_count > 0:
+                self.character.update()
+                print(f"✅ Reset {reset_count} joints to natural pose")
+            else:
+                print("❌ No joints were reset")
+                
+        except Exception as e:
+            print(f"❌ Error during natural pose reset: {e}")
+
+    def test_basic_joint_control(self):
+        """Test basic joint control to verify the system is working."""
+        print("🧪 Testing basic joint control...")
+        
+        if not self.character:
+            print("❌ No character loaded")
+            return False
+        
+        # Test with multiple joints to make changes more visible
+        test_joints = {
+            "mixamorig:RightArm": [45, 0, 0],  # Raise right arm
+            "mixamorig:RightForeArm": [0, 45, 0],  # Bend elbow
+            "mixamorig:RightHand": [0, 0, 45]  # Rotate hand
+        }
+        
+        print("🎭 Applying dramatic test pose...")
+        applied_joints = []
+        
+        for joint_name, test_hpr in test_joints.items():
+            try:
+                joint = self.character.controlJoint(None, "modelRoot", joint_name)
+                if joint and not joint.isEmpty():
+                    # Store original values
+                    original_hpr = joint.getHpr()
+                    applied_joints.append((joint, original_hpr))
+                    
+                    # Apply dramatic test change
+                    joint.setHpr(test_hpr[0], test_hpr[1], test_hpr[2])
+                    print(f"✅ {joint_name}: {test_hpr} (was: {[round(x, 1) for x in original_hpr]})")
+                else:
+                    print(f"❌ Joint {joint_name} not found or empty")
+                    
+            except Exception as e:
+                print(f"❌ Error testing joint {joint_name}: {e}")
+        
+        if applied_joints:
+            # Update character
+            self.character.update()
+            
+            # Adjust camera for better view
+            if self.camera:
+                self.camera.setPos(3, -self.camera_distance, 2)  # Move to see the right arm
+                self.camera.lookAt(0, 0, 1)
+                print("📷 Adjusted camera to see test pose")
+            
+            # Force render
+            if hasattr(self, 'render_frame'):
+                self.render_frame()
+            
+            print(f"🎬 Applied dramatic test pose to {len(applied_joints)} joints")
+            print("⏰ Pose will be restored in 3 seconds...")
+            
+            # Wait a moment then restore (using a simple loop instead of timer for testing)
+            import time
+            time.sleep(3)
+            
+            # Restore original values
+            for joint, original_hpr in applied_joints:
+                joint.setHpr(original_hpr[0], original_hpr[1], original_hpr[2])
+            
+            self.character.update()
+            if hasattr(self, 'render_frame'):
+                self.render_frame()
+            
+            print("✅ Restored original pose")
+            return True
+        else:
+            print("❌ No joints were successfully tested")
+            return False
 
 
 def main():
