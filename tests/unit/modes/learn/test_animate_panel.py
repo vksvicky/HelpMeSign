@@ -289,16 +289,38 @@ class TestAnimationManager:
         parent_panel._wave_active = True
         parent_panel._intro_active = True
 
-        manager = AnimationManager(parent_panel)
-        manager.reset_to_neutral_pose()
+        # Mock the controlJoint method to return a mock joint
+        mock_joint = Mock()
+        parent_panel._actor.controlJoint.return_value = mock_joint
 
+        manager = AnimationManager(parent_panel)
+
+        # Mock the NaturalPoseService to return some test data
+        with patch(
+            "src.helpmesign.utils.natural_pose_service.NaturalPoseService"
+        ) as MockNaturalPoseService:
+            mock_service = MockNaturalPoseService.return_value
+            mock_service.get_natural_pose_data.return_value = {
+                "mixamorig:RightArm": {"hpr": [0, 10, -20]},
+                "mixamorig:RightHand": {"hpr": [0, 0, 45]},
+            }
+
+            manager.reset_to_neutral_pose()
+
+        # Verify the state changes
         assert parent_panel._is_animating is False
         assert parent_panel._wave_active is False
         assert parent_panel._intro_active is False
+
+        # Verify actor methods are called
         parent_panel._actor.stop.assert_called_once()
-        parent_panel._actor.pose.assert_called_once_with(
-            "Armature|mixamo.com|Layer0", 0
-        )
+        parent_panel._actor.update.assert_called_once()
+
+        # Verify that controlJoint was called for each joint in the natural pose data
+        assert parent_panel._actor.controlJoint.call_count == 2
+
+        # Verify that setHpr was called on the mock joints
+        assert mock_joint.setHpr.call_count == 2
 
 
 class TestModelManager:

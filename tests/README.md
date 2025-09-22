@@ -43,6 +43,8 @@ tests/
 │   │   ├── test_resource_manager.py
 │   │   ├── test_system_monitor.py
 │   │   └── test_theme_manager.py
+│   ├── test_glb_viewer.py         # GLB Viewer functionality tests
+│   └── test_pose_data_validation.py # Pose data validation tests
 │   └── config/                   # Configuration tests
 │       ├── __init__.py
 │       ├── test_config.py
@@ -164,4 +166,37 @@ When adding new tests:
 Tests are automatically run in CI/CD pipelines:
 - GitHub Actions runs the full test suite on every commit
 - Coverage reports are generated and tracked
-- Test results are reported in pull requests 
+- Test results are reported in pull requests
+
+## GLB Viewer Test Suite
+
+The GLB Viewer has comprehensive test coverage including:
+
+### Unit Tests (`test_glb_viewer.py`)
+- **Data Loading**: Language, character, and sign data loading
+- **Pose Application**: Pose data validation and character joint manipulation
+- **Hand Selection**: Logic for single vs both-hand language support
+- **Safety Filtering**: Joint filtering to prevent character distortion
+
+### Integration Tests (`test_glb_viewer_integration.py`)
+- **Real Data Validation**: Tests with actual sign language JSON files
+- **File Structure**: Validation of resource directory structure
+- **Error Handling**: Missing files and invalid data scenarios
+- **End-to-End**: Complete sign loading and application workflow
+
+### Pose Data Validation (`test_pose_data_validation.py`)
+- **Data Structure**: JSON structure validation for pose data
+- **Value Ranges**: Detection of extreme or invalid pose values
+- **Joint Names**: Consistency checking of joint naming conventions
+- **Safety Analysis**: Classification of safe vs unsafe joints
+- **Pattern Analysis**: Common patterns in finger and hand poses
+
+### Running GLB Viewer Tests
+```bash
+# Run all GLB viewer tests
+pytest tests/unit/test_glb_viewer.py tests/integration/test_glb_viewer_integration.py tests/unit/test_pose_data_validation.py -v
+
+# Run specific test categories
+pytest tests/unit/test_glb_viewer.py::TestGLBViewerDataLoading -v
+pytest tests/unit/test_pose_data_validation.py::TestPoseDataValidation -v
+``` 
