@@ -1,0 +1,46 @@
+{
+  "language": "UNIVERSAL",
+  "language_name": "Universal Sign Language Instructions",
+  "keywords": {
+    "actions": {
+      "raise": ["raise", "lift", "up", "elevate", "bring up"],
+      "lower": ["lower", "down", "drop", "bring down"],
+      "hold": ["hold", "keep", "maintain", "stay", "position"],
+      "point": ["point", "extend", "straighten", "direct"],
+      "curve": ["curve", "bend", "arch", "round"],
+      "curl": ["curl", "close", "fold", "clench"],
+      "touch": ["touch", "contact", "meet", "connect"],
+      "make": ["make", "form", "create", "shape", "build"],
+      "move": ["move", "shift", "place", "position"],
+      "bend": ["bend", "flex", "angle"],
+      "extend": ["extend", "stretch", "reach", "lengthen"]
+    },
+    "body_parts": {
+      "arm": ["arm", "shoulder", "upper arm"],
+      "forearm": ["forearm", "lower arm"],
+      "elbow": ["elbow", "joint"],
+      "hand": ["hand", "wrist"],
+      "fingers": ["fingers", "digits", "all fingers"],
+      "thumb": ["thumb", "pollex"],
+      "index": ["index", "pointer", "first finger"],
+      "middle": ["middle", "second finger", "long finger"],
+      "ring": ["ring", "third finger"],
+      "pinky": ["pinky", "little", "fourth finger", "small finger"]
+    },
+    "hand_shapes": {
+      "fist": ["fist", "closed", "tight", "clenched"],
+      "flat": ["flat", "open", "straight", "extended", "palm"],
+      "curved": ["curved", "bent", "c-shape", "c shape", "arc"],
+      "point": ["point", "pointing", "finger up", "single finger"]
+    },
+    "modifiers": {
+      "together": ["together", "close", "tight", "joined"],
+      "apart": ["apart", "spread", "wide", "separated"],
+      "bent": ["bent", "curved", "flexed", "angled"],
+      "straight": ["straight", "extended", "flat", "linear"]
+    }
+  },
+  "overrides": {
+    "comment": "Universal configuration - no language-specific overrides needed"
+  }
+}

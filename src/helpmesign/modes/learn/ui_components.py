@@ -804,10 +804,10 @@ class LearnModeUIComponents:
         )
         hpr_button_layout.addWidget(self.learn_mode.hpr_editor_btn)
 
-        # Hand Pose Editor button
-        self.learn_mode.hand_pose_editor_btn = QPushButton("🖐️ Hand Pose Editor")
+        # GLB Viewer button (formerly Hand Pose Editor)
+        self.learn_mode.hand_pose_editor_btn = QPushButton("🎭 GLB Viewer")
         self.learn_mode.hand_pose_editor_btn.setToolTip(
-            "Open specialized editor for hand, finger, and arm poses with 6x zoom view"
+            "Open GLB viewer for interactive 3D character pose editing with sign language support"
         )
         self.learn_mode.hand_pose_editor_btn.clicked.connect(
             self.learn_mode.open_hand_pose_editor

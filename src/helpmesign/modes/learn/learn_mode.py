@@ -10,7 +10,6 @@ from PySide6.QtCore import QEvent, QObject
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget, QLabel
     from .animate_panel import AnimateGesturePanel
-    from .hand_pose_editor import HandPoseEditor
 
 from ...utils.language_manager import get_text
 from ...utils.sign_language_loader import get_sign_language_loader
@@ -54,7 +53,6 @@ class LearnMode(BaseMode):
         self.sign_title: Optional["QLabel"] = None
 
         # Hand pose editor instance
-        self.hand_pose_editor: Optional["HandPoseEditor"] = None
 
         # Initialize character tracking variables
         self.current_character: Optional[str] = None
@@ -314,26 +312,40 @@ class LearnMode(BaseMode):
         self.ui_behavior_manager.open_pose_validation()
 
     def open_hand_pose_editor(self) -> None:
-        """Open the specialized Hand Pose Editor"""
+        """Open the GLB Viewer (replacing the old Hand Pose Editor)"""
         try:
-            from .hand_pose_editor import HandPoseEditor
+            import os
+            import subprocess
+            import sys
 
-            if not hasattr(self, "hand_pose_editor") or self.hand_pose_editor is None:
-                self.hand_pose_editor = HandPoseEditor(
-                    self.animate_gesture_panel, self.main_window
-                )
+            # Get the path to the GLB viewer (now in the same directory)
+            current_dir = os.path.dirname(__file__)
+            glb_viewer_path = os.path.join(current_dir, "glb_viewer.py")
 
-            self.hand_pose_editor.show()
-            self.hand_pose_editor.raise_()
-            self.hand_pose_editor.activateWindow()
+            if not os.path.exists(glb_viewer_path):
+                raise FileNotFoundError(f"GLB viewer not found at {glb_viewer_path}")
 
+            # Get project root for working directory (GLB viewer needs access to resources)
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            )
+
+            # Launch the GLB viewer in a separate process
+            subprocess.Popen(
+                [sys.executable, glb_viewer_path],
+                cwd=project_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.logger.info("GLB Viewer launched successfully")
             if hasattr(self.main_window, "set_status"):
-                self.main_window.set_status("Hand Pose Editor opened")
+                self.main_window.set_status("GLB Viewer opened")
 
         except Exception as e:
-            self.logger.error(f"Error opening Hand Pose Editor: {e}")
+            self.logger.error(f"Error opening GLB Viewer: {e}")
             if hasattr(self.main_window, "set_status"):
-                self.main_window.set_status(f"Error opening Hand Pose Editor: {e}")
+                self.main_window.set_status(f"Error opening GLB Viewer: {e}")
 
     def _show_placeholder_message(self) -> None:
         """Show placeholder message"""

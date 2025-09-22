@@ -4,21 +4,33 @@ GLB Viewer with PySide6 UI and Offscreen Panda3D Rendering
 Based on the proven approach used in the main HelpMeSign app
 """
 
-from multiprocessing import parent_process
-import sys
-import os
 import json
+import os
+import sys
+from multiprocessing import parent_process
 from pathlib import Path
-from typing import Optional, Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-# Add the src directory to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Add the project root to the Python path
+# Current file is in src/helpmesign/modes/learn/glb_viewer.py
+# Need to go up 4 levels: learn -> modes -> helpmesign -> src -> project_root
+current_dir = os.path.dirname(__file__)  # src/helpmesign/modes/learn/
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+)  # project root
+sys.path.insert(0, os.path.join(project_root, "src"))
+
+# Make project_root available globally for resource access
+globals()["project_root"] = project_root
 
 try:
     from PySide6.QtCore import Qt, QTimer
     from PySide6.QtGui import QImage, QPixmap
     from PySide6.QtWidgets import (
         QApplication,
+        QComboBox,
+        QGridLayout,
+        QGroupBox,
         QHBoxLayout,
         QLabel,
         QMainWindow,
@@ -28,9 +40,6 @@ try:
         QSlider,
         QVBoxLayout,
         QWidget,
-        QGroupBox,
-        QGridLayout,
-        QComboBox,
     )
 except ImportError as e:
     print(f"Error importing PySide6: {e}")
@@ -38,17 +47,15 @@ except ImportError as e:
     sys.exit(1)
 
 try:
-    from direct.showbase.ShowBase import ShowBase
     from direct.actor.Actor import Actor
+    from direct.showbase.ShowBase import ShowBase
     from panda3d.core import (
-        AmbientLight, 
+        AmbientLight,
         DirectionalLight,
-        Vec3, 
-        Vec4,
-        loadPrcFileData,
-        Filename,
+        PNMImage,
         VBase4,
-        PNMImage
+        Vec3,
+        loadPrcFileData,
     )
 except ImportError as e:
     print(f"Error importing Panda3D modules: {e}")
@@ -57,258 +64,328 @@ except ImportError as e:
 
 try:
     from pygltflib import GLTF2
-    import numpy as np
+
     GLTF_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: pygltflib not available: {e}")
     print("Install with: pip install pygltflib")
     GLTF_AVAILABLE = False
 
+
 def build_joint_hierarchy(glb_path):
     """Extract joint hierarchy from GLB file using pygltflib."""
     if not GLTF_AVAILABLE:
         return None, None
-        
+
     try:
         gltf = GLTF2().load(glb_path)
-        
+
         if not gltf.skins:
             return None, None
-        
+
         # Build joint hierarchy
         joint_hierarchy = {}
-        
+
         for skin in gltf.skins:
             root_joints = []
-            
+
             for joint_idx in skin.joints:
                 node = gltf.nodes[joint_idx]
-                
+
                 joint_data = {
-                    'index': joint_idx,
-                    'name': node.name or f"Joint_{joint_idx}",
-                    'translation': node.translation or [0, 0, 0],
-                    'rotation': node.rotation or [0, 0, 0, 1],
-                    'scale': node.scale or [1, 1, 1],
-                    'children': [],
-                    'parent': None
+                    "index": joint_idx,
+                    "name": node.name or f"Joint_{joint_idx}",
+                    "translation": node.translation or [0, 0, 0],
+                    "rotation": node.rotation or [0, 0, 0, 1],
+                    "scale": node.scale or [1, 1, 1],
+                    "children": [],
+                    "parent": None,
                 }
-                
+
                 joint_hierarchy[joint_idx] = joint_data
-            
+
             # Build parent-child relationships
             for joint_idx in skin.joints:
                 node = gltf.nodes[joint_idx]
                 if node.children:
                     for child_idx in node.children:
                         if child_idx in joint_hierarchy:
-                            joint_hierarchy[child_idx]['parent'] = joint_idx
-                            joint_hierarchy[joint_idx]['children'].append(child_idx)
-            
+                            joint_hierarchy[child_idx]["parent"] = joint_idx
+                            joint_hierarchy[joint_idx]["children"].append(child_idx)
+
             # Find root joints (joints without parents)
-            root_joints = [idx for idx, joint in joint_hierarchy.items() 
-                          if joint['parent'] is None]
-        
+            root_joints = [
+                idx for idx, joint in joint_hierarchy.items() if joint["parent"] is None
+            ]
+
         return joint_hierarchy, root_joints
     except Exception as e:
         print(f"Error extracting joint hierarchy: {e}")
         return None, None
+
+
 class GLBViewerWindow(QMainWindow):
     """Main window with PySide6 UI and embedded Panda3D rendering."""
-    
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("GLB Viewer - Arivo Character")
         self.setGeometry(100, 100, 1200, 800)
         self.setMinimumSize(1000, 600)
-        
+
         # Initialize Panda3D offscreen
         self.panda_ready = False
-        self.showbase = None
-        self.character = None
-        self.camera = None
-        self.ambient_light_node = None
-        
+        self.showbase: Optional[Any] = None
+        self.character: Optional[Any] = None
+        self.camera: Optional[Any] = None
+        self.ambient_light_node: Optional[Any] = None
+
         # Initialize control variables with default values
         defaults = self.get_default_values()
-        self.camera_scale = defaults['camera_scale']
-        self.camera_distance = defaults['camera_distance']
-        self.camera_x_rot = defaults['camera_x_rot']
-        self.camera_y_rot = defaults['camera_y_rot']
-        self.camera_z_rot = defaults['camera_z_rot']
-        self.ambient_light = defaults['ambient_light']
-        self.character_x = defaults['character_x']
-        self.character_y = defaults['character_y']
-        self.character_z = defaults['character_z']
-        
+        self.camera_scale = defaults["camera_scale"]
+        self.camera_distance = defaults["camera_distance"]
+        self.camera_x_rot = defaults["camera_x_rot"]
+        self.camera_y_rot = defaults["camera_y_rot"]
+        self.camera_z_rot = defaults["camera_z_rot"]
+        self.ambient_light = defaults["ambient_light"]
+        self.character_x = defaults["character_x"]
+        self.character_y = defaults["character_y"]
+        self.character_z = defaults["character_z"]
+
         # Load language and sign data
         self.available_languages = self.load_available_languages()
         self.current_language = "ASL"  # Default language
         self.available_signs = self.load_available_signs(self.current_language)
-        
+
+        # Initialize universal pose generator (will be updated when language changes)
+        self.pose_generator = None
+        self._initialize_pose_generator()
+
         # Initialize body part controls (HPR = Heading, Pitch, Roll; XYZ = Position)
         self.body_parts = {}
         self.body_part_names = [
-            'neck', 'spine',  # Single joints (hips removed due to persistent issues)
-            'left_shoulder', 'right_shoulder',
-            'left_arm', 'right_arm', 'left_forearm', 'right_forearm',
-            'left_hand', 'right_hand',
-            'left_fingers_thumb', 'right_fingers_thumb', 
-            'left_fingers_index', 'right_fingers_index',
-            'left_fingers_middle', 'right_fingers_middle', 
-            'left_fingers_ring', 'right_fingers_ring',
-            'left_fingers_pinky', 'right_fingers_pinky', 
-            'left_leg', 'right_leg', 'left_foot', 'right_foot'
+            "neck",
+            "spine",  # Single joints (hips removed due to persistent issues)
+            "left_shoulder",
+            "right_shoulder",
+            "left_arm",
+            "right_arm",
+            "left_forearm",
+            "right_forearm",
+            "left_hand",
+            "right_hand",
+            "left_fingers_thumb",
+            "right_fingers_thumb",
+            "left_fingers_index",
+            "right_fingers_index",
+            "left_fingers_middle",
+            "right_fingers_middle",
+            "left_fingers_ring",
+            "right_fingers_ring",
+            "left_fingers_pinky",
+            "right_fingers_pinky",
+            "left_leg",
+            "right_leg",
+            "left_foot",
+            "right_foot",
         ]
-        
+
         # Get natural pose data from service
         from helpmesign.utils.natural_pose_service import NaturalPoseService
+
         pose_service = NaturalPoseService()
         natural_pose_data = pose_service.get_all_body_parts_pose()
-        
+
         for part in self.body_part_names:
             # Use natural pose values if available, otherwise default to zero
             if part in natural_pose_data:
                 self.body_parts[part] = {
-                    'hpr': natural_pose_data[part]['hpr'].copy(),
-                    'xyz': natural_pose_data[part]['xyz'].copy()
+                    "hpr": natural_pose_data[part]["hpr"].copy(),
+                    "xyz": natural_pose_data[part]["xyz"].copy(),
                 }
             else:
                 self.body_parts[part] = {
-                    'hpr': [0.0, 0.0, 0.0],  # Heading, Pitch, Roll
-                    'xyz': [0.0, 0.0, 0.0]   # X, Y, Z position
+                    "hpr": [0.0, 0.0, 0.0],  # Heading, Pitch, Roll
+                    "xyz": [0.0, 0.0, 0.0],  # X, Y, Z position
                 }
-        
+
         # Create UI
         self.create_ui()
-        
+
         # Initialize Panda3D
         self.init_panda3d()
-        
+
         # Start render timer
         self.timer = QTimer()
         self.timer.timeout.connect(self.render_frame)
         self.timer.start(33)  # ~30 FPS (same as learn module)
-        
+
     def get_default_values(self):
         """Get the default values for all controls."""
         # Import NaturalPoseService to get body parts data
-        from helpmesign.utils.natural_pose_service import NaturalPoseService
+        from helpmesign.utils.natural_pose_service import (
+            NaturalPoseService,
+        )
+
         pose_service = NaturalPoseService()
         body_parts_data = pose_service.get_all_body_parts_pose()
-        
+
         return {
-            'camera_scale': 6.5,
-            'camera_distance': 9.0,  # Back to working distance
-            'camera_x_rot': 0.0,
-            'camera_y_rot': 1.0,  # Back to working rotation
-            'camera_z_rot': 0.0,
-            'ambient_light': 0.3,
-            'character_x': 0.0,
-            'character_y': 3.0,  # Back to working position
-            'character_z': -5.0,  # Back to working position
-            'body_parts': body_parts_data
+            "camera_scale": 6.5,
+            "camera_distance": 9.0,  # Back to working distance
+            "camera_x_rot": 0.0,
+            "camera_y_rot": 1.0,  # Back to working rotation
+            "camera_z_rot": 0.0,
+            "ambient_light": 0.3,
+            "character_x": 0.0,
+            "character_y": 3.0,  # Back to working position
+            "character_z": -5.0,  # Back to working position
+            "body_parts": body_parts_data,
         }
 
-    def load_available_languages(self) -> List[Dict]:
+    def load_available_languages(self) -> List[Dict[str, Any]]:
         """Load available sign languages from languages.json."""
         try:
-            languages_path = os.path.join(os.path.dirname(__file__), "resources", "data", "languages.json")
-            with open(languages_path, 'r', encoding='utf-8') as f:
+            languages_path = os.path.join(
+                project_root, "resources", "data", "languages.json"
+            )
+            with open(languages_path, "r", encoding="utf-8") as f:
                 languages = json.load(f)
-            return languages
+            return languages  # type: ignore[no-any-return]
         except Exception as e:
             print(f"Error loading languages: {e}")
             return []
 
-
     def load_available_signs(self, language_code: str) -> Dict[str, Dict]:
         """Load available signs for a given language based on its hand support."""
         try:
-            signs_path = os.path.join(os.path.dirname(__file__), "resources", "data", "signs", language_code.lower())
-            signs = {}
-            
+            signs_path = os.path.join(
+                project_root, "resources", "data", "signs", language_code.lower()
+            )
+            signs: Dict[str, Dict[str, Any]] = {}
+
             if not os.path.exists(signs_path):
                 return signs
-            
+
             # Get language metadata to determine hand support
             language_info = self.get_language_info(language_code)
-            hand_support = language_info.get('handSupport', 'single') if language_info else 'single'
-            
-            if hand_support == 'both':
+            hand_support = (
+                language_info.get("handSupport", "single")
+                if language_info
+                else "single"
+            )
+
+            if hand_support == "both":
                 # For languages that support both hands, look for single combined file
                 # e.g., bsl_hand.json
-                combined_file = os.path.join(signs_path, f"{language_code.lower()}_hand.json")
+                combined_file = os.path.join(
+                    signs_path, f"{language_code.lower()}_hand.json"
+                )
                 if os.path.exists(combined_file):
-                    self._load_hand_data(combined_file, 'both', signs)
+                    self._load_hand_data(combined_file, "both", signs)
                 else:
-                    print(f"Combined hand file not found for {language_code}: {combined_file}")
+                    print(
+                        f"Combined hand file not found for {language_code}: {combined_file}"
+                    )
             else:
                 # For single hand languages, look for separate left/right files
                 # e.g., asl_left_hand.json, asl_right_hand.json
                 # Prefer right hand, fallback to left
                 for hand in ["right", "left"]:
-                    hand_file = os.path.join(signs_path, f"{language_code.lower()}_{hand}_hand.json")
+                    hand_file = os.path.join(
+                        signs_path, f"{language_code.lower()}_{hand}_hand.json"
+                    )
                     if os.path.exists(hand_file):
                         self._load_hand_data(hand_file, hand, signs)
                         break  # Only load one hand for single hand languages
-            
+
             return signs
         except Exception as e:
             print(f"Error loading signs for {language_code}: {e}")
             return {}
 
-    def get_language_info(self, language_code: str) -> Dict:
+    def _initialize_pose_generator(self):
+        """Initialize pose generator with appropriate config for current language."""
+        try:
+            from .instruction_to_pose_generator import (
+                UniversalInstructionToPoseGenerator,
+            )
+
+            # Get language code from current language
+            language_code = self.current_language.lower()
+            config_path = os.path.join(
+                project_root,
+                "resources",
+                "data",
+                "pose_generation",
+                f"{language_code}_config.json",
+            )
+
+            if os.path.exists(config_path):
+                self.pose_generator = UniversalInstructionToPoseGenerator(config_path)
+                print(f"✅ Pose generator initialized with {language_code} config")
+            else:
+                # Fall back to universal config
+                self.pose_generator = UniversalInstructionToPoseGenerator()
+                print(
+                    f"⚠️ No specific config for {language_code}, using universal config"
+                )
+
+        except Exception as e:
+            print(f"⚠️ Could not initialize pose generator: {e}")
+            self.pose_generator = None
+
+    def get_language_info(self, language_code: str) -> Dict[str, Any]:
         """Get language information from the available languages."""
         for lang in self.available_languages:
-            if lang.get('code') == language_code:
-                return lang.get('metadata', {})
+            if lang.get("code") == language_code:
+                return lang.get("metadata", {})  # type: ignore[no-any-return]
         return {}
 
     def _load_hand_data(self, hand_file: str, hand: str, signs: Dict):
         """Helper method to load sign data from a hand file."""
-        with open(hand_file, 'r', encoding='utf-8') as f:
+        with open(hand_file, "r", encoding="utf-8") as f:
             hand_data = json.load(f)
-            
+
             # Load alphabet letters
-            if 'alphabet' in hand_data:
-                for letter, data in hand_data['alphabet'].items():
+            if "alphabet" in hand_data:
+                for letter, data in hand_data["alphabet"].items():
                     sign_key = letter  # Default: just use the letter/number
-                    
+
                     signs[sign_key] = {
-                        'letter': letter,
-                        'hand': hand,
-                        'pose': data.get('pose', {}),
-                        'description': data.get('description', ''),
-                        'instructions': data.get('instructions', '')
+                        "letter": letter,
+                        "hand": hand,
+                        "description": data.get("description", ""),
+                        "instructions": data.get("instructions", ""),
+                        "svg": data.get("svg", ""),
                     }
-            
+
             # Load numbers
-            if 'numbers' in hand_data:
-                for number, data in hand_data['numbers'].items():
+            if "numbers" in hand_data:
+                for number, data in hand_data["numbers"].items():
                     sign_key = number  # Default: just use the letter/number
-                    
+
                     signs[sign_key] = {
-                        'letter': number,
-                        'hand': hand,
-                        'pose': data.get('pose', {}),
-                        'description': data.get('description', ''),
-                        'instructions': data.get('instructions', '')
+                        "letter": number,
+                        "hand": hand,
+                        "description": data.get("description", ""),
+                        "instructions": data.get("instructions", ""),
+                        "svg": data.get("svg", ""),
                     }
 
     def create_ui(self):
         """Create the PySide6 UI with native system fonts."""
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
         # Main horizontal layout
         main_layout = QHBoxLayout(central_widget)
         main_layout.setSpacing(30)
         main_layout.setContentsMargins(20, 20, 20, 20)
-        
+
         # Left panel - 3D viewer
         self.create_viewer_panel(main_layout)
-        
+
         # Right panel - Controls
         self.create_control_panel(main_layout)
 
@@ -317,21 +394,25 @@ class GLBViewerWindow(QMainWindow):
         viewer_widget = QWidget()
         viewer_widget.setFixedWidth(700)
         viewer_layout = QVBoxLayout(viewer_widget)
-        
+
         # 3D display label
         self.display_label = QLabel("Loading 3D character...")
         self.display_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.display_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.display_label.setStyleSheet("""
+        self.display_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.display_label.setStyleSheet(
+            """
             QLabel {
                 border: 2px solid #ccc;
                 border-radius: 8px;
                 background-color: transparent;
                 min-height: 100%;
             }
-        """)
+        """
+        )
         viewer_layout.addWidget(self.display_label)
-        
+
         parent_layout.addWidget(viewer_widget)
 
     def create_control_panel(self, parent_layout):
@@ -339,25 +420,28 @@ class GLBViewerWindow(QMainWindow):
         control_widget = QWidget()
         control_widget.setFixedWidth(400)  # Compact control panel
         control_layout = QVBoxLayout(control_widget)
-        
+
         # Title and Export button row
         title_row = QHBoxLayout()
-        
+
         title_label = QLabel("GLB Viewer Controls")
-        title_label.setStyleSheet("""
+        title_label.setStyleSheet(
+            """
             QLabel {
                 font-size: 18px;
                 font-weight: bold;
                 color: #333;
             }
-        """)
+        """
+        )
         title_row.addWidget(title_label)
         title_row.addStretch()  # Push export button to the right
-        
+
         # Export button
         export_button = QPushButton("Export Values")
         export_button.clicked.connect(self.export_values)
-        export_button.setStyleSheet("""
+        export_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
@@ -373,17 +457,19 @@ class GLBViewerWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #3d8b40;
             }
-        """)
+        """
+        )
         title_row.addWidget(export_button)
-        
+
         control_layout.addLayout(title_row)
-        
+
         # Add sign language selection controls
         self.create_selection_controls(control_layout)
-        
+
         # Create control group
         control_group = QGroupBox("Camera Settings")
-        control_group.setStyleSheet("""
+        control_group.setStyleSheet(
+            """
             QGroupBox {
                 font-weight: bold;
                 border: 2px solid #ccc;
@@ -396,29 +482,103 @@ class GLBViewerWindow(QMainWindow):
                 left: 10px;
                 padding: 0 5px 0 5px;
             }
-        """)
-        
+        """
+        )
+
         group_layout = QGridLayout(control_group)
-        
+
         # Create sliders with native system fonts
-        self.create_slider_control(group_layout, "Scale", 0, 0.1, 20.0, self.camera_scale, self.update_camera_scale)
-        self.create_slider_control(group_layout, "Distance", 1, 2.0, 15.0, self.camera_distance, self.update_camera_distance)
-        
+        self.create_slider_control(
+            group_layout,
+            "Scale",
+            0,
+            0.1,
+            20.0,
+            self.camera_scale,
+            self.update_camera_scale,
+        )
+        self.create_slider_control(
+            group_layout,
+            "Distance",
+            1,
+            2.0,
+            15.0,
+            self.camera_distance,
+            self.update_camera_distance,
+        )
+
         # Character position controls
-        self.create_slider_control(group_layout, "Pos-X", 2, -5.0, 5.0, self.character_x, self.update_character_x)
-        self.create_slider_control(group_layout, "Pos-Y", 3, -5.0, 5.0, self.character_y, self.update_character_y)
-        self.create_slider_control(group_layout, "Pos-Z", 4, -5.0, 5.0, self.character_z, self.update_character_z)
-        
+        self.create_slider_control(
+            group_layout,
+            "Pos-X",
+            2,
+            -5.0,
+            5.0,
+            self.character_x,
+            self.update_character_x,
+        )
+        self.create_slider_control(
+            group_layout,
+            "Pos-Y",
+            3,
+            -5.0,
+            5.0,
+            self.character_y,
+            self.update_character_y,
+        )
+        self.create_slider_control(
+            group_layout,
+            "Pos-Z",
+            4,
+            -5.0,
+            5.0,
+            self.character_z,
+            self.update_character_z,
+        )
+
         # Camera rotation controls
-        self.create_slider_control(group_layout, "X-Rot", 5, -180.0, 180.0, self.camera_x_rot, self.update_camera_x_rot)
-        self.create_slider_control(group_layout, "Y-Rot", 6, -180.0, 180.0, self.camera_y_rot, self.update_camera_y_rot)
-        self.create_slider_control(group_layout, "Z-Rot", 7, -180.0, 180.0, self.camera_z_rot, self.update_camera_z_rot)
-        self.create_slider_control(group_layout, "Ambient", 8, 0.0, 1.0, self.ambient_light, self.update_ambient_light)
-        
+        self.create_slider_control(
+            group_layout,
+            "X-Rot",
+            5,
+            -180.0,
+            180.0,
+            self.camera_x_rot,
+            self.update_camera_x_rot,
+        )
+        self.create_slider_control(
+            group_layout,
+            "Y-Rot",
+            6,
+            -180.0,
+            180.0,
+            self.camera_y_rot,
+            self.update_camera_y_rot,
+        )
+        self.create_slider_control(
+            group_layout,
+            "Z-Rot",
+            7,
+            -180.0,
+            180.0,
+            self.camera_z_rot,
+            self.update_camera_z_rot,
+        )
+        self.create_slider_control(
+            group_layout,
+            "Ambient",
+            8,
+            0.0,
+            1.0,
+            self.ambient_light,
+            self.update_ambient_light,
+        )
+
         # Reset button
         reset_button = QPushButton("Reset All")
         reset_button.clicked.connect(self.reset_all_controls)
-        reset_button.setStyleSheet("""
+        reset_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #f0f0f0;
                 border: 1px solid #ccc;
@@ -432,22 +592,24 @@ class GLBViewerWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #d0d0d0;
             }
-        """)
+        """
+        )
         group_layout.addWidget(reset_button, 9, 0, 1, 3)  # Span across 3 columns
-        
+
         control_layout.addWidget(control_group)
-        
+
         # Body Parts Control Table
         self.create_body_parts_table(control_layout)
-        
+
         control_layout.addStretch()
-        
+
         parent_layout.addWidget(control_widget)
 
     def create_selection_controls(self, parent_layout):
         """Create sign language, character, and sign selection dropdowns."""
         selection_group = QGroupBox("Sign Language Selection")
-        selection_group.setStyleSheet("""
+        selection_group.setStyleSheet(
+            """
             QGroupBox {
                 font-weight: bold;
                 border: 2px solid #ccc;
@@ -460,66 +622,72 @@ class GLBViewerWindow(QMainWindow):
                 left: 10px;
                 padding: 0 5px 0 5px;
             }
-        """)
-        
+        """
+        )
+
         selection_layout = QVBoxLayout(selection_group)
-        
+
         # Language selection
         lang_layout = QHBoxLayout()
         lang_label = QLabel("Language:")
         lang_label.setStyleSheet("font-size: 12px; color: #555; min-width: 70px;")
         lang_layout.addWidget(lang_label)
-        
+
         self.language_combo = QComboBox()
-        self.language_combo.setStyleSheet("""
+        self.language_combo.setStyleSheet(
+            """
             QComboBox {
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 padding: 4px;
                 font-size: 11px;
             }
-        """)
+        """
+        )
         for lang in self.available_languages:
             display_name = f"{lang['flag']} {lang['name']} ({lang['code']})"
-            self.language_combo.addItem(display_name, lang['code'])
-        
+            self.language_combo.addItem(display_name, lang["code"])
+
         # Set default selection
         for i in range(self.language_combo.count()):
             if self.language_combo.itemData(i) == self.current_language:
                 self.language_combo.setCurrentIndex(i)
                 break
-        
+
         self.language_combo.currentTextChanged.connect(self.on_language_changed)
         lang_layout.addWidget(self.language_combo)
         selection_layout.addLayout(lang_layout)
-        
+
         # Sign selection
         sign_layout = QHBoxLayout()
         sign_label = QLabel("Sign:")
         sign_label.setStyleSheet("font-size: 12px; color: #555; min-width: 70px;")
         sign_layout.addWidget(sign_label)
-        
+
         self.sign_combo = QComboBox()
-        self.sign_combo.setStyleSheet("""
+        self.sign_combo.setStyleSheet(
+            """
             QComboBox {
                 border: 1px solid #ccc;
                 border-radius: 4px;
                 padding: 4px;
                 font-size: 11px;
             }
-        """)
+        """
+        )
         self.populate_signs_combo()
         self.sign_combo.currentTextChanged.connect(self.on_sign_changed)
         sign_layout.addWidget(self.sign_combo)
         selection_layout.addLayout(sign_layout)
-        
+
         # Buttons layout
         buttons_layout = QHBoxLayout()
-        
+
         # Apply Sign button
         apply_button = QPushButton("Apply Sign")
         apply_button.clicked.connect(self.apply_selected_sign)
-        apply_button.setStyleSheet("""
+        apply_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #2196F3;
                 color: white;
@@ -535,13 +703,15 @@ class GLBViewerWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #1565C0;
             }
-        """)
+        """
+        )
         buttons_layout.addWidget(apply_button)
-        
+
         # Test Joint Control button
         test_button = QPushButton("Test Joint")
         test_button.clicked.connect(self.test_basic_joint_control)
-        test_button.setStyleSheet("""
+        test_button.setStyleSheet(
+            """
             QPushButton {
                 background-color: #FF9800;
                 color: white;
@@ -557,20 +727,23 @@ class GLBViewerWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #EF6C00;
             }
-        """)
+        """
+        )
         buttons_layout.addWidget(test_button)
-        
+
         selection_layout.addLayout(buttons_layout)
-        
+
         parent_layout.addWidget(selection_group)
 
-    def create_slider_control(self, layout, label_text, row, min_val, max_val, initial_value, callback):
+    def create_slider_control(
+        self, layout, label_text, row, min_val, max_val, initial_value, callback
+    ):
         """Create a slider control with native system fonts."""
         # Label
         label = QLabel(label_text)
         label.setStyleSheet("font-size: 12px; color: #555;")
         layout.addWidget(label, row, 0)
-        
+
         # Slider
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setMinimum(int(min_val * 100))
@@ -578,16 +751,16 @@ class GLBViewerWindow(QMainWindow):
         slider.setValue(int(initial_value * 100))
         slider.valueChanged.connect(lambda v: callback(v / 100.0))
         layout.addWidget(slider, row, 1)
-        
+
         # Value label
         value_label = QLabel(f"{initial_value:.1f}")
         value_label.setStyleSheet("font-size: 11px; color: #666; min-width: 40px;")
         value_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         layout.addWidget(value_label, row, 2)
-        
+
         # Store references for reset function
-        slider_name = label_text.lower().replace('-', '_').replace(' ', '_') + '_slider'
-        value_name = label_text.lower().replace('-', '_').replace(' ', '_') + '_value'
+        slider_name = label_text.lower().replace("-", "_").replace(" ", "_") + "_slider"
+        value_name = label_text.lower().replace("-", "_").replace(" ", "_") + "_value"
         setattr(self, slider_name, slider)
         setattr(self, value_name, value_label)
 
@@ -595,7 +768,8 @@ class GLBViewerWindow(QMainWindow):
         """Create the body parts control table with HPR and XYZ controls in top-down layout."""
         # Create control group with consistent styling
         body_group = QGroupBox("Body Parts Control")
-        body_group.setStyleSheet("""
+        body_group.setStyleSheet(
+            """
             QGroupBox {
                 font-size: 12px;
                 font-weight: bold;
@@ -610,20 +784,21 @@ class GLBViewerWindow(QMainWindow):
                 left: 10px;
                 padding: 0 5px 0 5px;
             }
-        """)
-        
+        """
+        )
+
         # Create scrollable area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setMaximumHeight(400)  # Limit height to make it scrollable
-        
+
         # Create content widget for the scroll area
         content_widget = QWidget()
         main_layout = QVBoxLayout(content_widget)
         main_layout.setSpacing(10)
-        
+
         # Body parts list with clear descriptions (hips removed due to persistent issues)
         body_parts = [
             ("Neck", "Head and neck movement"),
@@ -638,14 +813,15 @@ class GLBViewerWindow(QMainWindow):
             ("Fingers (Ring)", "Ring finger control"),
             ("Fingers (Pinky)", "Pinky finger control"),
             ("Leg", "Upper leg and thigh movement"),
-            ("Foot", "Foot and ankle movement")
+            ("Foot", "Foot and ankle movement"),
         ]
-        
+
         # Create controls for each body part in top-down layout
         for part_name, description in body_parts:
             # Create a group for this body part
             part_group = QGroupBox(f"{part_name} - {description}")
-            part_group.setStyleSheet("""
+            part_group.setStyleSheet(
+                """
                 QGroupBox {
                     font-size: 11px;
                     font-weight: bold;
@@ -660,49 +836,52 @@ class GLBViewerWindow(QMainWindow):
                     left: 8px;
                     padding: 0 3px 0 3px;
                 }
-            """)
-            
+            """
+            )
+
             part_layout = QVBoxLayout(part_group)
             part_layout.setSpacing(5)
-            
+
             # Create controls based on body part type
             if part_name in ["Neck", "Spine"]:
                 # Single joint controls (no left/right)
                 single_controls = self.create_hpr_xyz_controls_with_labels(
-                    part_name.lower().replace(' ', '_').replace('(', '').replace(')', ''), 
-                    part_name
+                    part_name.lower()
+                    .replace(" ", "_")
+                    .replace("(", "")
+                    .replace(")", ""),
+                    part_name,
                 )
                 part_layout.addWidget(single_controls)
             else:
                 # Left and right controls side by side
                 controls_layout = QHBoxLayout()
-                
+
                 # Left side controls
                 left_controls = self.create_hpr_xyz_controls_with_labels(
-                    f"left_{part_name.lower().replace(' ', '_').replace('(', '').replace(')', '')}", 
-                    f"Left {part_name}"
+                    f"left_{part_name.lower().replace(' ', '_').replace('(', '').replace(')', '')}",
+                    f"Left {part_name}",
                 )
-                # Right side controls  
+                # Right side controls
                 right_controls = self.create_hpr_xyz_controls_with_labels(
-                    f"right_{part_name.lower().replace(' ', '_').replace('(', '').replace(')', '')}", 
-                    f"Right {part_name}"
+                    f"right_{part_name.lower().replace(' ', '_').replace('(', '').replace(')', '')}",
+                    f"Right {part_name}",
                 )
-                
+
                 controls_layout.addWidget(left_controls)
                 controls_layout.addWidget(right_controls)
-                
+
                 part_layout.addLayout(controls_layout)
             main_layout.addWidget(part_group)
-        
+
         # Set the content widget as the scroll area's widget
         scroll_area.setWidget(content_widget)
-        
+
         # Add scroll area to the group
         group_layout_main = QVBoxLayout(body_group)
         group_layout_main.addWidget(scroll_area)
-        
+
         parent_layout.addWidget(body_group)
-        
 
     def create_hpr_xyz_controls_with_labels(self, part_name, display_name):
         """Create HPR and XYZ controls for a body part with clear labels."""
@@ -710,18 +889,21 @@ class GLBViewerWindow(QMainWindow):
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(5)
-        
+
         # Title and reset button row
         title_layout = QHBoxLayout()
-        
+
         # Title for this side
         title_label = QLabel(display_name)
-        title_label.setStyleSheet("font-size: 10px; color: #333; font-weight: bold; background-color: #f8f8f8; padding: 2px; border: 1px solid #ddd;")
+        title_label.setStyleSheet(
+            "font-size: 10px; color: #333; font-weight: bold; background-color: #f8f8f8; padding: 2px; border: 1px solid #ddd;"
+        )
         title_layout.addWidget(title_label)
-        
+
         # Small reset button (no text, just an icon/symbol)
         reset_button = QPushButton("↻")
-        reset_button.setStyleSheet("""
+        reset_button.setStyleSheet(
+            """
             QPushButton {
                 font-size: 12px;
                 font-weight: bold;
@@ -741,178 +923,196 @@ class GLBViewerWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #d0d0d0;
             }
-        """)
+        """
+        )
         reset_button.setToolTip(f"Reset {display_name} to default values")
         reset_button.clicked.connect(lambda: self.reset_body_part(part_name))
         title_layout.addWidget(reset_button)
-        
+
         layout.addLayout(title_layout)
-        
+
         # HPR Controls with individual labels
         hpr_label = QLabel("Rotation (HPR)")
         hpr_label.setStyleSheet("font-size: 9px; color: #666; font-weight: bold;")
         layout.addWidget(hpr_label)
-        
+
         hpr_layout = QVBoxLayout()
-        for i, axis in enumerate(['H', 'P', 'R']):
+        for i, axis in enumerate(["H", "P", "R"]):
             # Create horizontal layout for label and slider
             control_layout = QHBoxLayout()
-            
+
             # Axis label
             axis_label = QLabel(f"{axis}:")
             axis_label.setStyleSheet("font-size: 9px; color: #555; min-width: 15px;")
             axis_label.setFixedWidth(15)
             control_layout.addWidget(axis_label)
-            
+
             # Slider
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(-1800)  # -180.0 * 10
-            slider.setMaximum(1800)   # 180.0 * 10
-            
+            slider.setMaximum(1800)  # 180.0 * 10
+
             # Set initial value from natural pose data
             initial_value = 0
             if part_name in self.body_parts:
-                initial_value = int(self.body_parts[part_name]['hpr'][i] * 10)
+                initial_value = int(self.body_parts[part_name]["hpr"][i] * 10)
             slider.setValue(initial_value)
             slider.setFixedHeight(18)
-            
+
             # Value label
             value_label = QLabel(f"{initial_value / 10.0:.1f}")
             value_label.setStyleSheet("font-size: 8px; color: #777; min-width: 30px;")
             value_label.setFixedWidth(30)
-            
+
             # Connect to update function
             def make_update_func(p=part_name, idx=i, val_label=value_label):
                 def update_func(v):
                     val = v / 10.0
                     val_label.setText(f"{val:.1f}")
-                    self.update_body_part(p, 'hpr', idx, val)
+                    self.update_body_part(p, "hpr", idx, val)
+
                 return update_func
-            
+
             slider.valueChanged.connect(make_update_func())
-            
+
             # Store reference
             slider_name = f"{part_name}_hpr_{axis.lower()}_slider"
             setattr(self, slider_name, slider)
-        
+
             control_layout.addWidget(slider)
             control_layout.addWidget(value_label)
             hpr_layout.addLayout(control_layout)
-        
+
         layout.addLayout(hpr_layout)
-        
+
         # XYZ Controls with individual labels
         xyz_label = QLabel("Position (XYZ)")
         xyz_label.setStyleSheet("font-size: 9px; color: #666; font-weight: bold;")
         layout.addWidget(xyz_label)
-        
+
         xyz_layout = QVBoxLayout()
-        for i, axis in enumerate(['X', 'Y', 'Z']):
+        for i, axis in enumerate(["X", "Y", "Z"]):
             # Create horizontal layout for label and slider
             control_layout = QHBoxLayout()
-            
+
             # Axis label
             axis_label = QLabel(f"{axis}:")
             axis_label.setStyleSheet("font-size: 9px; color: #555; min-width: 15px;")
             axis_label.setFixedWidth(15)
             control_layout.addWidget(axis_label)
-            
+
             # Slider
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(-1800)  # -180.0 * 10
-            slider.setMaximum(1800)   # 180.0 * 10
-            
+            slider.setMaximum(1800)  # 180.0 * 10
+
             # Set initial value from natural pose data
             initial_value = 0
             if part_name in self.body_parts:
-                initial_value = int(self.body_parts[part_name]['xyz'][i] * 10)
+                initial_value = int(self.body_parts[part_name]["xyz"][i] * 10)
             slider.setValue(initial_value)
             slider.setFixedHeight(18)
-            
+
             # Value label
             value_label = QLabel(f"{initial_value / 10.0:.1f}")
             value_label.setStyleSheet("font-size: 8px; color: #777; min-width: 30px;")
             value_label.setFixedWidth(30)
-            
+
             # Connect to update function
             def make_update_func(p=part_name, idx=i, val_label=value_label):
                 def update_func(v):
                     val = v / 10.0
                     val_label.setText(f"{val:.1f}")
-                    self.update_body_part(p, 'xyz', idx, val)
+                    self.update_body_part(p, "xyz", idx, val)
+
                 return update_func
-            
+
             slider.valueChanged.connect(make_update_func())
-            
+
             # Store reference
             slider_name = f"{part_name}_xyz_{axis.lower()}_slider"
             setattr(self, slider_name, slider)
-        
+
             control_layout.addWidget(slider)
             control_layout.addWidget(value_label)
             xyz_layout.addLayout(control_layout)
-        
+
         layout.addLayout(xyz_layout)
-        
+
         return widget
 
     def reset_body_part(self, part_name):
         """Reset a specific body part to its natural pose values."""
         if part_name not in self.body_parts:
             return
-            
+
         try:
             # Get natural pose values from service
-            from helpmesign.utils.natural_pose_service import NaturalPoseService
+            from helpmesign.utils.natural_pose_service import (
+                NaturalPoseService,
+            )
+
             pose_service = NaturalPoseService()
             natural_pose_data = pose_service.get_all_body_parts_pose()
-            
+
             # Reset to natural pose values if available, otherwise zero
             if part_name in natural_pose_data:
-                self.body_parts[part_name]['hpr'] = natural_pose_data[part_name]['hpr'].copy()
-                self.body_parts[part_name]['xyz'] = natural_pose_data[part_name]['xyz'].copy()
+                self.body_parts[part_name]["hpr"] = natural_pose_data[part_name][
+                    "hpr"
+                ].copy()
+                self.body_parts[part_name]["xyz"] = natural_pose_data[part_name][
+                    "xyz"
+                ].copy()
             else:
-                self.body_parts[part_name]['hpr'] = [0.0, 0.0, 0.0]
-                self.body_parts[part_name]['xyz'] = [0.0, 0.0, 0.0]
-            
+                self.body_parts[part_name]["hpr"] = [0.0, 0.0, 0.0]
+                self.body_parts[part_name]["xyz"] = [0.0, 0.0, 0.0]
+
             # Reset all sliders to natural pose values
-            for i, axis in enumerate(['h', 'p', 'r']):
+            for i, axis in enumerate(["h", "p", "r"]):
                 slider_name = f"{part_name}_hpr_{axis}_slider"
                 if hasattr(self, slider_name):
-                    value = int(self.body_parts[part_name]['hpr'][i] * 10)  # Convert to slider scale
+                    value = int(
+                        self.body_parts[part_name]["hpr"][i] * 10
+                    )  # Convert to slider scale
                     getattr(self, slider_name).setValue(value)
-            
-            for i, axis in enumerate(['x', 'y', 'z']):
+
+            for i, axis in enumerate(["x", "y", "z"]):
                 slider_name = f"{part_name}_xyz_{axis}_slider"
                 if hasattr(self, slider_name):
-                    value = int(self.body_parts[part_name]['xyz'][i] * 10)  # Convert to slider scale
+                    value = int(
+                        self.body_parts[part_name]["xyz"][i] * 10
+                    )  # Convert to slider scale
                     getattr(self, slider_name).setValue(value)
-            
+
             # Apply the natural pose values to the joint
             gltf_joint_name = self.get_gltf_joint_name(part_name)
             if gltf_joint_name and self.character:
                 try:
-                    joint = self.character.controlJoint(None, "modelRoot", gltf_joint_name)
+                    joint = self.character.controlJoint(
+                        None, "modelRoot", gltf_joint_name
+                    )
                     if joint and not joint.isEmpty():
                         # Apply the natural pose HPR values
-                        hpr_values = self.body_parts[part_name]['hpr']
+                        hpr_values = self.body_parts[part_name]["hpr"]
                         joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
-                        
+
                         # Apply XYZ values relative to original position
                         original_pos = self.get_original_joint_position(gltf_joint_name)
                         if original_pos:
-                            xyz_values = self.body_parts[part_name]['xyz']
+                            xyz_values = self.body_parts[part_name]["xyz"]
                             joint.setPos(
                                 original_pos[0] + xyz_values[0],
-                                original_pos[1] + xyz_values[1], 
-                                original_pos[2] + xyz_values[2]
+                                original_pos[1] + xyz_values[1],
+                                original_pos[2] + xyz_values[2],
                             )
-                        
+
                         self.character.update()
-                        print(f"Reset {part_name} to natural pose: HPR={hpr_values}, XYZ={xyz_values}")
+                        print(
+                            f"Reset {part_name} to natural pose: HPR={hpr_values}, XYZ={xyz_values}"
+                        )
                 except Exception as e:
                     print(f"Could not reset joint {gltf_joint_name}: {e}")
-                        
+
         except Exception as e:
             print(f"Error resetting body part {part_name}: {e}")
 
@@ -920,52 +1120,53 @@ class GLBViewerWindow(QMainWindow):
         """Update a body part's HPR or XYZ value and apply it to the character."""
         if part_name in self.body_parts:
             self.body_parts[part_name][control_type][axis_index] = value
-            
+
             # Apply the transformation to the character
-            self.apply_body_part_transform(part_name, control_type, axis_index, value)    
-    
+            self.apply_body_part_transform(part_name, control_type, axis_index, value)
+
     def apply_body_part_transform(self, part_name, control_type, axis_index, value):
         """Apply the body part transformation using controlJoint method like hand_pose_editor."""
         if not self.character:
             return
-            
+
         try:
             # Get the GLTF joint name for this body part
             gltf_joint_name = self.get_gltf_joint_name(part_name)
             if not gltf_joint_name:
                 return
-            
+
             # Use controlJoint method like hand_pose_editor does
             joint = self.character.controlJoint(None, "modelRoot", gltf_joint_name)
             if not joint or joint.isEmpty():
                 return
-            
+
             # Get current values
-            hpr_values = self.body_parts[part_name]['hpr']
-            xyz_values = self.body_parts[part_name]['xyz']
-            
+            hpr_values = self.body_parts[part_name]["hpr"]
+            xyz_values = self.body_parts[part_name]["xyz"]
+
             # Apply transformations to the joint
-            
+
             # Apply HPR transformation
             joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
-            
+
             # Apply XYZ transformation (relative to original position)
             original_pos = self.get_original_joint_position(gltf_joint_name)
             if original_pos:
                 joint.setPos(
                     original_pos[0] + xyz_values[0],
-                    original_pos[1] + xyz_values[1], 
-                    original_pos[2] + xyz_values[2]
+                    original_pos[1] + xyz_values[1],
+                    original_pos[2] + xyz_values[2],
                 )
-            
+
             # Update the character (important for Panda3D)
             self.character.update()
-                
+
         except Exception as e:
             print(f"Error applying transform to {part_name}: {e}")
             import traceback
+
             traceback.print_exc()
-    
+
     def apply_bone_transform(self, part_name, hpr_values, xyz_values):
         """Try to apply bone-specific transformations."""
         try:
@@ -978,194 +1179,204 @@ class GLBViewerWindow(QMainWindow):
                 if original_pos:
                     bone_node.setPos(
                         original_pos[0] + xyz_values[0],
-                        original_pos[1] + xyz_values[1], 
-                        original_pos[2] + xyz_values[2]
+                        original_pos[1] + xyz_values[1],
+                        original_pos[2] + xyz_values[2],
                     )
                 return True
         except Exception as e:
             pass
-        
+
         return False
-    
+
     def find_bone_node(self, part_name):
         """Find a bone node for the specified body part."""
         # Try to find bone nodes with names related to the body part
         bone_patterns = {
-            'neck': ['neck', 'head'],
-            'spine': ['spine', 'back', 'torso'],
-            'left_shoulder': ['left', 'shoulder', 'l_shoulder'],
-            'right_shoulder': ['right', 'shoulder', 'r_shoulder'],
-            'left_arm': ['left', 'arm', 'l_arm'],
-            'right_arm': ['right', 'arm', 'r_arm'],
-            'left_hand': ['left', 'hand', 'l_hand'],
-            'right_hand': ['right', 'hand', 'r_hand'],
-            'left_leg': ['left', 'leg', 'thigh', 'l_leg'],
-            'right_leg': ['right', 'leg', 'thigh', 'r_leg'],
-            'left_foot': ['left', 'foot', 'l_foot'],
-            'right_foot': ['right', 'foot', 'r_foot']
+            "neck": ["neck", "head"],
+            "spine": ["spine", "back", "torso"],
+            "left_shoulder": ["left", "shoulder", "l_shoulder"],
+            "right_shoulder": ["right", "shoulder", "r_shoulder"],
+            "left_arm": ["left", "arm", "l_arm"],
+            "right_arm": ["right", "arm", "r_arm"],
+            "left_hand": ["left", "hand", "l_hand"],
+            "right_hand": ["right", "hand", "r_hand"],
+            "left_leg": ["left", "leg", "thigh", "l_leg"],
+            "right_leg": ["right", "leg", "thigh", "r_leg"],
+            "left_foot": ["left", "foot", "l_foot"],
+            "right_foot": ["right", "foot", "r_foot"],
         }
-        
+
         patterns = bone_patterns.get(part_name, [])
-        
+
         # Search for nodes matching the patterns
         def search_for_bone(node, depth=0, max_depth=10):
             if depth > max_depth:
                 return None
-                
+
             node_name = node.getName().lower()
             for pattern in patterns:
                 if pattern in node_name:
                     return node
-            
+
             # Search children
             for child in node.getChildren():
                 result = search_for_bone(child, depth + 1, max_depth)
                 if result:
                     return result
-            
+
             return None
-        
+
         return search_for_bone(self.character)
-    
-        
-    
+
     def get_joint_name_from_part(self, part_name):
         """Convert part name to joint name using discovered joints."""
         # Only use joints that actually exist in the Panda3D scene
         # Based on discovery, only these nodes exist: Armature, Beta_Joints, Beta_Surface
         joint_mapping = {
-            'neck': 'Beta_Joints',  
-            'spine': 'Beta_Joints',
-            'left_shoulder': 'Beta_Joints',
-            'right_shoulder': 'Beta_Joints',
-            'left_arm': 'Beta_Joints',
-            'right_arm': 'Beta_Joints',
-            'left_hand': 'Beta_Joints',
-            'right_hand': 'Beta_Joints',
-            'left_fingers_thumb': 'Beta_Joints',
-            'right_fingers_thumb': 'Beta_Joints',
-            'left_fingers_index': 'Beta_Joints',
-            'right_fingers_index': 'Beta_Joints',
-            'left_fingers_middle': 'Beta_Joints',
-            'right_fingers_middle': 'Beta_Joints',
-            'left_fingers_ring': 'Beta_Joints',
-            'right_fingers_ring': 'Beta_Joints',
-            'left_fingers_pinky': 'Beta_Joints',
-            'right_fingers_pinky': 'Beta_Joints',
-            'left_leg': 'Beta_Joints',
-            'right_leg': 'Beta_Joints',
-            'left_foot': 'Beta_Joints',
-            'right_foot': 'Beta_Joints'
+            "neck": "Beta_Joints",
+            "spine": "Beta_Joints",
+            "left_shoulder": "Beta_Joints",
+            "right_shoulder": "Beta_Joints",
+            "left_arm": "Beta_Joints",
+            "right_arm": "Beta_Joints",
+            "left_hand": "Beta_Joints",
+            "right_hand": "Beta_Joints",
+            "left_fingers_thumb": "Beta_Joints",
+            "right_fingers_thumb": "Beta_Joints",
+            "left_fingers_index": "Beta_Joints",
+            "right_fingers_index": "Beta_Joints",
+            "left_fingers_middle": "Beta_Joints",
+            "right_fingers_middle": "Beta_Joints",
+            "left_fingers_ring": "Beta_Joints",
+            "right_fingers_ring": "Beta_Joints",
+            "left_fingers_pinky": "Beta_Joints",
+            "right_fingers_pinky": "Beta_Joints",
+            "left_leg": "Beta_Joints",
+            "right_leg": "Beta_Joints",
+            "left_foot": "Beta_Joints",
+            "right_foot": "Beta_Joints",
         }
-        
+
         # Try the original mapping first
         joint_name = joint_mapping.get(part_name)
-        if joint_name and hasattr(self, 'discovered_joints') and joint_name in self.discovered_joints:
+        if (
+            joint_name
+            and hasattr(self, "discovered_joints")
+            and joint_name in self.discovered_joints
+        ):
             return joint_name
-        
+
         # If not found, try to find a similar joint
-        if hasattr(self, 'discovered_joints'):
+        if hasattr(self, "discovered_joints"):
             similar_joint = self.find_similar_joint(part_name)
             if similar_joint:
                 return similar_joint.getName()
-        
+
         return joint_name
-    
+
     def find_alternative_joint(self, part_name):
         """Try to find alternative joint names if the primary one doesn't exist."""
         alternatives = {
-            'neck': ['Beta_Joints', 'Armature'],
-            'spine': ['Beta_Joints', 'Armature'],
-            'left_shoulder': ['Beta_Joints', 'Armature'],
-            'right_shoulder': ['Beta_Joints', 'Armature'],
-            'left_arm': ['Beta_Joints', 'Armature'],
-            'right_arm': ['Beta_Joints', 'Armature'],
-            'left_hand': ['Beta_Joints', 'Armature'],
-            'right_hand': ['Beta_Joints', 'Armature'],
-            'left_fingers_thumb': ['Beta_Joints', 'Armature'],
-            'right_fingers_thumb': ['Beta_Joints', 'Armature'],
-            'left_fingers_index': ['Beta_Joints', 'Armature'],
-            'right_fingers_index': ['Beta_Joints', 'Armature'],
-            'left_fingers_middle': ['Beta_Joints', 'Armature'],
-            'right_fingers_middle': ['Beta_Joints', 'Armature'],
-            'left_fingers_ring': ['Beta_Joints', 'Armature'],
-            'right_fingers_ring': ['Beta_Joints', 'Armature'],
-            'left_fingers_pinky': ['Beta_Joints', 'Armature'],
-            'right_fingers_pinky': ['Beta_Joints', 'Armature'],
-            'left_leg': ['Beta_Joints', 'Armature'],
-            'right_leg': ['Beta_Joints', 'Armature'],
-            'left_foot': ['Beta_Joints', 'Armature'],
-            'right_foot': ['Beta_Joints', 'Armature']
+            "neck": ["Beta_Joints", "Armature"],
+            "spine": ["Beta_Joints", "Armature"],
+            "left_shoulder": ["Beta_Joints", "Armature"],
+            "right_shoulder": ["Beta_Joints", "Armature"],
+            "left_arm": ["Beta_Joints", "Armature"],
+            "right_arm": ["Beta_Joints", "Armature"],
+            "left_hand": ["Beta_Joints", "Armature"],
+            "right_hand": ["Beta_Joints", "Armature"],
+            "left_fingers_thumb": ["Beta_Joints", "Armature"],
+            "right_fingers_thumb": ["Beta_Joints", "Armature"],
+            "left_fingers_index": ["Beta_Joints", "Armature"],
+            "right_fingers_index": ["Beta_Joints", "Armature"],
+            "left_fingers_middle": ["Beta_Joints", "Armature"],
+            "right_fingers_middle": ["Beta_Joints", "Armature"],
+            "left_fingers_ring": ["Beta_Joints", "Armature"],
+            "right_fingers_ring": ["Beta_Joints", "Armature"],
+            "left_fingers_pinky": ["Beta_Joints", "Armature"],
+            "right_fingers_pinky": ["Beta_Joints", "Armature"],
+            "left_leg": ["Beta_Joints", "Armature"],
+            "right_leg": ["Beta_Joints", "Armature"],
+            "left_foot": ["Beta_Joints", "Armature"],
+            "right_foot": ["Beta_Joints", "Armature"],
         }
-        
+
         if part_name in alternatives:
             for alt_name in alternatives[part_name]:
                 joint = self.character.find(f"**/{alt_name}")
                 if joint and not joint.isEmpty():
                     return joint
         return None
-    
+
     def find_child_joint_for_body_part(self, parent_joint, part_name):
         """Find a child joint that corresponds to the specific body part."""
         if not parent_joint:
             return None
-            
+
         # Look for child joints that might correspond to the body part
         for i in range(parent_joint.getNumChildren()):
             child = parent_joint.getChild(i)
             child_name = child.getName().lower()
-            
+
             # Map body part names to potential child joint names
-            if 'left_arm' in part_name and ('arm' in child_name or 'shoulder' in child_name):
+            if "left_arm" in part_name and (
+                "arm" in child_name or "shoulder" in child_name
+            ):
                 return child
-            elif 'right_arm' in part_name and ('arm' in child_name or 'shoulder' in child_name):
+            elif "right_arm" in part_name and (
+                "arm" in child_name or "shoulder" in child_name
+            ):
                 return child
-            elif 'left_hand' in part_name and 'hand' in child_name:
+            elif "left_hand" in part_name and "hand" in child_name:
                 return child
-            elif 'right_hand' in part_name and 'hand' in child_name:
+            elif "right_hand" in part_name and "hand" in child_name:
                 return child
-            elif 'left_leg' in part_name and ('leg' in child_name or 'thigh' in child_name):
+            elif "left_leg" in part_name and (
+                "leg" in child_name or "thigh" in child_name
+            ):
                 return child
-            elif 'right_leg' in part_name and ('leg' in child_name or 'thigh' in child_name):
+            elif "right_leg" in part_name and (
+                "leg" in child_name or "thigh" in child_name
+            ):
                 return child
-            elif 'left_foot' in part_name and 'foot' in child_name:
+            elif "left_foot" in part_name and "foot" in child_name:
                 return child
-            elif 'right_foot' in part_name and 'foot' in child_name:
+            elif "right_foot" in part_name and "foot" in child_name:
                 return child
-        
+
         # If no specific child found, return the first child (if any)
         if parent_joint.getNumChildren() > 0:
             return parent_joint.getChild(0)
-        
+
         return None
 
     def get_gltf_joint_name(self, part_name):
         """Get the GLTF joint name for a body part."""
         gltf_mapping = {
-            'neck': 'mixamorig:Neck',
-            'spine': 'mixamorig:Spine',
-            'left_shoulder': 'mixamorig:LeftShoulder',
-            'right_shoulder': 'mixamorig:RightShoulder',
-            'left_arm': 'mixamorig:LeftArm',
-            'right_arm': 'mixamorig:RightArm',
-            'left_forearm': 'mixamorig:LeftForeArm',
-            'right_forearm': 'mixamorig:RightForeArm',
-            'left_hand': 'mixamorig:LeftHand',
-            'right_hand': 'mixamorig:RightHand',
-            'left_fingers_thumb': 'mixamorig:LeftHandThumb1',
-            'right_fingers_thumb': 'mixamorig:RightHandThumb1',
-            'left_fingers_index': 'mixamorig:LeftHandIndex1',
-            'right_fingers_index': 'mixamorig:RightHandIndex1',
-            'left_fingers_middle': 'mixamorig:LeftHandMiddle1',
-            'right_fingers_middle': 'mixamorig:RightHandMiddle1',
-            'left_fingers_ring': 'mixamorig:LeftHandRing1',
-            'right_fingers_ring': 'mixamorig:RightHandRing1',
-            'left_fingers_pinky': 'mixamorig:LeftHandPinky1',
-            'right_fingers_pinky': 'mixamorig:RightHandPinky1',
-            'left_leg': 'mixamorig:LeftUpLeg',
-            'right_leg': 'mixamorig:RightUpLeg',
-            'left_foot': 'mixamorig:LeftFoot',
-            'right_foot': 'mixamorig:RightFoot'
+            "neck": "mixamorig:Neck",
+            "spine": "mixamorig:Spine",
+            "left_shoulder": "mixamorig:LeftShoulder",
+            "right_shoulder": "mixamorig:RightShoulder",
+            "left_arm": "mixamorig:LeftArm",
+            "right_arm": "mixamorig:RightArm",
+            "left_forearm": "mixamorig:LeftForeArm",
+            "right_forearm": "mixamorig:RightForeArm",
+            "left_hand": "mixamorig:LeftHand",
+            "right_hand": "mixamorig:RightHand",
+            "left_fingers_thumb": "mixamorig:LeftHandThumb1",
+            "right_fingers_thumb": "mixamorig:RightHandThumb1",
+            "left_fingers_index": "mixamorig:LeftHandIndex1",
+            "right_fingers_index": "mixamorig:RightHandIndex1",
+            "left_fingers_middle": "mixamorig:LeftHandMiddle1",
+            "right_fingers_middle": "mixamorig:RightHandMiddle1",
+            "left_fingers_ring": "mixamorig:LeftHandRing1",
+            "right_fingers_ring": "mixamorig:RightHandRing1",
+            "left_fingers_pinky": "mixamorig:LeftHandPinky1",
+            "right_fingers_pinky": "mixamorig:RightHandPinky1",
+            "left_leg": "mixamorig:LeftUpLeg",
+            "right_leg": "mixamorig:RightUpLeg",
+            "left_foot": "mixamorig:LeftFoot",
+            "right_foot": "mixamorig:RightFoot",
         }
         return gltf_mapping.get(part_name)
 
@@ -1173,7 +1384,7 @@ class GLBViewerWindow(QMainWindow):
         """Find a Panda3D joint node by its GLTF index using skeleton system."""
         if not self.character:
             return None
-            
+
         # Try to access the skeleton system
         try:
             # Look for skeleton nodes in the character
@@ -1183,7 +1394,7 @@ class GLBViewerWindow(QMainWindow):
                 joint = skeleton.get_joint(joint_index)
                 if joint:
                     return joint
-            
+
             # Alternative: try to find skeleton in Armature or Beta_Joints
             for skeleton_name in ["Armature", "Beta_Joints"]:
                 skeleton_node = self.character.find(f"**/{skeleton_name}")
@@ -1192,31 +1403,33 @@ class GLBViewerWindow(QMainWindow):
                     joint = skeleton_node.get_joint(joint_index)
                     if joint:
                         return joint
-                        
+
         except Exception as e:
             print(f"DEBUG: Skeleton access failed: {e}")
-        
+
         # Fallback: try to find by name patterns
         joint_names_to_try = [
             f"Joint_{joint_index}",
             f"Bone_{joint_index}",
             f"mixamorig:Joint_{joint_index}",
-            f"mixamorig:Bone_{joint_index}"
+            f"mixamorig:Bone_{joint_index}",
         ]
-        
+
         for joint_name in joint_names_to_try:
+            if self.character is None:
+                return None
             joint = self.character.find(f"**/{joint_name}")
             if joint and not joint.isEmpty():
                 return joint
-        
+
         return None
-    
+
     def get_original_joint_position(self, joint_name):
         """Get the original position of a joint (for XYZ transformations)."""
         # Store original positions when the character is first loaded
-        if not hasattr(self, 'original_joint_positions'):
+        if not hasattr(self, "original_joint_positions"):
             self.original_joint_positions = {}
-            
+
         if joint_name not in self.original_joint_positions:
             # Try to get the joint using controlJoint method
             try:
@@ -1224,20 +1437,20 @@ class GLBViewerWindow(QMainWindow):
                 if joint and not joint.isEmpty():
                     pos = joint.getPos()
                     self.original_joint_positions[joint_name] = {
-                        'hpr': joint.getHpr(),
-                        'pos': pos
+                        "hpr": joint.getHpr(),
+                        "pos": pos,
                     }
                 else:
                     return None
             except:
                 return None
-                
+
         # Return the position from the stored data
         joint_data = self.original_joint_positions.get(joint_name)
-        if joint_data and 'pos' in joint_data:
-            return joint_data['pos']
+        if joint_data and "pos" in joint_data:
+            return joint_data["pos"]
         return None
-        
+
     def init_panda3d(self):
         """Initialize Panda3D in offscreen mode."""
         try:
@@ -1245,24 +1458,26 @@ class GLBViewerWindow(QMainWindow):
             loadPrcFileData("", "window-type offscreen")
             loadPrcFileData("", "sync-video 0")
             loadPrcFileData("", "framebuffer-srgb true")
-            loadPrcFileData("", "framebuffer-alpha true")  # Enable alpha for transparent background
+            loadPrcFileData(
+                "", "framebuffer-alpha true"
+            )  # Enable alpha for transparent background
             loadPrcFileData("", "gl-check-errors false")
             loadPrcFileData("", "notify-level-glgsg fatal")
             loadPrcFileData("", "notify-level-display fatal")
             loadPrcFileData("", "win-size 800 800")
             loadPrcFileData("", "framebuffer-multisample 1")
-            
+
             # Initialize ShowBase
             self.showbase = ShowBase()
-            
+
             # Set up scene
             self.setup_scene()
-            
+
             # Set up render texture (same as learn module)
             self.color_tex = None
             try:
                 from panda3d.core import GraphicsOutput, Texture
-                
+
                 tex = Texture()
                 self.showbase.win.addRenderTexture(tex, GraphicsOutput.RTMCopyRam)
                 self.color_tex = tex
@@ -1270,185 +1485,201 @@ class GLBViewerWindow(QMainWindow):
             except Exception as e:
                 print(f"Failed to create render texture: {e}")
                 self.color_tex = None
-            
+
             # Load character
-            glb_path = os.path.join(os.path.dirname(__file__), "resources", "characters", "arivo.glb")
+            glb_path = os.path.join(
+                project_root, "resources", "characters", "arivo.glb"
+            )
             self.load_glb(glb_path)
-            
+
             self.panda_ready = True
-            
+
         except Exception as e:
             print(f"Error initializing Panda3D: {e}")
-            
+
     def setup_scene(self):
         """Set up the Panda3D scene."""
         self.showbase.setBackgroundColor(0, 0, 0, 0)  # Transparent background
-        
+
         # Set up lighting
-        ambient_light = AmbientLight('ambient_light')
-        ambient_light.setColor(VBase4(self.ambient_light, self.ambient_light, self.ambient_light, 1))  # Use default ambient light value
+        ambient_light = AmbientLight("ambient_light")
+        ambient_light.setColor(
+            VBase4(self.ambient_light, self.ambient_light, self.ambient_light, 1)
+        )  # Use default ambient light value
         self.ambient_light_node = self.showbase.render.attachNewNode(ambient_light)
         self.showbase.render.setLight(self.ambient_light_node)
-        
-        directional_light = DirectionalLight('directional_light')
+
+        directional_light = DirectionalLight("directional_light")
         directional_light.setColor(VBase4(1.0, 1.0, 1.0, 1))  # Brighter directional
         directional_light.setDirection(Vec3(-1, -1, -1))
         directional_light_node = self.showbase.render.attachNewNode(directional_light)
         self.showbase.render.setLight(directional_light_node)
-        
+
         # Set up camera with default values
         self.camera = self.showbase.camera
         # Apply default camera values
         self.camera.setPos(0, -self.camera_distance, 1)
         self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
-        self.camera.lookAt(0, 0, 1)   # Look at character center height
-        
+        self.camera.lookAt(0, 0, 1)  # Look at character center height
+
         # Set camera lens for better view
         lens = self.showbase.camLens
         lens.setFov(60)  # Moderate field of view to see full character
-        
-        
+
     def load_glb(self, glb_path):
         """Load a GLB file."""
         try:
             if not os.path.exists(glb_path):
                 print(f"GLB file not found: {glb_path}")
                 return
-                
+
             # Load as Actor instead of regular model to enable controlJoint
             self.character = Actor(glb_path)
-        
+
             if not self.character:
                 print(f"Failed to load GLB file: {glb_path}")
                 return
-        
+
             self.character.setPos(self.character_x, self.character_y, self.character_z)
             self.character.setHpr(0, 0, 0)  # Keep original orientation
-            self.character.setScale(self.camera_scale)    # Use default scale
+            self.character.setScale(self.camera_scale)  # Use default scale
             self.character.reparentTo(self.showbase.render)
-            
+
             # Apply camera settings after character is loaded
             if self.camera:
                 self.camera.setPos(0, -self.camera_distance, 1)
-                self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
-            
+                self.camera.setHpr(
+                    self.camera_x_rot, self.camera_y_rot, self.camera_z_rot
+                )
+
             # Initialize original joint positions for body part controls
             self.initialize_joint_positions()
-            
+
             # Apply natural pose if available
             # self.apply_natural_pose()
-            
+
         except Exception as e:
             print(f"Error loading GLB file: {e}")
-    
+
     def initialize_joint_positions(self):
         """Initialize and store original joint positions for all body part joints."""
         if not self.character:
             return
-            
-        self.original_joint_positions = {}
-        
+
+        self.original_joint_positions: Dict[str, Dict[str, Any]] = {}
+
         # First, discover all available joints in the character
         # self.discover_joints()
-        
+
         # Get natural pose data
-        from helpmesign.utils.natural_pose_service import NaturalPoseService
+        from helpmesign.utils.natural_pose_service import (
+            NaturalPoseService,
+        )
+
         pose_service = NaturalPoseService()
         natural_pose = pose_service.get_natural_pose_data()
-        
+
         for part_name in self.body_part_names:
             gltf_joint_name = self.get_gltf_joint_name(part_name)
             if gltf_joint_name:
                 try:
                     # Get the joint using controlJoint method
-                    joint = self.character.controlJoint(None, "modelRoot", gltf_joint_name)
+                    joint = self.character.controlJoint(
+                        None, "modelRoot", gltf_joint_name
+                    )
                     if joint and not joint.isEmpty():
                         # Store original HPR and position
                         original_hpr = joint.getHpr()
                         original_pos = joint.getPos()
                         self.original_joint_positions[gltf_joint_name] = {
-                            'hpr': original_hpr,
-                            'pos': original_pos
+                            "hpr": original_hpr,
+                            "pos": original_pos,
                         }
-                                                
+
                         # Apply natural pose using slider values from self.body_parts
                         # Find the corresponding body part for this joint
                         body_part_name = None
                         for part_name, part_gltf_name in [
-                            ('neck', 'mixamorig:Neck'),
-                            ('spine', 'mixamorig:Spine'),
+                            ("neck", "mixamorig:Neck"),
+                            ("spine", "mixamorig:Spine"),
                             # ('left_shoulder', 'mixamorig:LeftShoulder'),
                             # ('right_shoulder', 'mixamorig:RightShoulder'),
-                            ('left_arm', 'mixamorig:LeftArm'),
-                            ('right_arm', 'mixamorig:RightArm'),
-                            ('left_forearm', 'mixamorig:LeftForeArm'),
-                            ('right_forearm', 'mixamorig:RightForeArm'),
-                            ('left_hand', 'mixamorig:LeftHand'),
-                            ('right_hand', 'mixamorig:RightHand'),
-                            ('left_fingers_thumb', 'mixamorig:LeftHandThumb1'),
-                            ('right_fingers_thumb', 'mixamorig:RightHandThumb1'),
-                            ('left_fingers_index', 'mixamorig:LeftHandIndex1'),
-                            ('right_fingers_index', 'mixamorig:RightHandIndex1'),
-                            ('left_fingers_middle', 'mixamorig:LeftHandMiddle1'),
-                            ('right_fingers_middle', 'mixamorig:RightHandMiddle1'),
-                            ('left_fingers_ring', 'mixamorig:LeftHandRing1'),
-                            ('right_fingers_ring', 'mixamorig:RightHandRing1'),
-                            ('left_fingers_pinky', 'mixamorig:LeftHandPinky1'),
-                            ('right_fingers_pinky', 'mixamorig:RightHandPinky1'),
+                            ("left_arm", "mixamorig:LeftArm"),
+                            ("right_arm", "mixamorig:RightArm"),
+                            ("left_forearm", "mixamorig:LeftForeArm"),
+                            ("right_forearm", "mixamorig:RightForeArm"),
+                            ("left_hand", "mixamorig:LeftHand"),
+                            ("right_hand", "mixamorig:RightHand"),
+                            ("left_fingers_thumb", "mixamorig:LeftHandThumb1"),
+                            ("right_fingers_thumb", "mixamorig:RightHandThumb1"),
+                            ("left_fingers_index", "mixamorig:LeftHandIndex1"),
+                            ("right_fingers_index", "mixamorig:RightHandIndex1"),
+                            ("left_fingers_middle", "mixamorig:LeftHandMiddle1"),
+                            ("right_fingers_middle", "mixamorig:RightHandMiddle1"),
+                            ("left_fingers_ring", "mixamorig:LeftHandRing1"),
+                            ("right_fingers_ring", "mixamorig:RightHandRing1"),
+                            ("left_fingers_pinky", "mixamorig:LeftHandPinky1"),
+                            ("right_fingers_pinky", "mixamorig:RightHandPinky1"),
                             # ('left_leg', 'mixamorig:LeftUpLeg'),
                             # ('right_leg', 'mixamorig:RightUpLeg'),
-                            ('left_foot', 'mixamorig:LeftFoot'),
-                            ('right_foot', 'mixamorig:RightFoot')
+                            ("left_foot", "mixamorig:LeftFoot"),
+                            ("right_foot", "mixamorig:RightFoot"),
                         ]:
                             if gltf_joint_name == part_gltf_name:
                                 body_part_name = part_name
                                 break
-                        
+
                         # Apply slider values if we found a matching body part
                         if body_part_name and body_part_name in self.body_parts:
                             body_part_data = self.body_parts[body_part_name]
-                            hpr = body_part_data['hpr']
-                            xyz = body_part_data['xyz']
-                            
+                            hpr = body_part_data["hpr"]
+                            xyz = body_part_data["xyz"]
+
                             # Apply HPR values
                             joint.setHpr(hpr[0], hpr[1], hpr[2])
-                            
+
                             # Apply XYZ values relative to original position
-                            original_pos = self.original_joint_positions[gltf_joint_name]['pos']
+                            original_pos = self.original_joint_positions[
+                                gltf_joint_name
+                            ]["pos"]
                             joint.setPos(
                                 original_pos[0] + xyz[0],
-                                original_pos[1] + xyz[1], 
-                                original_pos[2] + xyz[2]
+                                original_pos[1] + xyz[1],
+                                original_pos[2] + xyz[2],
                             )
-                                                        
+
                 except Exception as e:
                     print(f"Could not initialize position for {gltf_joint_name}: {e}")
-    
+
         # Update the character after applying all natural poses
         self.character.update()
         print("Natural pose applied during initialization")
-    
+
     def discover_joints(self):
         """Discover all joints in the character model using GLTF extraction."""
         if not self.character:
             return
-        
+
         # Try GLTF-based joint extraction first
-        glb_path = os.path.join(os.path.dirname(__file__), "resources", "characters", "arivo.glb")
+        glb_path = os.path.join(
+            os.path.dirname(__file__), "resources", "characters", "arivo.glb"
+        )
         joint_hierarchy, root_joints = build_joint_hierarchy(glb_path)
-        
+
         if joint_hierarchy and root_joints:
-            
+
             # Store the GLTF joint data
             self.gltf_joint_hierarchy = joint_hierarchy
             self.gltf_root_joints = root_joints
-            
+
             # Explore the skeleton system
             self.explore_skeleton_system()
-            
+
             # Extract joint names for compatibility
-            self.discovered_joints = [joint['name'] for joint in joint_hierarchy.values()]
-            
+            self.discovered_joints = [
+                joint["name"] for joint in joint_hierarchy.values()
+            ]
+
             # Create a mapping from GLTF joint names to Panda3D nodes
             self.gltf_to_panda_mapping = {}
             for joint_name in self.discovered_joints:
@@ -1459,65 +1690,68 @@ class GLBViewerWindow(QMainWindow):
                     print(f"Found Panda3D node for GLTF joint: {joint_name}")
                 else:
                     # Try without the mixamorig: prefix
-                    simple_name = joint_name.replace('mixamorig:', '')
+                    simple_name = joint_name.replace("mixamorig:", "")
                     panda_node = self.character.find(f"**/{simple_name}")
                     if panda_node and not panda_node.isEmpty():
                         self.gltf_to_panda_mapping[joint_name] = panda_node
                     else:
-                        print(f"Could not find Panda3D node for GLTF joint: {joint_name}")
+                        print(
+                            f"Could not find Panda3D node for GLTF joint: {joint_name}"
+                        )
         else:
             # Fallback to original Panda3D traversal
             self.discovered_joints = []
-            
+
             def traverse_node(node, depth=0, max_depth=10):
                 if depth > max_depth:
                     return
-            
+
                 indent = "  " * depth
                 node_name = node.getName()
                 if node_name and node_name != "Scene":
                     self.discovered_joints.append(node_name)
                     print(f"{indent}{node_name}")
-                
+
                 # Continue traversing deeper
                 for child in node.getChildren():
                     traverse_node(child, depth + 1, max_depth)
-            
+
             # Traverse much deeper to find individual joints
             traverse_node(self.character, max_depth=15)
-    
+
     def explore_skeleton_system(self):
         """Explore the Panda3D skeleton system to find available joints."""
-        
+
         try:
             # Look for Character nodes (skeleton containers)
             character_nodes = []
+
             def find_characters(node, depth=0, max_depth=5):
                 if depth > max_depth:
                     return
-                if node.hasPythonTag('Character'):
+                if node.hasPythonTag("Character"):
                     character_nodes.append(node)
                 for child in node.getChildren():
                     find_characters(child, depth + 1, max_depth)
-            
+
             find_characters(self.character)
-            
+
             # Explore each character node
             for i, char_node in enumerate(character_nodes):
                 try:
                     # Try to get joint count
                     joint_count = char_node.getNumJoints()
-                    
+
                     # Try to list some joints
                     for j in range(min(joint_count, 10)):  # Show first 10 joints
                         try:
-                            joint = char_node.get_joint(j)                            
+                            joint = char_node.get_joint(j)
                         except:
                             pass
-                    
+
                 except Exception as e:
                     print(f"  Error accessing character: {e}")
-            
+
             # Also check Armature and Beta_Joints for skeleton properties
             for skeleton_name in ["Armature", "Beta_Joints"]:
                 skeleton_node = self.character.find(f"**/{skeleton_name}")
@@ -1525,54 +1759,53 @@ class GLBViewerWindow(QMainWindow):
                     print(f"\nExploring {skeleton_name}:")
                     try:
                         # Check if it has joint-related methods
-                        if hasattr(skeleton_node, 'getNumJoints'):
+                        if hasattr(skeleton_node, "getNumJoints"):
                             joint_count = skeleton_node.getNumJoints()
-                            
+
                             # Try to access some joints
                             for j in range(min(joint_count, 5)):
                                 try:
-                                    joint = skeleton_node.get_joint(j)                                    
+                                    joint = skeleton_node.get_joint(j)
                                 except:
                                     pass
                     except Exception as e:
                         print(f"  Error accessing {skeleton_name}: {e}")
-                        
+
         except Exception as e:
             print(f"Error exploring skeleton system: {e}")
-        
-    
+
     def find_similar_joint(self, target_name):
         """Find a joint with a similar name to the target."""
-        if not hasattr(self, 'discovered_joints'):
+        if not hasattr(self, "discovered_joints"):
             return None
-            
+
         target_lower = target_name.lower()
-        
+
         # Look for exact matches first
         for joint_name in self.discovered_joints:
             if joint_name.lower() == target_lower:
                 return self.character.find(f"**/{joint_name}")
-        
+
         # Look for partial matches
         for joint_name in self.discovered_joints:
             joint_lower = joint_name.lower()
-            if (target_lower in joint_lower or joint_lower in target_lower):
+            if target_lower in joint_lower or joint_lower in target_lower:
                 return self.character.find(f"**/{joint_name}")
-        
+
         # Look for common patterns
         patterns = {
-            'shoulder': ['shoulder', 'arm', 'clavicle'],
-            'arm': ['arm', 'forearm', 'elbow'],
-            'hand': ['hand', 'wrist'],
-            'thumb': ['thumb'],
-            'index': ['index'],
-            'middle': ['middle'],
-            'ring': ['ring'],
-            'pinky': ['pinky', 'little'],
-            'leg': ['leg', 'thigh', 'femur'],
-            'hip': ['hip', 'pelvis']
+            "shoulder": ["shoulder", "arm", "clavicle"],
+            "arm": ["arm", "forearm", "elbow"],
+            "hand": ["hand", "wrist"],
+            "thumb": ["thumb"],
+            "index": ["index"],
+            "middle": ["middle"],
+            "ring": ["ring"],
+            "pinky": ["pinky", "little"],
+            "leg": ["leg", "thigh", "femur"],
+            "hip": ["hip", "pelvis"],
         }
-        
+
         for pattern, keywords in patterns.items():
             if pattern in target_lower:
                 for joint_name in self.discovered_joints:
@@ -1580,30 +1813,30 @@ class GLBViewerWindow(QMainWindow):
                     for keyword in keywords:
                         if keyword in joint_lower:
                             return self.character.find(f"**/{joint_name}")
-        
+
         return None
-            
+
     def apply_natural_pose(self):
         """Apply a natural pose to the character."""
         parent_process
         # if not self.character:
         #     return
-            
+
         # try:
         #     # Set neck pose directly - very small value to avoid distortion
         #     neck_joint = self.character.controlJoint(None, "modelRoot", "mixamorig:Neck")
         #     if neck_joint and not neck_joint.isEmpty():
         #         # Set a small neck pitch (4 degrees instead of 40)
         #         neck_joint.setHpr(0, 40, 0)
-                
+
         #     from helpmesign.utils.natural_pose_service import NaturalPoseService
         #     pose_service = NaturalPoseService()
         #     natural_pose = pose_service.get_natural_pose_data()
-            
+
         #     if not natural_pose:
         #         print("No natural pose data available")
         #         return
-            
+
         #     for joint_name, pose_data in natural_pose.items():
         #         print("Debug: ", joint_name, pose_data);
         #         joint = self.character.controlJoint(None, "modelRoot", joint_name)
@@ -1615,7 +1848,7 @@ class GLBViewerWindow(QMainWindow):
         #     #         # print("Debug: ", joint.setHpr(pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2]));
         #     #         print("Debug: ", joint_name, pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2]);
         #     #         joint.setHpr(pose_data['hpr'][0], pose_data['hpr'][1], pose_data['hpr'][2])
-                
+
         #     self.character.update()
         # except Exception as e:
         #     print(f"Error setting neck pose: {e}")
@@ -1624,11 +1857,11 @@ class GLBViewerWindow(QMainWindow):
         """Render a frame from Panda3D and display it (same as learn module)."""
         if not self.panda_ready or not self.showbase:
             return
-            
+
         try:
             # Step Panda3D
             self.showbase.taskMgr.step()
-            
+
             # Use render texture first (same as learn module)
             image_updated = False
             if self.color_tex is not None:
@@ -1640,28 +1873,33 @@ class GLBViewerWindow(QMainWindow):
                         height = tex.getYSize()
                         stride = width * 4
                         import warnings
-                        
+
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", DeprecationWarning)
                             img = QImage(
-                                bytes(data), width, height, stride, QImage.Format_RGBA8888
+                                bytes(data),
+                                width,
+                                height,
+                                stride,
+                                QImage.Format_RGBA8888,
                             ).mirrored(False, True)
-                        
+
                         # Scale to full display size
                         display_size = self.display_label.size()
                         display_img = img.scaled(
-                            display_size.width(), display_size.height(),
+                            display_size.width(),
+                            display_size.height(),
                             Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation
+                            Qt.TransformationMode.SmoothTransformation,
                         )
-                        
+
                         # Display in label
                         self.display_label.setPixmap(QPixmap.fromImage(display_img))
                         image_updated = True
                 except Exception as e:
                     print(f"Error with render texture: {e}")
                     image_updated = False
-            
+
             # Fallback: screenshot method
             if not image_updated:
                 try:
@@ -1670,30 +1908,31 @@ class GLBViewerWindow(QMainWindow):
                     if ok:
                         width = pimg.getXSize()
                         height = pimg.getYSize()
-                        
+
                         # Convert PNMImage to QImage
                         img = QImage(width, height, QImage.Format_RGBA8888)
-                        
+
                         # Fill the QImage with PNMImage data
                     for y in range(height):
                         for x in range(width):
-                                r, g, b = pimg.getXelVal(x, y)
-                                r = max(0, min(255, int(r * 255)))
-                                g = max(0, min(255, int(g * 255))) 
-                                b = max(0, min(255, int(b * 255)))
-                                a = 255
-                                img.setPixel(x, y, (a << 24) | (r << 16) | (g << 8) | b)
-                        
+                            r, g, b = pimg.getXelVal(x, y)
+                            r = max(0, min(255, int(r * 255)))
+                            g = max(0, min(255, int(g * 255)))
+                            b = max(0, min(255, int(b * 255)))
+                            a = 255
+                            img.setPixel(x, y, (a << 24) | (r << 16) | (g << 8) | b)
+
                         img = img.mirrored(False, True)
-                        
+
                         # Scale to full display size
                         display_size = self.display_label.size()
                         display_img = img.scaled(
-                            display_size.width(), display_size.height(),
+                            display_size.width(),
+                            display_size.height(),
                             Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation
+                            Qt.TransformationMode.SmoothTransformation,
                         )
-                        
+
                         # Display in label
                         self.display_label.setPixmap(QPixmap.fromImage(display_img))
                 except Exception as e:
@@ -1701,7 +1940,7 @@ class GLBViewerWindow(QMainWindow):
 
         except Exception as e:
             print(f"Error rendering frame: {e}")
-            
+
     def update_camera_scale(self, value):
         """Update camera scale."""
         self.camera_scale = value
@@ -1778,23 +2017,42 @@ class GLBViewerWindow(QMainWindow):
         try:
             # Get default values
             defaults = self.get_default_values()
-            
+
             # Reset all control variables
-            self.camera_scale = defaults['camera_scale']
-            self.camera_distance = defaults['camera_distance']
-            self.camera_x_rot = defaults['camera_x_rot']
-            self.camera_y_rot = defaults['camera_y_rot']
-            self.camera_z_rot = defaults['camera_z_rot']
-            self.ambient_light = defaults['ambient_light']
-            self.character_x = defaults['character_x']
-            self.character_y = defaults['character_y']
-            self.character_z = defaults['character_z']
-            
+            self.camera_scale = defaults["camera_scale"]
+            self.camera_distance = defaults["camera_distance"]
+            self.camera_x_rot = defaults["camera_x_rot"]
+            self.camera_y_rot = defaults["camera_y_rot"]
+            self.camera_z_rot = defaults["camera_z_rot"]
+            self.ambient_light = defaults["ambient_light"]
+            self.character_x = defaults["character_x"]
+            self.character_y = defaults["character_y"]
+            self.character_z = defaults["character_z"]
+
             # Update sliders (with error handling)
-            slider_names = ['scale', 'distance', 'x_rot', 'y_rot', 'z_rot', 'ambient', 'pos_x', 'pos_y', 'pos_z']
-            slider_values = [self.camera_scale, self.camera_distance, self.camera_x_rot, self.camera_y_rot, 
-                           self.camera_z_rot, self.ambient_light, self.character_x, self.character_y, self.character_z]
-            
+            slider_names = [
+                "scale",
+                "distance",
+                "x_rot",
+                "y_rot",
+                "z_rot",
+                "ambient",
+                "pos_x",
+                "pos_y",
+                "pos_z",
+            ]
+            slider_values = [
+                self.camera_scale,
+                self.camera_distance,
+                self.camera_x_rot,
+                self.camera_y_rot,
+                self.camera_z_rot,
+                self.ambient_light,
+                self.character_x,
+                self.character_y,
+                self.character_z,
+            ]
+
             for name, value in zip(slider_names, slider_values):
                 slider_attr = f"{name}_slider"
                 value_attr = f"{name}_value"
@@ -1802,63 +2060,84 @@ class GLBViewerWindow(QMainWindow):
                     getattr(self, slider_attr).setValue(int(value * 100))
                 if hasattr(self, value_attr):
                     getattr(self, value_attr).setText(f"{value:.1f}")
-            
+
             # Reset all body part controls to natural pose values
-            natural_pose_data = defaults['body_parts']
+            natural_pose_data = defaults["body_parts"]
             for part_name in self.body_parts:
                 if part_name in natural_pose_data:
-                    self.body_parts[part_name]['hpr'] = natural_pose_data[part_name]['hpr'].copy()
-                    self.body_parts[part_name]['xyz'] = natural_pose_data[part_name]['xyz'].copy()
+                    self.body_parts[part_name]["hpr"] = natural_pose_data[part_name][
+                        "hpr"
+                    ].copy()
+                    self.body_parts[part_name]["xyz"] = natural_pose_data[part_name][
+                        "xyz"
+                    ].copy()
                 else:
-                    self.body_parts[part_name]['hpr'] = [0.0, 0.0, 0.0]
-                    self.body_parts[part_name]['xyz'] = [0.0, 0.0, 0.0]
-            
+                    self.body_parts[part_name]["hpr"] = [0.0, 0.0, 0.0]
+                    self.body_parts[part_name]["xyz"] = [0.0, 0.0, 0.0]
+
             # Reset all body part sliders to natural pose values
             for part_name in self.body_parts:
                 # Reset HPR sliders to natural pose values
-                for i, axis in enumerate(['h', 'p', 'r']):
+                for i, axis in enumerate(["h", "p", "r"]):
                     slider_attr = f"{part_name}_hpr_{axis}_slider"
                     if hasattr(self, slider_attr):
-                        value = int(self.body_parts[part_name]['hpr'][i] * 10)  # Convert to slider scale
+                        value = int(
+                            self.body_parts[part_name]["hpr"][i] * 10
+                        )  # Convert to slider scale
                         getattr(self, slider_attr).setValue(value)
-                
+
                 # Reset XYZ sliders to natural pose values
-                for i, axis in enumerate(['x', 'y', 'z']):
+                for i, axis in enumerate(["x", "y", "z"]):
                     slider_attr = f"{part_name}_xyz_{axis}_slider"
                     if hasattr(self, slider_attr):
-                        value = int(self.body_parts[part_name]['xyz'][i] * 10)  # Convert to slider scale
+                        value = int(
+                            self.body_parts[part_name]["xyz"][i] * 10
+                        )  # Convert to slider scale
                         getattr(self, slider_attr).setValue(value)
-            
+
             # Reset all joints to their original positions and rotations
-            if self.character and hasattr(self, 'original_joint_positions'):
+            if self.character and hasattr(self, "original_joint_positions"):
                 for joint_name, original_data in self.original_joint_positions.items():
                     try:
-                        joint = self.character.controlJoint(None, "modelRoot", joint_name)
+                        joint = self.character.controlJoint(
+                            None, "modelRoot", joint_name
+                        )
                         if joint and not joint.isEmpty():
                             # Restore original HPR and position
-                            joint.setHpr(original_data['hpr'])
-                            joint.setPos(original_data['pos'])
+                            joint.setHpr(original_data["hpr"])
+                            joint.setPos(original_data["pos"])
                             print(f"Reset joint {joint_name} to original position")
                     except Exception as e:
                         print(f"Could not reset joint {joint_name}: {e}")
-                
+
                 # Update the character after all joint resets
                 self.character.update()
-            
+
             # Apply changes to 3D scene
             if self.character:
-                self.character.setPos(self.character_x, self.character_y, self.character_z)
+                self.character.setPos(
+                    self.character_x, self.character_y, self.character_z
+                )
                 self.character.setScale(self.camera_scale)
-            
+
             if self.camera:
                 self.camera.setPos(0, -self.camera_distance, 1)
-                self.camera.setHpr(self.camera_x_rot, self.camera_y_rot, self.camera_z_rot)
-            
+                self.camera.setHpr(
+                    self.camera_x_rot, self.camera_y_rot, self.camera_z_rot
+                )
+
             if self.ambient_light_node:
                 light = self.ambient_light_node.node()
                 if light:
-                    light.setColor(VBase4(self.ambient_light, self.ambient_light, self.ambient_light, 1))
-            
+                    light.setColor(
+                        VBase4(
+                            self.ambient_light,
+                            self.ambient_light,
+                            self.ambient_light,
+                            1,
+                        )
+                    )
+
         except Exception as e:
             print(f"Error in reset function: {e}")
 
@@ -1867,56 +2146,57 @@ class GLBViewerWindow(QMainWindow):
         try:
             # Get current values
             current_values = {
-                'camera_scale': self.camera_scale,
-                'camera_distance': self.camera_distance,
-                'camera_x_rot': self.camera_x_rot,
-                'camera_y_rot': self.camera_y_rot,
-                'camera_z_rot': self.camera_z_rot,
-                'ambient_light': self.ambient_light,
-                'character_x': self.character_x,
-                'character_y': self.character_y,
-                'character_z': self.character_z,
-                'body_parts': self.body_parts
+                "camera_scale": self.camera_scale,
+                "camera_distance": self.camera_distance,
+                "camera_x_rot": self.camera_x_rot,
+                "camera_y_rot": self.camera_y_rot,
+                "camera_z_rot": self.camera_z_rot,
+                "ambient_light": self.ambient_light,
+                "character_x": self.character_x,
+                "character_y": self.character_y,
+                "character_z": self.character_z,
+                "body_parts": self.body_parts,
             }
-            
+
             # Create formatted string for export
             export_text = "def get_default_values(self):\n"
             export_text += '    """Get the default values for all controls."""\n'
             export_text += "    return {\n"
-            
+
             # Export basic controls
             for key, value in current_values.items():
-                if key != 'body_parts':
+                if key != "body_parts":
                     export_text += f"        '{key}': {value},\n"
-            
+
             # Export body parts
             export_text += "        'body_parts': {\n"
-            for part_name, part_data in current_values['body_parts'].items():
+            for part_name, part_data in current_values["body_parts"].items():
                 export_text += f"            '{part_name}': {{\n"
                 export_text += f"                'hpr': {part_data['hpr']},\n"
                 export_text += f"                'xyz': {part_data['xyz']}\n"
                 export_text += f"            }},\n"
             export_text += "        }\n"
             export_text += "    }"
-            
+
             # Print to console
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("EXPORTED CONTROL VALUES:")
-            print("="*50)
+            print("=" * 50)
             print(export_text)
-            print("="*50)
+            print("=" * 50)
             print("Copy the above code to replace your get_default_values() function")
-            print("="*50 + "\n")
-            
+            print("=" * 50 + "\n")
+
             # Copy to clipboard
             try:
                 from PySide6.QtGui import QGuiApplication
+
                 clipboard = QGuiApplication.clipboard()
                 clipboard.setText(export_text)
                 print("✅ Values copied to clipboard!")
             except Exception as e:
                 print(f"⚠️  Could not copy to clipboard: {e}")
-            
+
         except Exception as e:
             print(f"Error exporting values: {e}")
 
@@ -1924,19 +2204,19 @@ class GLBViewerWindow(QMainWindow):
         """Populate the signs combo box with available signs for the current language."""
         self.sign_combo.clear()
         self.sign_combo.addItem("-- Select a Sign --", None)
-        
+
         # Separate letters and numbers for better sorting
         letters = {k: v for k, v in self.available_signs.items() if k.isalpha()}
         numbers = {k: v for k, v in self.available_signs.items() if k.isdigit()}
-        
+
         # Sort letters alphabetically and numbers numerically
         sorted_letters = sorted(letters.items(), key=lambda x: x[0])
         sorted_numbers = sorted(numbers.items(), key=lambda x: int(x[0]))
-        
+
         # Add numbers first (0-9), then letters (A-Z)
         for number, sign_data in sorted_numbers:
             self.sign_combo.addItem(number, sign_data)
-        
+
         for letter, sign_data in sorted_letters:
             self.sign_combo.addItem(letter, sign_data)
 
@@ -1947,16 +2227,19 @@ class GLBViewerWindow(QMainWindow):
             self.current_language = current_data
             self.available_signs = self.load_available_signs(self.current_language)
             self.populate_signs_combo()
-            print(f"Language changed to: {self.current_language}")
 
+            # Reinitialize pose generator for the new language
+            self._initialize_pose_generator()
+
+            print(f"Language changed to: {self.current_language}")
 
     def on_sign_changed(self):
         """Handle sign selection change."""
         current_data = self.sign_combo.currentData()
         if current_data:
             # Update description or show instructions
-            instructions = current_data.get('instructions', '')
-            description = current_data.get('description', '')
+            instructions = current_data.get("instructions", "")
+            description = current_data.get("description", "")
             if instructions or description:
                 print(f"Sign: {current_data.get('letter', 'Unknown')}")
                 if description:
@@ -1965,62 +2248,112 @@ class GLBViewerWindow(QMainWindow):
                     print(f"Instructions: {instructions}")
 
     def apply_selected_sign(self):
-        """Apply the selected sign pose to the character."""
+        """Apply the selected sign pose to the character using universal pose generator."""
         current_data = self.sign_combo.currentData()
         if not current_data or not self.character:
             print("❌ No sign selected or character not loaded")
             return
-        
-        pose_data = current_data.get('pose', {})
-        if not pose_data:
-            print("❌ No pose data available for selected sign")
+
+        # Get instruction from sign data
+        instruction = current_data.get("instructions", "")
+        if not instruction:
+            print("❌ No instructions available for selected sign")
             return
-        
-        print(f"🎭 Applying sign: {current_data.get('letter', 'Unknown')} ({current_data.get('hand', 'unknown')} hand)")
+
+        # Generate pose from instruction using universal generator
+        if not self.pose_generator:
+            print("❌ Pose generator not available")
+            return
+
+        print(f"🎭 Generating pose from instruction: {instruction}")
+        pose_data = self.pose_generator.generate_universal_pose(
+            instruction, hand="right"
+        )
+
+        if not pose_data:
+            print("❌ Could not generate pose from instruction")
+            return
+
+        print(
+            f"🎭 Applying sign: {current_data.get('letter', 'Unknown')} ({current_data.get('hand', 'unknown')} hand)"
+        )
         print(f"📝 Pose has {len(pose_data)} joint definitions")
-        
+
         # Debug: Check if character is loaded properly
         if self.character:
             print(f"✅ Character loaded: {type(self.character)}")
         else:
             print("❌ Character is None!")
             return
-        
+
         # First, reset to natural pose to ensure we start from a clean state
         print("🔄 Resetting to natural pose first...")
         self.reset_to_natural_pose_for_sign()
-        
+
         # Apply pose to character joints (SAFE MODE - skip problematic joints)
         applied_count = 0
         not_found_count = 0
         error_count = 0
         skipped_count = 0
-        
+
         # Define safe joints (arms, hands, fingers only - skip shoulders, legs, spine)
         safe_joints = [
-            'mixamorig:RightArm', 'mixamorig:LeftArm',
-            'mixamorig:RightForeArm', 'mixamorig:LeftForeArm', 
-            'mixamorig:RightHand', 'mixamorig:LeftHand',
+            "mixamorig:RightArm",
+            "mixamorig:LeftArm",
+            "mixamorig:RightForeArm",
+            "mixamorig:LeftForeArm",
+            "mixamorig:RightHand",
+            "mixamorig:LeftHand",
             # All finger joints
-            'mixamorig:RightHandThumb1', 'mixamorig:RightHandThumb2', 'mixamorig:RightHandThumb3', 'mixamorig:RightHandThumb4',
-            'mixamorig:LeftHandThumb1', 'mixamorig:LeftHandThumb2', 'mixamorig:LeftHandThumb3', 'mixamorig:LeftHandThumb4',
-            'mixamorig:RightHandIndex1', 'mixamorig:RightHandIndex2', 'mixamorig:RightHandIndex3', 'mixamorig:RightHandIndex4',
-            'mixamorig:LeftHandIndex1', 'mixamorig:LeftHandIndex2', 'mixamorig:LeftHandIndex3', 'mixamorig:LeftHandIndex4',
-            'mixamorig:RightHandMiddle1', 'mixamorig:RightHandMiddle2', 'mixamorig:RightHandMiddle3', 'mixamorig:RightHandMiddle4',
-            'mixamorig:LeftHandMiddle1', 'mixamorig:LeftHandMiddle2', 'mixamorig:LeftHandMiddle3', 'mixamorig:LeftHandMiddle4',
-            'mixamorig:RightHandRing1', 'mixamorig:RightHandRing2', 'mixamorig:RightHandRing3', 'mixamorig:RightHandRing4',
-            'mixamorig:LeftHandRing1', 'mixamorig:LeftHandRing2', 'mixamorig:LeftHandRing3', 'mixamorig:LeftHandRing4',
-            'mixamorig:RightHandPinky1', 'mixamorig:RightHandPinky2', 'mixamorig:RightHandPinky3', 'mixamorig:RightHandPinky4',
-            'mixamorig:LeftHandPinky1', 'mixamorig:LeftHandPinky2', 'mixamorig:LeftHandPinky3', 'mixamorig:LeftHandPinky4'
+            "mixamorig:RightHandThumb1",
+            "mixamorig:RightHandThumb2",
+            "mixamorig:RightHandThumb3",
+            "mixamorig:RightHandThumb4",
+            "mixamorig:LeftHandThumb1",
+            "mixamorig:LeftHandThumb2",
+            "mixamorig:LeftHandThumb3",
+            "mixamorig:LeftHandThumb4",
+            "mixamorig:RightHandIndex1",
+            "mixamorig:RightHandIndex2",
+            "mixamorig:RightHandIndex3",
+            "mixamorig:RightHandIndex4",
+            "mixamorig:LeftHandIndex1",
+            "mixamorig:LeftHandIndex2",
+            "mixamorig:LeftHandIndex3",
+            "mixamorig:LeftHandIndex4",
+            "mixamorig:RightHandMiddle1",
+            "mixamorig:RightHandMiddle2",
+            "mixamorig:RightHandMiddle3",
+            "mixamorig:RightHandMiddle4",
+            "mixamorig:LeftHandMiddle1",
+            "mixamorig:LeftHandMiddle2",
+            "mixamorig:LeftHandMiddle3",
+            "mixamorig:LeftHandMiddle4",
+            "mixamorig:RightHandRing1",
+            "mixamorig:RightHandRing2",
+            "mixamorig:RightHandRing3",
+            "mixamorig:RightHandRing4",
+            "mixamorig:LeftHandRing1",
+            "mixamorig:LeftHandRing2",
+            "mixamorig:LeftHandRing3",
+            "mixamorig:LeftHandRing4",
+            "mixamorig:RightHandPinky1",
+            "mixamorig:RightHandPinky2",
+            "mixamorig:RightHandPinky3",
+            "mixamorig:RightHandPinky4",
+            "mixamorig:LeftHandPinky1",
+            "mixamorig:LeftHandPinky2",
+            "mixamorig:LeftHandPinky3",
+            "mixamorig:LeftHandPinky4",
         ]
-        
+
         for joint_name, hpr_values in pose_data.items():
             # Skip problematic joints that cause major distortions
             if joint_name not in safe_joints:
                 print(f"⚠️ Skipped {joint_name}: Not in safe joints list")
                 skipped_count += 1
                 continue
-                
+
             try:
                 # Use controlJoint method like the body part controls
                 joint = self.character.controlJoint(None, "modelRoot", joint_name)
@@ -2032,7 +2365,9 @@ class GLBViewerWindow(QMainWindow):
                         joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
                         new_hpr = joint.getHpr()
                         applied_count += 1
-                        print(f"✅ {joint_name}: {hpr_values} (was: {[round(x, 1) for x in original_hpr]}, now: {[round(x, 1) for x in new_hpr]})")
+                        print(
+                            f"✅ {joint_name}: {hpr_values} (was: {[round(x, 1) for x in original_hpr]}, now: {[round(x, 1) for x in new_hpr]})"
+                        )
                     else:
                         print(f"❌ Invalid pose data for {joint_name}: {hpr_values}")
                         error_count += 1
@@ -2042,29 +2377,35 @@ class GLBViewerWindow(QMainWindow):
             except Exception as e:
                 print(f"❌ Error applying pose to {joint_name}: {e}")
                 error_count += 1
-        
+
         # Summary
         print(f"\n📊 Pose Application Results:")
         print(f"  ✅ Applied: {applied_count}")
         print(f"  ⚠️ Skipped: {skipped_count} (problematic joints)")
         print(f"  ❌ Not found: {not_found_count}")
         print(f"  ❌ Errors: {error_count}")
-        print(f"  📈 Safe joints success rate: {applied_count / (len(pose_data) - skipped_count) * 100:.1f}%" if (len(pose_data) - skipped_count) > 0 else "  📈 No safe joints to apply")
-        
+        print(
+            f"  📈 Safe joints success rate: {applied_count / (len(pose_data) - skipped_count) * 100:.1f}%"
+            if (len(pose_data) - skipped_count) > 0
+            else "  📈 No safe joints to apply"
+        )
+
         if applied_count > 0:
             # Update the character
             self.character.update()
             print(f"🔄 Character updated with {applied_count} joint changes")
-            
+
             # Adjust camera to better see the sign (rotate around character)
             if self.camera:
                 # Rotate camera to see the character from the front-right angle
-                self.camera.setPos(2, -self.camera_distance, 1)  # Move slightly to the right
+                self.camera.setPos(
+                    2, -self.camera_distance, 1
+                )  # Move slightly to the right
                 self.camera.lookAt(0, 0, 1)  # Look at character center
                 print("📷 Adjusted camera to better view the sign")
-            
+
             # Force a render update
-            if hasattr(self, 'render_frame'):
+            if hasattr(self, "render_frame"):
                 self.render_frame()
                 print("🎬 Forced render update")
         else:
@@ -2074,50 +2415,55 @@ class GLBViewerWindow(QMainWindow):
         """Reset character to natural pose before applying a sign."""
         try:
             # Get natural pose data
-            from helpmesign.utils.natural_pose_service import NaturalPoseService
+            from helpmesign.utils.natural_pose_service import (
+                NaturalPoseService,
+            )
+
             pose_service = NaturalPoseService()
             natural_pose_data = pose_service.get_all_body_parts_pose()
-            
+
             reset_count = 0
             for part_name in self.body_part_names:
                 gltf_joint_name = self.get_gltf_joint_name(part_name)
                 if gltf_joint_name and part_name in natural_pose_data:
                     try:
-                        joint = self.character.controlJoint(None, "modelRoot", gltf_joint_name)
+                        joint = self.character.controlJoint(
+                            None, "modelRoot", gltf_joint_name
+                        )
                         if joint and not joint.isEmpty():
-                            hpr_values = natural_pose_data[part_name]['hpr']
+                            hpr_values = natural_pose_data[part_name]["hpr"]
                             joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
                             reset_count += 1
                     except Exception as e:
                         print(f"❌ Error resetting {gltf_joint_name}: {e}")
-            
+
             if reset_count > 0:
                 self.character.update()
                 print(f"✅ Reset {reset_count} joints to natural pose")
             else:
                 print("❌ No joints were reset")
-                
+
         except Exception as e:
             print(f"❌ Error during natural pose reset: {e}")
 
     def test_basic_joint_control(self):
         """Test basic joint control to verify the system is working."""
         print("🧪 Testing basic joint control...")
-        
+
         if not self.character:
             print("❌ No character loaded")
             return False
-        
+
         # Test with multiple joints to make changes more visible
         test_joints = {
             "mixamorig:RightArm": [45, 0, 0],  # Raise right arm
             "mixamorig:RightForeArm": [0, 45, 0],  # Bend elbow
-            "mixamorig:RightHand": [0, 0, 45]  # Rotate hand
+            "mixamorig:RightHand": [0, 0, 45],  # Rotate hand
         }
-        
+
         print("🎭 Applying dramatic test pose...")
         applied_joints = []
-        
+
         for joint_name, test_hpr in test_joints.items():
             try:
                 joint = self.character.controlJoint(None, "modelRoot", joint_name)
@@ -2125,45 +2471,50 @@ class GLBViewerWindow(QMainWindow):
                     # Store original values
                     original_hpr = joint.getHpr()
                     applied_joints.append((joint, original_hpr))
-                    
+
                     # Apply dramatic test change
                     joint.setHpr(test_hpr[0], test_hpr[1], test_hpr[2])
-                    print(f"✅ {joint_name}: {test_hpr} (was: {[round(x, 1) for x in original_hpr]})")
+                    print(
+                        f"✅ {joint_name}: {test_hpr} (was: {[round(x, 1) for x in original_hpr]})"
+                    )
                 else:
                     print(f"❌ Joint {joint_name} not found or empty")
-                    
+
             except Exception as e:
                 print(f"❌ Error testing joint {joint_name}: {e}")
-        
+
         if applied_joints:
             # Update character
             self.character.update()
-            
+
             # Adjust camera for better view
             if self.camera:
-                self.camera.setPos(3, -self.camera_distance, 2)  # Move to see the right arm
+                self.camera.setPos(
+                    3, -self.camera_distance, 2
+                )  # Move to see the right arm
                 self.camera.lookAt(0, 0, 1)
                 print("📷 Adjusted camera to see test pose")
-            
+
             # Force render
-            if hasattr(self, 'render_frame'):
+            if hasattr(self, "render_frame"):
                 self.render_frame()
-            
+
             print(f"🎬 Applied dramatic test pose to {len(applied_joints)} joints")
             print("⏰ Pose will be restored in 3 seconds...")
-            
+
             # Wait a moment then restore (using a simple loop instead of timer for testing)
             import time
+
             time.sleep(3)
-            
+
             # Restore original values
             for joint, original_hpr in applied_joints:
                 joint.setHpr(original_hpr[0], original_hpr[1], original_hpr[2])
-            
+
             self.character.update()
-            if hasattr(self, 'render_frame'):
+            if hasattr(self, "render_frame"):
                 self.render_frame()
-            
+
             print("✅ Restored original pose")
             return True
         else:
@@ -2174,13 +2525,13 @@ class GLBViewerWindow(QMainWindow):
 def main():
     """Main function."""
     app = QApplication(sys.argv)
-    
+
     # Set application style for native look
-    app.setStyle('Fusion')
-    
+    app.setStyle("Fusion")
+
     window = GLBViewerWindow()
     window.show()
-    
+
     sys.exit(app.exec())
 
 

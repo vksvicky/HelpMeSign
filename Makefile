@@ -80,7 +80,7 @@ run-hand:
 	@echo "🖐️ Starting GLB Viewer with hot reload (entr)..."
 	$(check_venv)
 	@which entr > /dev/null || (echo "❌ entr not found. Please install with: brew install entr" && exit 1)
-	@echo "glb_viewer.py" | entr -r $(VENV_PYTHON) glb_viewer.py
+	@echo "src/helpmesign/modes/learn/glb_viewer.py" | entr -n -r $(VENV_PYTHON) src/helpmesign/modes/learn/glb_viewer.py
 
 test:
 	@echo "🧪 Running tests..."

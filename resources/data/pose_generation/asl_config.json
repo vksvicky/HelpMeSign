@@ -1,0 +1,48 @@
+{
+  "language": "ASL",
+  "language_name": "American Sign Language",
+  "keywords": {
+    "actions": {
+      "raise": ["raise", "lift", "bring up", "elevate"],
+      "lower": ["lower", "bring down", "drop"],
+      "hold": ["hold", "keep", "maintain", "position"],
+      "point": ["point", "extend", "straighten"],
+      "curve": ["curve", "bend", "arch", "form a c"],
+      "curl": ["curl", "close", "fold", "clench"],
+      "touch": ["touch", "contact", "meet"],
+      "make": ["make", "form", "create", "shape"],
+      "move": ["move", "shift", "place"],
+      "bend": ["bend", "flex"],
+      "extend": ["extend", "stretch", "reach"]
+    },
+    "body_parts": {
+      "arm": ["arm", "right arm", "left arm"],
+      "forearm": ["forearm"],
+      "elbow": ["elbow"],
+      "hand": ["hand", "right hand", "left hand"],
+      "fingers": ["fingers", "all fingers"],
+      "thumb": ["thumb"],
+      "index": ["index finger", "index", "pointer finger"],
+      "middle": ["middle finger", "middle"],
+      "ring": ["ring finger", "ring"],
+      "pinky": ["pinky finger", "pinky", "little finger"]
+    },
+    "hand_shapes": {
+      "fist": ["fist", "closed hand", "tight fist"],
+      "flat": ["flat", "open hand", "flat hand", "palm open"],
+      "curved": ["curved", "c shape", "c-shape", "curved fingers"],
+      "point": ["pointing", "finger up", "single finger extended"]
+    },
+    "modifiers": {
+      "together": ["together", "close together", "tight"],
+      "apart": ["apart", "spread", "wide"],
+      "bent": ["bent", "with elbow bent", "flexed"],
+      "straight": ["straight", "extended", "flat"]
+    }
+  },
+  "overrides": {
+    "comment": "ASL-specific adjustments",
+    "cultural_notes": "ASL uses more pronounced arm movements and facial expressions",
+    "hand_dominance": "Typically right-hand dominant, but can be mirrored for left-handed signers"
+  }
+}
