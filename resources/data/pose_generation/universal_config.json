@@ -294,6 +294,23 @@
           "mixamorig:LeftHandPinky1": [0.0, -90.0, 0.0],
           "mixamorig:LeftHandThumb1": [0.0, -45.0, 0.0]
         }
+      },
+      "c_shape": {
+        "synonyms": ["c shape", "c", "curved c"],
+        "pose_data": {
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, -30.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, -30.0, 0.0]
+        }
       }
     },
     "modifiers": {

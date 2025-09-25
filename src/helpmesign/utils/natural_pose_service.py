@@ -23,30 +23,33 @@ class NaturalPoseService:
         self._natural_pose_data = self._create_natural_pose_data()
 
     def _create_natural_pose_data(self) -> Dict[str, Dict[str, Any]]:
-        """Create the natural pose data for the character (hands-down pose)."""
+        """Create the natural pose data for the character (natural human stance)."""
         return {
             "mixamorig:Hips": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:Spine": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:Head": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:Neck": {"hpr": [0.0, 40.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:Head": {"hpr": [0.0, 19.2, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:Neck": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:LeftShoulder": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:RightShoulder": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:LeftArm": {"hpr": [0.0, 72.9, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:RightArm": {"hpr": [0.0, 72.9, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:LeftForeArm": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:RightForeArm": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:LeftHand": {"hpr": [15.6, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:RightHand": {"hpr": [-15.6, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            # Arms hanging naturally at sides with slight bend
+            "mixamorig:LeftArm": {"hpr": [0.0, 81.4, -30.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightArm": {"hpr": [0.0, 77.1, 21.4], "pos": [0.0, 0.0, 0.0]},
+            # Forearms slightly bent for natural arm position
+            "mixamorig:LeftForeArm": {"hpr": [0.0, 4.3, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightForeArm": {"hpr": [0.0, 8.6, 0.0], "pos": [0.0, 0.0, 0.0]},
+            # Hands relaxed, palms facing body
+            "mixamorig:LeftHand": {"hpr": [12.9, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:RightHand": {"hpr": [-8.6, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:LeftHandThumb1": {
                 "hpr": [0.0, 20.0, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandThumb1": {
-                "hpr": [0.0, 20.0, 0.0],
+                "hpr": [0.0, 10.3, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftHandIndex1": {
-                "hpr": [0.0, 8.6, 0.0],
+                "hpr": [0.0, 12.9, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandIndex1": {
@@ -54,15 +57,15 @@ class NaturalPoseService:
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftHandMiddle1": {
-                "hpr": [0.0, 33.3, 0.0],
+                "hpr": [0.0, 15.6, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandMiddle1": {
-                "hpr": [0.0, 35.2, 0.0],
+                "hpr": [0.0, 14.5, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftHandRing1": {
-                "hpr": [0.0, 38.6, 0.0],
+                "hpr": [0.0, 12.9, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandRing1": {
@@ -70,11 +73,11 @@ class NaturalPoseService:
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftHandPinky1": {
-                "hpr": [0.0, 55.7, 0.0],
+                "hpr": [0.0, 17.1, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandPinky1": {
-                "hpr": [0.0, 42.9, 0.0],
+                "hpr": [0.0, 4.3, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftUpLeg": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},

@@ -13,6 +13,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from .instruction_parser import InstructionParser
+
 
 class UniversalHandShape(Enum):
     """Universal hand shapes across sign languages"""
@@ -95,6 +97,9 @@ class UniversalInstructionToPoseGenerator:
 
         # Language-specific overrides (if provided)
         self.language_overrides = self.language_config.get("overrides", {})
+
+        # Initialize the new instruction parser
+        self.instruction_parser = InstructionParser("asl")
 
     def _load_language_config(self) -> Dict[str, Any]:
         """Load language-specific configuration"""
@@ -679,8 +684,21 @@ class UniversalInstructionToPoseGenerator:
         self, instruction: str
     ) -> Dict[str, List[float]]:
         """Generate pose from natural language instruction using keyword matching"""
-        words = instruction.lower().split()
-        return self.generate_static_pose_from_keywords(words)
+        # Use the new instruction parser for better accuracy
+        try:
+            return self.instruction_parser.generate_pose_from_instruction(instruction)
+        except Exception:
+            # Fallback to original method
+            words = instruction.lower().split()
+            return self.generate_static_pose_from_keywords(words)
+
+    def get_sign_data_from_unified_file(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """Get sign data from the unified ASL file"""
+        return self.instruction_parser.get_sign_data(symbol)
+
+    def generate_pose_from_sign_symbol(self, symbol: str) -> Dict[str, List[float]]:
+        """Generate pose data from a sign symbol using the unified file"""
+        return self.instruction_parser.generate_pose_from_sign(symbol)
 
     def create_language_config_template(
         self, language_code: str, language_name: str
