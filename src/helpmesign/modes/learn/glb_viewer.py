@@ -313,10 +313,16 @@ class GLBViewerWindow(QMainWindow):
     def _initialize_pose_generator(self):
         """Initialize pose generator with appropriate config for current language."""
         try:
-            # Try to import the pose generator
-            from .instruction_to_pose_generator import (
-                UniversalInstructionToPoseGenerator,
-            )
+            # Try absolute import first (works when run as script with src on sys.path)
+            try:
+                from .instruction_to_pose_generator import (
+                    UniversalInstructionToPoseGenerator,
+                )
+            except ImportError:
+                # Fallback to package-relative import (when run as module)
+                from .instruction_to_pose_generator import (
+                    UniversalInstructionToPoseGenerator,
+                )
 
             # Get language code from current language
             language_code = self.current_language.lower()
@@ -2358,14 +2364,8 @@ class GLBViewerWindow(QMainWindow):
             self.character.update()
             print(f"🔄 Character updated with {applied_count} joint changes")
 
-            # Adjust camera to better see the sign (rotate around character)
-            if self.camera:
-                # Rotate camera to see the character from the front-right angle
-                self.camera.setPos(
-                    2, -self.camera_distance, 1
-                )  # Move slightly to the right
-                self.camera.lookAt(0, 0, 1)  # Look at character center
-                print("📷 Adjusted camera to better view the sign")
+            # Keep camera at current position - don't auto-adjust
+            # Camera should remain where user positioned it
 
             # Force a render update
             if hasattr(self, "render_frame"):
@@ -2475,13 +2475,8 @@ class GLBViewerWindow(QMainWindow):
             # Update character
             self.character.update()
 
-            # Adjust camera for better view
-            if self.camera:
-                self.camera.setPos(
-                    3, -self.camera_distance, 2
-                )  # Move to see the right arm
-                self.camera.lookAt(0, 0, 1)
-                print("📷 Adjusted camera to see test pose")
+            # Keep camera at current position - don't auto-adjust
+            # Camera should remain where user positioned it
 
             # Force render
             if hasattr(self, "render_frame"):

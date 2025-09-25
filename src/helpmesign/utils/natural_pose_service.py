@@ -28,7 +28,7 @@ class NaturalPoseService:
             "mixamorig:Hips": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:Spine": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:Head": {"hpr": [0.0, 19.2, 0.0], "pos": [0.0, 0.0, 0.0]},
-            "mixamorig:Neck": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            "mixamorig:Neck": {"hpr": [0.0, 23.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:LeftShoulder": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:RightShoulder": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             # Arms hanging naturally at sides with slight bend
