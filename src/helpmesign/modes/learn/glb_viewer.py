@@ -232,14 +232,14 @@ class GLBViewerWindow(QMainWindow):
 
         return {
             "camera_scale": 6.5,
-            "camera_distance": 9.0,  # Back to working distance
+            "camera_distance": 9.0,
             "camera_x_rot": 0.0,
-            "camera_y_rot": 1.0,  # Back to working rotation
+            "camera_y_rot": 27.7,
             "camera_z_rot": 0.0,
             "ambient_light": 0.3,
-            "character_x": 0.0,
-            "character_y": 3.0,  # Back to working position
-            "character_z": -5.0,  # Back to working position
+            "character_x": 2.1,
+            "character_y": -3.2,
+            "character_z": -5.0,
             "body_parts": body_parts_data,
         }
 
@@ -307,6 +307,7 @@ class GLBViewerWindow(QMainWindow):
     def _initialize_pose_generator(self):
         """Initialize pose generator with appropriate config for current language."""
         try:
+
             from .instruction_to_pose_generator import (
                 UniversalInstructionToPoseGenerator,
             )
@@ -435,7 +436,35 @@ class GLBViewerWindow(QMainWindow):
         """
         )
         title_row.addWidget(title_label)
-        title_row.addStretch()  # Push export button to the right
+        title_row.addStretch()  # Push buttons to the right
+
+        # Mirror to Left Hand button
+        self.mirror_button = QPushButton("🪞 Mirror to Left")
+        self.mirror_button.setToolTip(
+            "Clone current right hand pose to left hand and update body controls"
+        )
+        self.mirror_button.clicked.connect(self.mirror_to_left_hand)
+        self.mirror_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 11px;
+                font-weight: bold;
+                margin-right: 5px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #0D47A1;
+            }
+        """
+        )
+        title_row.addWidget(self.mirror_button)
 
         # Export button
         export_button = QPushButton("Export Values")
@@ -575,6 +604,36 @@ class GLBViewerWindow(QMainWindow):
         )
 
         # Reset button
+        # Character Tilt Control
+        tilt_label = QLabel("Character Tilt:")
+        group_layout.addWidget(tilt_label, 9, 0)
+
+        self.character_tilt_slider = QSlider(Qt.Orientation.Horizontal)
+        self.character_tilt_slider.setMinimum(-45)  # Tilt backward
+        self.character_tilt_slider.setMaximum(45)  # Tilt forward
+        self.character_tilt_slider.setValue(0)  # Neutral
+        self.character_tilt_slider.valueChanged.connect(self.update_character_tilt)
+        group_layout.addWidget(self.character_tilt_slider, 9, 1)
+
+        self.character_tilt_value = QLabel("0.0")
+        self.character_tilt_value.setMinimumWidth(40)
+        group_layout.addWidget(self.character_tilt_value, 9, 2)
+
+        # Hand/Finger Outline Control
+        outline_label = QLabel("Hand Outline:")
+        group_layout.addWidget(outline_label, 10, 0)
+
+        self.outline_intensity_slider = QSlider(Qt.Orientation.Horizontal)
+        self.outline_intensity_slider.setMinimum(0)  # No outline
+        self.outline_intensity_slider.setMaximum(100)  # Maximum outline
+        self.outline_intensity_slider.setValue(30)  # Default outline
+        self.outline_intensity_slider.valueChanged.connect(self.update_hand_outline)
+        group_layout.addWidget(self.outline_intensity_slider, 10, 1)
+
+        self.outline_value = QLabel("30")
+        self.outline_value.setMinimumWidth(40)
+        group_layout.addWidget(self.outline_value, 10, 2)
+
         reset_button = QPushButton("Reset All")
         reset_button.clicked.connect(self.reset_all_controls)
         reset_button.setStyleSheet(
@@ -594,7 +653,7 @@ class GLBViewerWindow(QMainWindow):
             }
         """
         )
-        group_layout.addWidget(reset_button, 9, 0, 1, 3)  # Span across 3 columns
+        group_layout.addWidget(reset_button, 11, 0, 1, 3)  # Span across 3 columns
 
         control_layout.addWidget(control_group)
 
@@ -730,6 +789,30 @@ class GLBViewerWindow(QMainWindow):
         """
         )
         buttons_layout.addWidget(test_button)
+
+        # Debug Nodes button
+        debug_button = QPushButton("Debug Nodes")
+        debug_button.clicked.connect(self.debug_character_nodes)
+        debug_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #9C27B0;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #7B1FA2;
+            }
+            QPushButton:pressed {
+                background-color: #4A148C;
+            }
+        """
+        )
+        buttons_layout.addWidget(debug_button)
 
         selection_layout.addLayout(buttons_layout)
 
@@ -2029,6 +2112,12 @@ class GLBViewerWindow(QMainWindow):
             self.character_y = defaults["character_y"]
             self.character_z = defaults["character_z"]
 
+            # Reset new controls
+            if hasattr(self, "character_tilt_slider"):
+                self.character_tilt_slider.setValue(0)
+            if hasattr(self, "outline_intensity_slider"):
+                self.outline_intensity_slider.setValue(30)
+
             # Update sliders (with error handling)
             slider_names = [
                 "scale",
@@ -2142,8 +2231,43 @@ class GLBViewerWindow(QMainWindow):
             print(f"Error in reset function: {e}")
 
     def export_values(self):
-        """Export current control values to clipboard and console."""
+        """Export current control values including both right and left hand data to clipboard and console."""
         try:
+            # Separate right hand and left hand data for clarity
+            right_hand_parts = {}
+            left_hand_parts = {}
+            other_parts = {}
+
+            for part_name, part_data in self.body_parts.items():
+                if "Right" in part_name and any(
+                    hand_part in part_name
+                    for hand_part in [
+                        "Arm",
+                        "Hand",
+                        "Thumb",
+                        "Index",
+                        "Middle",
+                        "Ring",
+                        "Pinky",
+                    ]
+                ):
+                    right_hand_parts[part_name] = part_data
+                elif "Left" in part_name and any(
+                    hand_part in part_name
+                    for hand_part in [
+                        "Arm",
+                        "Hand",
+                        "Thumb",
+                        "Index",
+                        "Middle",
+                        "Ring",
+                        "Pinky",
+                    ]
+                ):
+                    left_hand_parts[part_name] = part_data
+                else:
+                    other_parts[part_name] = part_data
+
             # Get current values
             current_values = {
                 "camera_scale": self.camera_scale,
@@ -2155,7 +2279,20 @@ class GLBViewerWindow(QMainWindow):
                 "character_x": self.character_x,
                 "character_y": self.character_y,
                 "character_z": self.character_z,
-                "body_parts": self.body_parts,
+                "character_tilt": (
+                    getattr(self, "character_tilt_slider", {}).value()
+                    if hasattr(self, "character_tilt_slider")
+                    else 0
+                ),
+                "hand_outline": (
+                    getattr(self, "outline_intensity_slider", {}).value()
+                    if hasattr(self, "outline_intensity_slider")
+                    else 30
+                ),
+                "right_hand_parts": right_hand_parts,
+                "left_hand_parts": left_hand_parts,
+                "other_body_parts": other_parts,
+                "all_body_parts": self.body_parts,  # Keep original format for compatibility
             }
 
             # Create formatted string for export
@@ -2347,10 +2484,27 @@ class GLBViewerWindow(QMainWindow):
             "mixamorig:LeftHandPinky4",
         ]
 
+        # Debug: Show all joints that the pose generator created
+        print(f"🔍 DEBUG: Pose generator created {len(pose_data)} joints:")
+        for joint_name in pose_data.keys():
+            print(f"  - {joint_name}")
+
+        print(f"🔍 DEBUG: Checking against safe joints filter...")
+
         for joint_name, hpr_values in pose_data.items():
             # Skip problematic joints that cause major distortions
             if joint_name not in safe_joints:
-                print(f"⚠️ Skipped {joint_name}: Not in safe joints list")
+                print(
+                    f"⚠️ SKIPPED {joint_name}: Not in safe joints list (POTENTIAL BUG SOURCE)"
+                )
+                # Check if this is a problematic joint type
+                if any(
+                    problem in joint_name.lower()
+                    for problem in ["shoulder", "leg", "spine", "hip", "neck", "head"]
+                ):
+                    print(
+                        f"🚨 ALERT: {joint_name} is a problematic joint type that should not be generated!"
+                    )
                 skipped_count += 1
                 continue
 
@@ -2368,6 +2522,9 @@ class GLBViewerWindow(QMainWindow):
                         print(
                             f"✅ {joint_name}: {hpr_values} (was: {[round(x, 1) for x in original_hpr]}, now: {[round(x, 1) for x in new_hpr]})"
                         )
+
+                        # Update UI sliders to reflect the applied pose
+                        self.update_ui_for_applied_joint(joint_name, hpr_values)
                     else:
                         print(f"❌ Invalid pose data for {joint_name}: {hpr_values}")
                         error_count += 1
@@ -2412,7 +2569,7 @@ class GLBViewerWindow(QMainWindow):
             print("❌ No joints were successfully updated - character pose unchanged")
 
     def reset_to_natural_pose_for_sign(self):
-        """Reset character to natural pose before applying a sign."""
+        """Reset character to natural pose before applying a sign (SAFE JOINTS ONLY)."""
         try:
             # Get natural pose data
             from helpmesign.utils.natural_pose_service import (
@@ -2422,8 +2579,30 @@ class GLBViewerWindow(QMainWindow):
             pose_service = NaturalPoseService()
             natural_pose_data = pose_service.get_all_body_parts_pose()
 
+            # ONLY reset safe body parts (arms, hands, fingers - NO shoulders, legs, spine)
+            safe_body_parts = [
+                "right_arm",
+                "left_arm",
+                "right_forearm",
+                "left_forearm",
+                "right_hand",
+                "left_hand",
+                # Add finger parts if they exist in natural_pose_data
+                "right_thumb",
+                "left_thumb",
+                "right_index_finger",
+                "left_index_finger",
+                "right_middle_finger",
+                "left_middle_finger",
+                "right_ring_finger",
+                "left_ring_finger",
+                "right_pinky_finger",
+                "left_pinky_finger",
+            ]
+
             reset_count = 0
-            for part_name in self.body_part_names:
+            print("🔄 Resetting SAFE joints only (no shoulders/legs/spine)...")
+            for part_name in safe_body_parts:
                 gltf_joint_name = self.get_gltf_joint_name(part_name)
                 if gltf_joint_name and part_name in natural_pose_data:
                     try:
@@ -2434,12 +2613,19 @@ class GLBViewerWindow(QMainWindow):
                             hpr_values = natural_pose_data[part_name]["hpr"]
                             joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
                             reset_count += 1
+                            print(f"  ✅ Reset {part_name} -> {gltf_joint_name}")
+                        else:
+                            print(
+                                f"  ❌ Joint not found: {part_name} -> {gltf_joint_name}"
+                            )
                     except Exception as e:
                         print(f"❌ Error resetting {gltf_joint_name}: {e}")
+                else:
+                    print(f"  ⚠️ No natural pose data for: {part_name}")
 
             if reset_count > 0:
                 self.character.update()
-                print(f"✅ Reset {reset_count} joints to natural pose")
+                print(f"✅ Reset {reset_count} SAFE joints to natural pose")
             else:
                 print("❌ No joints were reset")
 
@@ -2520,6 +2706,532 @@ class GLBViewerWindow(QMainWindow):
         else:
             print("❌ No joints were successfully tested")
             return False
+
+    def update_ui_for_applied_joint(self, joint_name: str, hpr_values: List[float]):
+        """Update UI body parts data when a joint is modified by pose application."""
+        # Map joint names to body part names and update the internal data
+        joint_to_bodypart_map = {
+            "mixamorig:RightArm": "Right Arm",
+            "mixamorig:LeftArm": "Left Arm",
+            "mixamorig:RightForeArm": "Right Forearm",
+            "mixamorig:LeftForeArm": "Left Forearm",
+            "mixamorig:RightHand": "Right Hand",
+            "mixamorig:LeftHand": "Left Hand",
+            "mixamorig:RightHandThumb1": "Right Thumb",
+            "mixamorig:RightHandThumb2": "Right Thumb",
+            "mixamorig:RightHandThumb3": "Right Thumb",
+            "mixamorig:RightHandIndex1": "Right Index Finger",
+            "mixamorig:RightHandIndex2": "Right Index Finger",
+            "mixamorig:RightHandIndex3": "Right Index Finger",
+            "mixamorig:RightHandMiddle1": "Right Middle Finger",
+            "mixamorig:RightHandMiddle2": "Right Middle Finger",
+            "mixamorig:RightHandMiddle3": "Right Middle Finger",
+            "mixamorig:RightHandRing1": "Right Ring Finger",
+            "mixamorig:RightHandRing2": "Right Ring Finger",
+            "mixamorig:RightHandRing3": "Right Ring Finger",
+            "mixamorig:RightHandPinky1": "Right Pinky Finger",
+            "mixamorig:RightHandPinky2": "Right Pinky Finger",
+            "mixamorig:RightHandPinky3": "Right Pinky Finger",
+        }
+
+        body_part_name = joint_to_bodypart_map.get(joint_name)
+        if body_part_name and body_part_name in self.body_parts:
+            # Update the internal body parts data
+            self.body_parts[body_part_name]["hpr"] = hpr_values.copy()
+            print(f"🔄 Updated UI data for {body_part_name}: HPR = {hpr_values}")
+
+            # Force refresh the UI to show the new values
+            # The sliders will show the updated values when you expand that section
+        else:
+            print(f"🔍 No UI mapping found for joint: {joint_name}")
+
+    def update_character_tilt(self, value):
+        """Update character tilt forward/backward."""
+        tilt_degrees = float(value)
+        self.character_tilt_value.setText(f"{tilt_degrees}")
+
+        if self.character and hasattr(self, "showbase"):
+            try:
+                # Apply tilt to the character root node
+                # Positive values tilt forward, negative values tilt backward
+                self.character.setHpr(0, tilt_degrees, 0)  # Pitch rotation
+
+                # Update the character
+                self.character.update()
+
+                # Force render update
+                if hasattr(self, "render_frame"):
+                    self.render_frame()
+
+                print(f"🎭 Character tilted: {tilt_degrees}°")
+
+            except Exception as e:
+                print(f"❌ Error tilting character: {e}")
+
+    def mirror_to_left_hand(self):
+        """Clone current right hand pose to left hand and update body controls."""
+        print("🪞 Mirroring right hand pose to left hand...")
+
+        # Mapping of right hand body parts to left hand equivalents
+        right_to_left_mapping = {
+            "Right Arm": "Left Arm",
+            "Right Forearm": "Left Forearm",
+            "Right Hand": "Left Hand",
+            "Right Thumb": "Left Thumb",
+            "Right Index Finger": "Left Index Finger",
+            "Right Middle Finger": "Left Middle Finger",
+            "Right Ring Finger": "Left Ring Finger",
+            "Right Pinky Finger": "Left Pinky Finger",
+        }
+
+        cloned_count = 0
+
+        # Clone right hand values to left hand in body_parts data
+        for right_part, left_part in right_to_left_mapping.items():
+            if right_part in self.body_parts and left_part in self.body_parts:
+                # Copy HPR and XYZ values from right to left
+                right_data = self.body_parts[right_part]
+                self.body_parts[left_part]["hpr"] = right_data["hpr"].copy()
+                self.body_parts[left_part]["xyz"] = right_data["xyz"].copy()
+
+                # Apply the cloned pose to the character's left side joints
+                left_joint_name = self.get_gltf_joint_name(
+                    left_part.lower().replace(" ", "_")
+                )
+                if left_joint_name and self.character:
+                    try:
+                        joint = self.character.controlJoint(
+                            None, "modelRoot", left_joint_name
+                        )
+                        if joint and not joint.isEmpty():
+                            hpr = right_data["hpr"]
+                            xyz = right_data["xyz"]
+                            joint.setHpr(hpr[0], hpr[1], hpr[2])
+                            joint.setPos(xyz[0], xyz[1], xyz[2])
+                            cloned_count += 1
+                            print(
+                                f"  ✅ Cloned {right_part} → {left_part}: HPR={hpr}, XYZ={xyz}"
+                            )
+                    except Exception as e:
+                        print(f"  ❌ Error cloning {right_part} to {left_part}: {e}")
+
+        # Update the character
+        if cloned_count > 0 and self.character:
+            self.character.update()
+            if hasattr(self, "render_frame"):
+                self.render_frame()
+            print(
+                f"✅ Successfully cloned {cloned_count} right hand joints to left hand"
+            )
+
+            # Refresh the UI to show updated values
+            self.refresh_body_parts_ui()
+        else:
+            print("❌ No joints were cloned")
+
+    def refresh_body_parts_ui(self):
+        """Refresh the body parts UI to show updated values."""
+        # This will cause the sliders to show the new values when sections are expanded
+        # The UI automatically reads from self.body_parts when creating sliders
+        print("🔄 Body parts UI data updated - expand sections to see new values")
+
+    def debug_character_nodes(self):
+        """Debug method to list all available nodes in the character model."""
+        if not self.character:
+            print("❌ No character loaded")
+            return
+
+        print("🔍 DEBUG: Listing all character nodes...")
+
+        # Get all nodes in the character
+        all_nodes = self.character.findAllMatches("**")
+        print(f"📊 Total nodes found: {all_nodes.getNumPaths()}")
+
+        hand_related = []
+        finger_related = []
+        other_nodes = []
+
+        for i in range(
+            min(all_nodes.getNumPaths(), 50)
+        ):  # Limit to first 50 for readability
+            node = all_nodes.getPath(i)
+            node_name = node.getName()
+
+            if any(
+                hand_part in node_name
+                for hand_part in [
+                    "Hand",
+                    "Finger",
+                    "Thumb",
+                    "Index",
+                    "Middle",
+                    "Ring",
+                    "Pinky",
+                ]
+            ):
+                if "Hand" in node_name:
+                    hand_related.append(node_name)
+                else:
+                    finger_related.append(node_name)
+            else:
+                other_nodes.append(node_name)
+
+        print(f"\n🖐️ Hand-related nodes ({len(hand_related)}):")
+        for name in hand_related[:10]:  # Show first 10
+            print(f"  - {name}")
+
+        print(f"\n👆 Finger-related nodes ({len(finger_related)}):")
+        for name in finger_related[:10]:  # Show first 10
+            print(f"  - {name}")
+
+        print(f"\n🤖 Other nodes ({len(other_nodes)}) - showing first 10:")
+        for name in other_nodes[:10]:
+            print(f"  - {name}")
+
+        # Test the current hand outline patterns
+        print(f"\n🧪 Testing current hand outline patterns:")
+        patterns = ["*RightHand*", "*LeftHand*", "*RightHandThumb*", "*RightHandIndex*"]
+        for pattern in patterns:
+            matches = self.character.findAllMatches(f"**/{pattern}")
+            print(f"  Pattern '{pattern}': {matches.getNumPaths()} matches")
+            for j in range(min(matches.getNumPaths(), 3)):
+                match_node = matches.getPath(j)
+                print(f"    - {match_node.getName()}")
+
+    def update_hand_outline(self, value):
+        """Update hand and finger outline visibility using transparency and material effects."""
+        outline_intensity = float(value)
+        self.outline_value.setText(f"{int(outline_intensity)}")
+
+        if hasattr(self, "showbase") and self.showbase and self.character:
+            try:
+                # Clear any previous hand highlighting
+                if hasattr(self, "_highlighted_nodes"):
+                    for node in self._highlighted_nodes:
+                        if node and not node.isEmpty():
+                            node.clearColorScale()
+                            node.clearTransparency()
+                            node.clearRenderMode()
+
+                self._highlighted_nodes = []
+
+                if outline_intensity > 0:
+                    # Try to find ALL nodes with geometry first
+                    all_nodes = self.character.findAllMatches("**")
+                    all_geometry_nodes = []
+
+                    print("🔍 Scanning all nodes for geometry...")
+                    for i in range(all_nodes.getNumPaths()):
+                        node = all_nodes.getPath(i)
+                        node_name = node.getName()
+
+                        # Check if this node has geometry
+                        if hasattr(node, "getNumGeoms") and node.getNumGeoms() > 0:
+                            all_geometry_nodes.append((node, node_name))
+                            print(
+                                f"🎯 Found geometry node: {node_name} ({node.getNumGeoms()} geoms)"
+                            )
+
+                    print(f"📊 Total geometry nodes found: {len(all_geometry_nodes)}")
+
+                    # Now try to find hand-related geometry by looking at the mesh names
+                    hand_geometry_nodes = []
+                    for node, node_name in all_geometry_nodes:
+                        # Look for hand/finger related geometry
+                        if any(
+                            hand_part in node_name.lower()
+                            for hand_part in [
+                                "hand",
+                                "finger",
+                                "thumb",
+                                "index",
+                                "middle",
+                                "ring",
+                                "pinky",
+                                "arm",
+                            ]
+                        ):
+                            hand_geometry_nodes.append(node)
+                            print(f"🖐️ Hand geometry found: {node_name}")
+
+                    if hand_geometry_nodes:
+                        self._highlighted_nodes = hand_geometry_nodes
+                        applied_count = 0
+
+                        # Use very aggressive color changes to make it obvious
+                        for node in hand_geometry_nodes:
+                            try:
+                                # Bright red color to make it very obvious
+                                node.setColorScale(3.0, 0.2, 0.2, 1.0)
+                                applied_count += 1
+                                print(f"✅ Applied bright red to {node.getName()}")
+                            except Exception as e:
+                                print(
+                                    f"❌ Failed to apply color to {node.getName()}: {e}"
+                                )
+
+                        print(
+                            f"🎨 Applied bright red to {applied_count}/{len(hand_geometry_nodes)} hand geometry nodes"
+                        )
+                    else:
+                        print(
+                            "❌ No hand geometry nodes found, trying to highlight ALL geometry"
+                        )
+                        # If no hand-specific geometry found, highlight ALL geometry to see what we have
+                        if all_geometry_nodes:
+                            self._highlighted_nodes = [
+                                node for node, name in all_geometry_nodes
+                            ]
+                            applied_count = 0
+
+                            for node, node_name in all_geometry_nodes:
+                                try:
+                                    # Bright green color to see all geometry
+                                    node.setColorScale(0.2, 3.0, 0.2, 1.0)
+                                    applied_count += 1
+                                    print(
+                                        f"✅ Applied bright green to ALL geometry: {node_name}"
+                                    )
+                                except Exception as e:
+                                    print(
+                                        f"❌ Failed to apply color to {node_name}: {e}"
+                                    )
+
+                            print(
+                                f"🎨 Applied bright green to {applied_count}/{len(all_geometry_nodes)} ALL geometry nodes"
+                            )
+                        else:
+                            print("❌ No geometry nodes found at all!")
+                            # Try lighting-based approach to highlight hands
+                            print("🔄 Trying lighting-based hand highlighting...")
+                            try:
+                                # Create a spotlight that follows the character's hands
+                                if not hasattr(self, "hand_spotlight"):
+                                    from panda3d.core import (
+                                        PerspectiveLens,
+                                        Spotlight,
+                                        VBase4,
+                                    )
+
+                                    # Create a spotlight
+                                    self.hand_spotlight = Spotlight("hand_spotlight")
+                                    self.hand_spotlight.setColor(
+                                        VBase4(1, 1, 0.5, 1)
+                                    )  # Yellowish light
+
+                                    # Set up the lens
+                                    lens = PerspectiveLens()
+                                    lens.setFov(30)  # Narrow beam
+                                    self.hand_spotlight.setLens(lens)
+
+                                    # Add the light to the scene
+                                    light_node = self.showbase.render.attachNewNode(
+                                        self.hand_spotlight
+                                    )
+                                    light_node.setPos(
+                                        self.character.getPos() + (0, 0, 2)
+                                    )  # Above character
+                                    light_node.lookAt(
+                                        self.character
+                                    )  # Point at character
+
+                                    print("✅ Created hand spotlight")
+
+                                # Adjust spotlight intensity based on outline intensity
+                                intensity = outline_intensity / 100.0
+                                if intensity > 0:
+                                    # Position spotlight to focus on hands
+                                    hand_pos = self.character.getPos() + (
+                                        0.5,
+                                        0,
+                                        1.5,
+                                    )  # Approximate hand position
+                                    light_node = self.hand_spotlight.getParent()
+                                    light_node.setPos(hand_pos)
+                                    light_node.lookAt(
+                                        self.character.getPos() + (0, 0, 1)
+                                    )
+
+                                    # Adjust light color and intensity
+                                    from panda3d.core import VBase4
+
+                                    r = 1.0 + intensity * 2.0  # 1.0-3.0 (bright yellow)
+                                    g = 1.0 + intensity * 1.5  # 1.0-2.5
+                                    b = 0.5 + intensity * 0.5  # 0.5-1.0
+                                    self.hand_spotlight.setColor(VBase4(r, g, b, 1))
+
+                                    print(
+                                        f"✅ Adjusted spotlight intensity: {intensity:.2f}"
+                                    )
+                                else:
+                                    # Turn off spotlight
+                                    if hasattr(self, "hand_spotlight"):
+                                        self.hand_spotlight.getParent().detachNode()
+                                        print("✅ Turned off hand spotlight")
+
+                                self._highlighted_nodes = [self.character]
+
+                            except Exception as e:
+                                print(f"❌ Lighting approach failed: {e}")
+
+                                # Try material-based approach
+                                print("🔄 Trying material-based approach...")
+                                try:
+                                    # Try to modify the character's material properties
+                                    if hasattr(self.character, "setMaterial"):
+                                        from panda3d.core import Material
+
+                                        material = Material()
+                                        material.setShininess(100.0)  # Make it shiny
+                                        material.setSpecular(
+                                            VBase4(1, 1, 0.5, 1)
+                                        )  # Yellowish specular
+                                        self.character.setMaterial(material)
+                                        print("✅ Applied shiny material to character")
+                                    else:
+                                        print(
+                                            "❌ Character doesn't support material modification"
+                                        )
+
+                                except Exception as e2:
+                                    print(f"❌ Material approach failed: {e2}")
+                                    # Final fallback
+                                    self._try_fallback_hand_highlighting(
+                                        outline_intensity
+                                    )
+
+                # Force render update
+                if hasattr(self, "render_frame"):
+                    self.render_frame()
+
+                effect_desc = (
+                    "none"
+                    if outline_intensity == 0
+                    else f"{'transparent' if outline_intensity <= 50 else 'bright'}"
+                )
+                print(
+                    f"🖐️ Hand outline: {outline_intensity}% ({effect_desc} effect on {len(getattr(self, '_highlighted_nodes', []))} nodes)"
+                )
+
+            except Exception as e:
+                print(f"❌ Error updating hand outline: {e}")
+                import traceback
+
+                traceback.print_exc()
+
+    def _try_fallback_hand_highlighting(self, outline_intensity):
+        """Fallback method using the original approach."""
+        print("🔄 Trying fallback hand highlighting method...")
+
+        # Find all hand and finger related nodes
+        hand_finger_patterns = [
+            "*RightHand*",
+            "*LeftHand*",
+            "*RightHandThumb*",
+            "*LeftHandThumb*",
+            "*RightHandIndex*",
+            "*LeftHandIndex*",
+            "*RightHandMiddle*",
+            "*LeftHandMiddle*",
+            "*RightHandRing*",
+            "*LeftHandRing*",
+            "*RightHandPinky*",
+            "*LeftHandPinky*",
+            "*RightArm*",
+            "*LeftArm*",
+            "*RightForeArm*",
+            "*LeftForeArm*",
+        ]
+
+        nodes_found = 0
+        for pattern in hand_finger_patterns:
+            nodes = self.character.findAllMatches(f"**/{pattern}")
+            for i in range(nodes.getNumPaths()):
+                node = nodes.getPath(i)
+                if node and not node.isEmpty():
+                    self._highlighted_nodes.append(node)
+                    nodes_found += 1
+
+        print(f"🔍 Fallback: Found {nodes_found} hand/finger nodes")
+
+        if nodes_found > 0:
+            # Try a very aggressive color change
+            for node in self._highlighted_nodes:
+                try:
+                    # Bright red color to make it obvious
+                    node.setColorScale(3.0, 0.5, 0.5, 1.0)
+                except Exception as e:
+                    print(f"❌ Fallback failed for {node.getName()}: {e}")
+
+    def apply_pose_data(self, pose_data, description="Custom Pose"):
+        """Apply pose data directly (used for mirroring and other operations)."""
+        if not self.character or not pose_data:
+            print("❌ No character or pose data available")
+            return
+
+        print(f"🎭 Applying {description}...")
+
+        # Reset to natural pose first
+        self.reset_to_natural_pose_for_sign()
+
+        # Apply the pose data (reuse the same logic as apply_selected_sign)
+        applied_count = 0
+        safe_joints = [
+            "mixamorig:RightArm",
+            "mixamorig:LeftArm",
+            "mixamorig:RightForeArm",
+            "mixamorig:LeftForeArm",
+            "mixamorig:RightHand",
+            "mixamorig:LeftHand",
+            # All finger joints
+            "mixamorig:RightHandThumb1",
+            "mixamorig:RightHandThumb2",
+            "mixamorig:RightHandThumb3",
+            "mixamorig:LeftHandThumb1",
+            "mixamorig:LeftHandThumb2",
+            "mixamorig:LeftHandThumb3",
+            "mixamorig:RightHandIndex1",
+            "mixamorig:RightHandIndex2",
+            "mixamorig:RightHandIndex3",
+            "mixamorig:LeftHandIndex1",
+            "mixamorig:LeftHandIndex2",
+            "mixamorig:LeftHandIndex3",
+            "mixamorig:RightHandMiddle1",
+            "mixamorig:RightHandMiddle2",
+            "mixamorig:RightHandMiddle3",
+            "mixamorig:LeftHandMiddle1",
+            "mixamorig:LeftHandMiddle2",
+            "mixamorig:LeftHandMiddle3",
+            "mixamorig:RightHandRing1",
+            "mixamorig:RightHandRing2",
+            "mixamorig:RightHandRing3",
+            "mixamorig:LeftHandRing1",
+            "mixamorig:LeftHandRing2",
+            "mixamorig:LeftHandRing3",
+            "mixamorig:RightHandPinky1",
+            "mixamorig:RightHandPinky2",
+            "mixamorig:RightHandPinky3",
+            "mixamorig:LeftHandPinky1",
+            "mixamorig:LeftHandPinky2",
+            "mixamorig:LeftHandPinky3",
+        ]
+
+        for joint_name, hpr_values in pose_data.items():
+            if joint_name in safe_joints:
+                try:
+                    joint = self.character.controlJoint(None, "modelRoot", joint_name)
+                    if joint and not joint.isEmpty():
+                        if isinstance(hpr_values, list) and len(hpr_values) >= 3:
+                            joint.setHpr(hpr_values[0], hpr_values[1], hpr_values[2])
+                            applied_count += 1
+                except Exception as e:
+                    print(f"❌ Error applying {joint_name}: {e}")
+
+        if applied_count > 0:
+            self.character.update()
+            if hasattr(self, "render_frame"):
+                self.render_frame()
+            print(f"✅ Applied {description} with {applied_count} joint changes")
 
 
 def main():

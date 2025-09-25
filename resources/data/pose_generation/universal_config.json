@@ -1,46 +1,333 @@
 {
-  "language": "UNIVERSAL",
-  "language_name": "Universal Sign Language Instructions",
+  "language": "HMS",
+  "language_name": "HelpMeSign Universal Language",
   "keywords": {
     "actions": {
-      "raise": ["raise", "lift", "up", "elevate", "bring up"],
-      "lower": ["lower", "down", "drop", "bring down"],
-      "hold": ["hold", "keep", "maintain", "stay", "position"],
-      "point": ["point", "extend", "straighten", "direct"],
-      "curve": ["curve", "bend", "arch", "round"],
-      "curl": ["curl", "close", "fold", "clench"],
-      "touch": ["touch", "contact", "meet", "connect"],
-      "make": ["make", "form", "create", "shape", "build"],
-      "move": ["move", "shift", "place", "position"],
-      "bend": ["bend", "flex", "angle"],
-      "extend": ["extend", "stretch", "reach", "lengthen"]
+      "raise": {
+        "synonyms": ["raise", "lift", "up", "elevate", "bring up", "hoist"],
+        "pose_data": {
+          "mixamorig:RightArm": [0.0, -30.0, 0.0],
+          "mixamorig:LeftArm": [0.0, -30.0, 0.0],
+          "mixamorig:RightShoulder": [0.0, -15.0, 0.0],
+          "mixamorig:LeftShoulder": [0.0, -15.0, 0.0]
+        }
+      },
+      "lower": {
+        "synonyms": ["lower", "down", "drop", "bring down", "descend"],
+        "pose_data": {
+          "mixamorig:RightArm": [0.0, 45.0, 0.0],
+          "mixamorig:LeftArm": [0.0, 45.0, 0.0]
+        }
+      },
+      "hold": {
+        "synonyms": ["hold", "keep", "maintain", "stay", "position", "freeze"],
+        "pose_data": {
+          "mixamorig:RightArm": [0.0, 72.9, 0.0],
+          "mixamorig:LeftArm": [0.0, 72.9, 0.0],
+          "mixamorig:RightForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0]
+        }
+      },
+      "point": {
+        "synonyms": ["point", "extend", "straighten", "direct", "aim"],
+        "pose_data": {
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, -45.0, 0.0]
+        }
+      },
+      "curve": {
+        "synonyms": ["curve", "bend", "arch", "round", "bow"],
+        "pose_data": {
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, -30.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, -30.0, 0.0]
+        }
+      },
+      "curl": {
+        "synonyms": ["curl", "close", "fold", "clench", "grip"],
+        "pose_data": {
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, -45.0, 0.0]
+        }
+      },
+      "touch": {
+        "synonyms": ["touch", "contact", "meet", "connect"],
+        "pose_data": {
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0]
+        }
+      },
+      "natural": {
+        "synonyms": ["natural", "neutral", "relaxed", "rest", "default"],
+        "pose_data": {
+          "mixamorig:Hips": [0.0, 0.0, 0.0],
+          "mixamorig:Spine": [0.0, 0.0, 0.0],
+          "mixamorig:Head": [0.0, 0.0, 0.0],
+          "mixamorig:Neck": [0.0, 40.0, 0.0],
+          "mixamorig:LeftShoulder": [0.0, 0.0, 0.0],
+          "mixamorig:RightShoulder": [0.0, 0.0, 0.0],
+          "mixamorig:LeftArm": [0.0, 72.9, 0.0],
+          "mixamorig:RightArm": [0.0, 72.9, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:RightForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0],
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, 20.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, 20.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, 8.6, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, 8.6, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, 33.3, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, 35.2, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, 38.6, 0.0],
+          "mixamorig:RightHandRing1": [0.0, 12.9, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, 55.7, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, 42.9, 0.0],
+          "mixamorig:LeftUpLeg": [0.0, 0.0, 0.0],
+          "mixamorig:RightUpLeg": [0.0, 0.0, 0.0],
+          "mixamorig:LeftFoot": [0.0, 0.0, 0.0],
+          "mixamorig:RightFoot": [0.0, 0.0, 0.0]
+        }
+      },
+      "make": {
+        "synonyms": ["make", "form", "create", "shape", "build"],
+        "pose_data": {
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0]
+        }
+      },
+      "move": {
+        "synonyms": ["move", "shift", "place", "position"],
+        "pose_data": {
+          "mixamorig:RightArm": [0.0, 72.9, 0.0],
+          "mixamorig:LeftArm": [0.0, 72.9, 0.0]
+        }
+      },
+      "bend": {
+        "synonyms": ["bend", "flex", "angle"],
+        "pose_data": {
+          "mixamorig:RightForeArm": [0.0, 45.0, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 45.0, 0.0]
+        }
+      },
+      "extend": {
+        "synonyms": ["extend", "stretch", "reach", "lengthen"],
+        "pose_data": {
+          "mixamorig:RightForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 0.0, 0.0]
+        }
+      }
     },
     "body_parts": {
-      "arm": ["arm", "shoulder", "upper arm"],
-      "forearm": ["forearm", "lower arm"],
-      "elbow": ["elbow", "joint"],
-      "hand": ["hand", "wrist"],
-      "fingers": ["fingers", "digits", "all fingers"],
-      "thumb": ["thumb", "pollex"],
-      "index": ["index", "pointer", "first finger"],
-      "middle": ["middle", "second finger", "long finger"],
-      "ring": ["ring", "third finger"],
-      "pinky": ["pinky", "little", "fourth finger", "small finger"]
+      "arm": {
+        "synonyms": ["arm", "shoulder", "upper arm"],
+        "pose_data": {
+          "mixamorig:RightArm": [0.0, 0.0, 0.0],
+          "mixamorig:LeftArm": [0.0, 0.0, 0.0]
+        }
+      },
+      "forearm": {
+        "synonyms": ["forearm", "lower arm"],
+        "pose_data": {
+          "mixamorig:RightForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 0.0, 0.0]
+        }
+      },
+      "elbow": {
+        "synonyms": ["elbow", "joint"],
+        "pose_data": {
+          "mixamorig:RightForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 0.0, 0.0]
+        }
+      },
+      "hand": {
+        "synonyms": ["hand", "wrist"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHand": [0.0, 0.0, 0.0]
+        }
+      },
+      "fingers": {
+        "synonyms": ["fingers", "digits", "all fingers"],
+        "pose_data": {
+          "mixamorig:RightHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, 0.0, 0.0]
+        }
+      },
+      "thumb": {
+        "synonyms": ["thumb", "pollex"],
+        "pose_data": {
+          "mixamorig:RightHandThumb1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, 0.0, 0.0]
+        }
+      },
+      "index": {
+        "synonyms": ["index", "pointer", "first finger"],
+        "pose_data": {
+          "mixamorig:RightHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, 0.0, 0.0]
+        }
+      },
+      "middle": {
+        "synonyms": ["middle", "second finger", "long finger"],
+        "pose_data": {
+          "mixamorig:RightHandMiddle1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, 0.0, 0.0]
+        }
+      },
+      "ring": {
+        "synonyms": ["ring", "third finger"],
+        "pose_data": {
+          "mixamorig:RightHandRing1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, 0.0, 0.0]
+        }
+      },
+      "pinky": {
+        "synonyms": ["pinky", "little", "fourth finger", "small finger"],
+        "pose_data": {
+          "mixamorig:RightHandPinky1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, 0.0, 0.0]
+        }
+      }
     },
     "hand_shapes": {
-      "fist": ["fist", "closed", "tight", "clenched"],
-      "flat": ["flat", "open", "straight", "extended", "palm"],
-      "curved": ["curved", "bent", "c-shape", "c shape", "arc"],
-      "point": ["point", "pointing", "finger up", "single finger"]
+      "fist": {
+        "synonyms": ["fist", "closed", "tight", "clenched"],
+        "pose_data": {
+          "mixamorig:RightHand": [-15.6, 0.0, 0.0],
+          "mixamorig:LeftHand": [15.6, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, -45.0, 0.0]
+        }
+      },
+      "flat": {
+        "synonyms": ["flat", "open", "straight", "extended", "palm"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHand": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, 0.0, 0.0]
+        }
+      },
+      "curved": {
+        "synonyms": ["curved", "bent", "c-shape", "c shape", "arc"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHand": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, -45.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, -30.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, -30.0, 0.0]
+        }
+      },
+      "point": {
+        "synonyms": ["point", "pointing", "finger up", "single finger"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHand": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:RightHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:RightHandThumb1": [0.0, -45.0, 0.0],
+          "mixamorig:LeftHandIndex1": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHandMiddle1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandRing1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandPinky1": [0.0, -90.0, 0.0],
+          "mixamorig:LeftHandThumb1": [0.0, -45.0, 0.0]
+        }
+      }
     },
     "modifiers": {
-      "together": ["together", "close", "tight", "joined"],
-      "apart": ["apart", "spread", "wide", "separated"],
-      "bent": ["bent", "curved", "flexed", "angled"],
-      "straight": ["straight", "extended", "flat", "linear"]
+      "together": {
+        "synonyms": ["together", "close", "tight", "joined"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHand": [0.0, 0.0, 0.0]
+        }
+      },
+      "apart": {
+        "synonyms": ["apart", "spread", "wide", "separated"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, 0.0],
+          "mixamorig:LeftHand": [0.0, 0.0, 0.0]
+        }
+      },
+      "bent": {
+        "synonyms": ["bent", "curved", "flexed", "angled"],
+        "pose_data": {
+          "mixamorig:RightForeArm": [0.0, 45.0, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 45.0, 0.0]
+        }
+      },
+      "straight": {
+        "synonyms": ["straight", "extended", "flat", "linear"],
+        "pose_data": {
+          "mixamorig:RightForeArm": [0.0, 0.0, 0.0],
+          "mixamorig:LeftForeArm": [0.0, 0.0, 0.0]
+        }
+      }
     }
   },
   "overrides": {
-    "comment": "Universal configuration - no language-specific overrides needed"
+    "comment": "HelpMeSign Universal Language - consolidated config with pose data for keywords only"
   }
 }

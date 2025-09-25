@@ -102,7 +102,7 @@ class UniversalInstructionToPoseGenerator:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
 
-        # Return default universal configuration
+        # Return default universal configuration (legacy format for backward compatibility)
         return {
             "language": "universal",
             "keywords": {
@@ -142,40 +142,61 @@ class UniversalInstructionToPoseGenerator:
             },
         }
 
-    def _init_universal_hand_shapes(self) -> Dict[str, Dict[str, List[float]]]:
+    def _init_universal_hand_shapes(self) -> Dict[str, Dict[str, Any]]:
         """Universal hand shape mappings that work across sign languages"""
         return {
             "fist": {
-                # All fingers curl into palm, thumb wraps around
-                "index": [0, 90, 0],  # Each finger joint curls 90 degrees
-                "middle": [0, 90, 0],
-                "ring": [0, 90, 0],
-                "pinky": [0, 90, 0],
-                "thumb": [-45, 30, 10],  # Thumb wraps around
+                # Real working values from manual pose creation
+                "index": {
+                    "hpr": [0, 77.1, 0],
+                    "xyz": [0, 0, 0],
+                },  # Real index finger curl
+                "middle": {
+                    "hpr": [0, 84.8, 0],
+                    "xyz": [0, 0, 0],
+                },  # Real middle finger curl
+                "ring": {
+                    "hpr": [0, 94.3, 0],
+                    "xyz": [0, 0, 0],
+                },  # Real ring finger curl
+                "pinky": {"hpr": [0, 90.0, 0], "xyz": [0, 0, 0]},  # Real pinky curl
+                "thumb": {
+                    "hpr": [0.0, 2.1, 10.3],
+                    "xyz": [0, 0, 0],
+                },  # Real thumb position for 'A'
             },
             "flat": {
                 # All fingers extended straight
-                "index": [0, 0, 0],
-                "middle": [0, 0, 0],
-                "ring": [0, 0, 0],
-                "pinky": [0, 0, 0],
-                "thumb": [0, 0, 0],
+                "index": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
+                "middle": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
+                "ring": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
+                "pinky": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
+                "thumb": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
             },
             "curved": {
                 # Fingers slightly curved, forming C shape
-                "index": [0, 30, 0],
-                "middle": [0, 30, 0],
-                "ring": [0, 30, 0],
-                "pinky": [0, 30, 0],
-                "thumb": [-20, 15, 5],
+                "index": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
+                "middle": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
+                "ring": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
+                "pinky": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
+                "thumb": {"hpr": [-20, 15, 5], "xyz": [0, 0, 0]},
             },
             "point": {
                 # One finger extended, others closed
-                "index": [0, 0, 0],  # Extended
-                "middle": [0, 90, 0],  # Closed
-                "ring": [0, 90, 0],  # Closed
-                "pinky": [0, 90, 0],  # Closed
-                "thumb": [-20, 30, 10],  # Partially closed
+                "index": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},  # Extended
+                "middle": {
+                    "hpr": [0, 45, 0],
+                    "xyz": [0, 0, 0],
+                },  # Closed (reduced from 90)
+                "ring": {
+                    "hpr": [0, 45, 0],
+                    "xyz": [0, 0, 0],
+                },  # Closed (reduced from 90)
+                "pinky": {
+                    "hpr": [0, 45, 0],
+                    "xyz": [0, 0, 0],
+                },  # Closed (reduced from 90)
+                "thumb": {"hpr": [-20, 15, 5], "xyz": [0, 0, 0]},  # More natural
             },
         }
 
@@ -183,23 +204,35 @@ class UniversalInstructionToPoseGenerator:
         """Universal action mappings"""
         return {
             "raise_arm": {
-                "arm": [0, 45, -30],  # Lift arm up and out
-                "forearm": [0, 0, 0],  # Keep forearm neutral
+                "arm": {
+                    "hpr": [4.3, 90.0, 0.0],
+                    "xyz": [0, 0, 0],
+                },  # Real working values from manual pose
+                # Don't set forearm here - let bend_elbow handle it
             },
             "bend_elbow": {
-                "forearm": [0, 90, 0],  # 90 degree bend at elbow
+                "forearm": {
+                    "hpr": [77.1, 132.9, 0.0],
+                    "xyz": [0, 0, 0],
+                },  # Real working elbow bend values
             },
             "arm_to_side": {
-                "arm": [0, 0, -90],  # Arm out to side
+                "arm": {"hpr": [0, 0, -90], "xyz": [0, 0, 0]},  # Arm out to side
             },
             "arm_forward": {
-                "arm": [0, 45, 0],  # Arm forward
+                "arm": {"hpr": [0, 45, 0], "xyz": [0, 0, 0]},  # Arm forward
             },
             "hand_up": {
-                "hand": [0, -30, 0],  # Wrist bent up
+                "hand": {"hpr": [0, -30, 0], "xyz": [0, 0, 0]},  # Wrist bent up
             },
             "hand_flat": {
-                "hand": [0, 0, 0],  # Neutral wrist position
+                "hand": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},  # Neutral wrist position
+            },
+            "hand_fist_orientation": {
+                "hand": {
+                    "hpr": [180.0, 0.0, 0.0],
+                    "xyz": [0, 0, 0],
+                },  # Hand orientation for fist
             },
         }
 
@@ -262,7 +295,8 @@ class UniversalInstructionToPoseGenerator:
         keywords = self.language_config["keywords"]
 
         # Match actions
-        for universal_action, synonyms in keywords["actions"].items():
+        for universal_action in keywords["actions"].keys():
+            synonyms = self._get_keyword_synonyms("actions", universal_action)
             if any(word in synonyms for word in words):
                 try:
                     detected_actions.append(UniversalAction(universal_action))
@@ -270,7 +304,8 @@ class UniversalInstructionToPoseGenerator:
                     continue
 
         # Match body parts
-        for universal_part, synonyms in keywords["body_parts"].items():
+        for universal_part in keywords["body_parts"].keys():
+            synonyms = self._get_keyword_synonyms("body_parts", universal_part)
             if any(word in synonyms for word in words):
                 try:
                     detected_body_parts.append(BodyPart(universal_part))
@@ -278,7 +313,8 @@ class UniversalInstructionToPoseGenerator:
                     continue
 
         # Match hand shapes
-        for universal_shape, synonyms in keywords["hand_shapes"].items():
+        for universal_shape in keywords["hand_shapes"].keys():
+            synonyms = self._get_keyword_synonyms("hand_shapes", universal_shape)
             if any(word in synonyms for word in words):
                 try:
                     detected_hand_shapes.append(UniversalHandShape(universal_shape))
@@ -286,7 +322,8 @@ class UniversalInstructionToPoseGenerator:
                     continue
 
         # Match modifiers
-        for modifier, synonyms in keywords["modifiers"].items():
+        for modifier in keywords["modifiers"].keys():
+            synonyms = self._get_keyword_synonyms("modifiers", modifier)
             if any(word in synonyms for word in words):
                 detected_modifiers.append(modifier)
 
@@ -325,7 +362,12 @@ class UniversalInstructionToPoseGenerator:
             ):
                 shape_mapping = self.universal_hand_shapes[instr.hand_shape.value]
                 finger_pose = self._apply_hand_shape(shape_mapping, hand)
-                pose_data.update(finger_pose)
+                # Extract HPR values from the new HPR+XYZ format
+                for joint_name, joint_data in finger_pose.items():
+                    if isinstance(joint_data, dict) and "hpr" in joint_data:
+                        pose_data[joint_name] = joint_data["hpr"]
+                    elif isinstance(joint_data, list):
+                        pose_data[joint_name] = joint_data  # Legacy format
 
             # Apply action-specific poses
             if (
@@ -333,14 +375,28 @@ class UniversalInstructionToPoseGenerator:
                 and instr.body_part == BodyPart.ARM
             ):
                 arm_pose = self._apply_arm_action("raise_arm", hand)
-                pose_data.update(arm_pose)
+                # Extract HPR values from the new HPR+XYZ format
+                for joint_name, joint_data in arm_pose.items():
+                    if isinstance(joint_data, dict) and "hpr" in joint_data:
+                        pose_data[joint_name] = joint_data["hpr"]
+                    elif isinstance(joint_data, list):
+                        pose_data[joint_name] = joint_data  # Legacy format
 
+            # Handle elbow bending - both "BEND + ELBOW" and "RAISE + ELBOW" (from "elbow bent")
             if (
                 instr.action == UniversalAction.BEND
                 and instr.body_part == BodyPart.ELBOW
+            ) or (
+                instr.action == UniversalAction.RAISE
+                and instr.body_part == BodyPart.ELBOW
             ):
                 elbow_pose = self._apply_arm_action("bend_elbow", hand)
-                pose_data.update(elbow_pose)
+                # Extract HPR values from the new HPR+XYZ format
+                for joint_name, joint_data in elbow_pose.items():
+                    if isinstance(joint_data, dict) and "hpr" in joint_data:
+                        pose_data[joint_name] = joint_data["hpr"]
+                    elif isinstance(joint_data, list):
+                        pose_data[joint_name] = joint_data  # Legacy format
 
             if instr.action == UniversalAction.POINT and instr.body_part in [
                 BodyPart.INDEX,
@@ -348,45 +404,83 @@ class UniversalInstructionToPoseGenerator:
                 BodyPart.RING,
                 BodyPart.PINKY,
             ]:
-                finger_pose = self._apply_single_finger_point(
-                    instr.body_part.value, hand
-                )
-                pose_data.update(finger_pose)
+                # finger_pose: Dict[str, List[float]] = self._apply_single_finger_point(
+                #     instr.body_part.value, hand
+                # )
+                # Extract HPR values from the new HPR+XYZ format
+                for joint_name, joint_data in finger_pose.items():
+                    if isinstance(joint_data, dict) and "hpr" in joint_data:
+                        pose_data[joint_name] = joint_data["hpr"]
+                    elif isinstance(joint_data, list):
+                        pose_data[joint_name] = joint_data  # Legacy format
+
+        # Apply hand orientation for fist (specific to letter A)
+        if any(instr.hand_shape == UniversalHandShape.FIST for instr in parsed):
+            hand_pose = self._apply_arm_action("hand_fist_orientation", hand)
+            for joint_name, joint_data in hand_pose.items():
+                if isinstance(joint_data, dict) and "hpr" in joint_data:
+                    pose_data[joint_name] = joint_data["hpr"]
+                elif isinstance(joint_data, list):
+                    pose_data[joint_name] = joint_data
 
         return pose_data
 
     def _apply_hand_shape(
-        self, shape_mapping: Dict[str, List[float]], hand: str
-    ) -> Dict[str, List[float]]:
+        self, shape_mapping: Dict[str, Any], hand: str
+    ) -> Dict[str, Dict[str, List[float]]]:
         """Apply hand shape to specific hand"""
-        pose_data: Dict[str, List[float]] = {}
+        pose_data: Dict[str, Dict[str, List[float]]] = {}
         hand_prefix = hand.lower()
 
-        for finger, hpr in shape_mapping.items():
+        for finger, finger_data in shape_mapping.items():
+            # Handle new HPR+XYZ format or legacy HPR-only format
+            if isinstance(finger_data, dict) and "hpr" in finger_data:
+                hpr = finger_data["hpr"]
+                xyz = finger_data["xyz"]
+            else:
+                hpr = finger_data  # Legacy format (just HPR list)
+                xyz = [0, 0, 0]  # Default XYZ for legacy format
+
             if finger == "thumb":
                 for i in range(1, 4):  # Thumb has 3 joints
                     joint_key = f"{hand_prefix}_{finger}{i}"
                     if joint_key in self.joint_mappings:
-                        pose_data[self.joint_mappings[joint_key]] = hpr
+                        pose_data[self.joint_mappings[joint_key]] = {
+                            "hpr": hpr,
+                            "xyz": xyz,
+                        }
             else:
                 for i in range(1, 4):  # Other fingers have 3 joints
                     joint_key = f"{hand_prefix}_{finger}{i}"
                     if joint_key in self.joint_mappings:
-                        pose_data[self.joint_mappings[joint_key]] = hpr
+                        pose_data[self.joint_mappings[joint_key]] = {
+                            "hpr": hpr,
+                            "xyz": xyz,
+                        }
 
         return pose_data
 
-    def _apply_arm_action(self, action_key: str, hand: str) -> Dict[str, List[float]]:
+    def _apply_arm_action(
+        self, action_key: str, hand: str
+    ) -> Dict[str, Dict[str, List[float]]]:
         """Apply arm/elbow actions"""
-        pose_data: Dict[str, List[float]] = {}
+        pose_data: Dict[str, Dict[str, List[float]]] = {}
         hand_prefix = hand.lower()
 
         if action_key in self.universal_actions:
             action_mapping = self.universal_actions[action_key]
-            for body_part, hpr in action_mapping.items():
+            for body_part, part_data in action_mapping.items():
+                # Handle new HPR+XYZ format or legacy HPR-only format
+                if isinstance(part_data, dict) and "hpr" in part_data:
+                    hpr = part_data["hpr"]
+                    xyz = part_data["xyz"]
+                else:
+                    hpr = part_data  # Legacy format (just HPR list)
+                    xyz = [0, 0, 0]  # Default XYZ for legacy format
+
                 joint_key = f"{hand_prefix}_{body_part}"
                 if joint_key in self.joint_mappings:
-                    pose_data[self.joint_mappings[joint_key]] = hpr
+                    pose_data[self.joint_mappings[joint_key]] = {"hpr": hpr, "xyz": xyz}
 
         return pose_data
 
@@ -401,7 +495,7 @@ class UniversalInstructionToPoseGenerator:
 
         for f in fingers:
             hpr = (
-                [0.0, 0.0, 0.0] if f == finger else [0.0, 90.0, 0.0]
+                [0.0, 0.0, 0.0] if f == finger else [0.0, 45.0, 0.0]
             )  # Extended vs closed
             for i in range(1, 4):
                 joint_key = f"{hand_prefix}_{f}{i}"
@@ -451,6 +545,142 @@ class UniversalInstructionToPoseGenerator:
         coverage["unparseable_list"] = unparseable_instructions
         coverage["detected_patterns"] = pattern_counts
         return coverage
+
+    def _get_keyword_synonyms(self, category: str, keyword: str) -> List[str]:
+        """Get synonyms for a keyword, handling both old and new config formats"""
+        keywords = self.language_config.get("keywords", {}).get(category, {})
+        keyword_data = keywords.get(keyword, {})
+
+        # Handle new format with synonyms
+        if isinstance(keyword_data, dict) and "synonyms" in keyword_data:
+            return keyword_data["synonyms"]
+        # Handle old format (direct list)
+        elif isinstance(keyword_data, list):
+            return keyword_data
+        else:
+            return []
+
+    def _get_keyword_pose_data(
+        self, category: str, keyword: str
+    ) -> Dict[str, List[float]]:
+        """Get pose data for a keyword, handling both old and new config formats"""
+        keywords = self.language_config.get("keywords", {}).get(category, {})
+        keyword_data = keywords.get(keyword, {})
+
+        # Handle new format with pose_data
+        if isinstance(keyword_data, dict) and "pose_data" in keyword_data:
+            return keyword_data["pose_data"]
+        else:
+            return {}
+
+    def get_symbol_pose_from_signs_file(
+        self, symbol: str, signs_file_path: str
+    ) -> Dict[str, List[float]]:
+        """Get pose data for a specific symbol by generating it from instructions in signs file"""
+        try:
+            with open(signs_file_path, "r", encoding="utf-8") as f:
+                signs_config = json.load(f)
+
+            # Check alphabet first, then numbers
+            symbol_data = None
+            if symbol.upper() in signs_config.get("alphabet", {}):
+                symbol_data = signs_config["alphabet"][symbol.upper()]
+            elif symbol.upper() in signs_config.get("numbers", {}):
+                symbol_data = signs_config["numbers"][symbol.upper()]
+
+            if symbol_data and "instructions" in symbol_data:
+                # Generate pose from instructions using universal config keywords
+                instruction_text = symbol_data["instructions"]
+                return self.generate_pose_from_instruction(instruction_text)
+
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            pass
+
+        return {}
+
+    def get_symbol_instruction_from_signs_file(
+        self, symbol: str, signs_file_path: str
+    ) -> str:
+        """Get instruction text for a specific symbol from signs file"""
+        try:
+            with open(signs_file_path, "r", encoding="utf-8") as f:
+                signs_config = json.load(f)
+
+            # Check alphabet first, then numbers
+            symbol_data = None
+            if symbol.upper() in signs_config.get("alphabet", {}):
+                symbol_data = signs_config["alphabet"][symbol.upper()]
+            elif symbol.upper() in signs_config.get("numbers", {}):
+                symbol_data = signs_config["numbers"][symbol.upper()]
+
+            if symbol_data and "instructions" in symbol_data:
+                return symbol_data["instructions"]
+
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            pass
+
+        return f"Sign for {symbol}"
+
+    def generate_static_pose_from_keywords(
+        self, keywords: List[str]
+    ) -> Dict[str, List[float]]:
+        """Generate static pose by combining pose data from multiple keywords"""
+        # Start with natural pose as base
+        natural_pose = self._get_keyword_pose_data("actions", "natural")
+        combined_pose = natural_pose.copy() if natural_pose else {}
+
+        for keyword in keywords:
+            # Try to find the keyword in each category
+            for category in ["actions", "body_parts", "hand_shapes", "modifiers"]:
+                category_keywords = self.language_config.get("keywords", {}).get(
+                    category, {}
+                )
+
+                for key, data in category_keywords.items():
+                    synonyms = self._get_keyword_synonyms(category, key)
+                    if keyword.lower() in [s.lower() for s in synonyms]:
+                        pose_data = self._get_keyword_pose_data(category, key)
+                        # Merge pose data (later keywords override earlier ones)
+                        combined_pose.update(pose_data)
+                        break
+
+        return combined_pose
+
+    def generate_animated_pose_sequence_from_signs_file(
+        self, language_string: str, signs_file_path: str, duration_ms: int = 2000
+    ) -> List[Dict[str, Any]]:
+        """Generate animated pose sequence from a language string using signs file"""
+        sequence: List[Dict[str, Any]] = []
+        symbols = list(language_string.upper())
+
+        if not symbols:
+            return sequence
+
+        # Calculate timing
+        frame_duration = duration_ms // len(symbols)
+
+        for i, symbol in enumerate(symbols):
+            pose_data = self.get_symbol_pose_from_signs_file(symbol, signs_file_path)
+            if pose_data:
+                frame = {
+                    "frame_number": i,
+                    "timestamp_ms": i * frame_duration,
+                    "pose": pose_data,
+                    "symbol": symbol,
+                    "instruction": self.get_symbol_instruction_from_signs_file(
+                        symbol, signs_file_path
+                    ),
+                }
+                sequence.append(frame)
+
+        return sequence
+
+    def generate_pose_from_instruction(
+        self, instruction: str
+    ) -> Dict[str, List[float]]:
+        """Generate pose from natural language instruction using keyword matching"""
+        words = instruction.lower().split()
+        return self.generate_static_pose_from_keywords(words)
 
     def create_language_config_template(
         self, language_code: str, language_name: str
