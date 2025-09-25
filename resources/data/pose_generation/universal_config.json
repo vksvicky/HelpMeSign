@@ -342,6 +342,22 @@
           "mixamorig:LeftForeArm": [0.0, 0.0, 0.0]
         }
       }
+    },
+    "orientations": {
+      "palm_forward": {
+        "synonyms": ["palm facing forward", "palm forward", "facing forward", "palm out"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, 90.0],
+          "mixamorig:LeftHand": [0.0, 0.0, -90.0]
+        }
+      },
+      "palm_back": {
+        "synonyms": ["palm facing back", "palm back", "facing back", "palm in"],
+        "pose_data": {
+          "mixamorig:RightHand": [0.0, 0.0, -90.0],
+          "mixamorig:LeftHand": [0.0, 0.0, 90.0]
+        }
+      }
     }
   },
   "overrides": {

@@ -313,16 +313,9 @@ class GLBViewerWindow(QMainWindow):
     def _initialize_pose_generator(self):
         """Initialize pose generator with appropriate config for current language."""
         try:
-            # Try absolute import first (works when run as script with src on sys.path)
-            try:
-                from .instruction_to_pose_generator import (
-                    UniversalInstructionToPoseGenerator,
-                )
-            except ImportError:
-                # Fallback to package-relative import (when run as module)
-                from .instruction_to_pose_generator import (
-                    UniversalInstructionToPoseGenerator,
-                )
+            from helpmesign.modes.learn.instruction_to_pose_generator import (  # type: ignore
+                UniversalInstructionToPoseGenerator,
+            )
 
             # Get language code from current language
             language_code = self.current_language.lower()
@@ -2123,7 +2116,7 @@ class GLBViewerWindow(QMainWindow):
                 export_text += f"            '{part_name}': {{\n"
                 export_text += f"                'hpr': {part_data['hpr']},\n"
                 export_text += f"                'xyz': {part_data['xyz']}\n"
-                export_text += f"            }},\n"
+                export_text += "            }},\n"
             export_text += "        }\n"
             export_text += "    }"
 
@@ -2301,7 +2294,7 @@ class GLBViewerWindow(QMainWindow):
         for joint_name in pose_data.keys():
             print(f"  - {joint_name}")
 
-        print(f"🔍 DEBUG: Checking against safe joints filter...")
+        print("🔍 DEBUG: Checking against safe joints filter...")
 
         for joint_name, hpr_values in pose_data.items():
             # Skip problematic joints that cause major distortions
@@ -2348,7 +2341,7 @@ class GLBViewerWindow(QMainWindow):
                 error_count += 1
 
         # Summary
-        print(f"\n📊 Pose Application Results:")
+        print("\n📊 Pose Application Results:")
         print(f"  ✅ Applied: {applied_count}")
         print(f"  ⚠️ Skipped: {skipped_count} (problematic joints)")
         print(f"  ❌ Not found: {not_found_count}")

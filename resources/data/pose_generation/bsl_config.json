@@ -1,45 +1,6 @@
 {
   "language": "BSL",
   "language_name": "British Sign Language",
-  "keywords": {
-    "actions": {
-      "raise": ["raise", "lift", "bring up"],
-      "lower": ["lower", "bring down"],
-      "hold": ["hold", "keep", "maintain"],
-      "point": ["point", "extend"],
-      "curve": ["curve", "bend", "arc"],
-      "curl": ["curl", "close", "fold"],
-      "touch": ["touch", "contact"],
-      "make": ["make", "form", "create"],
-      "move": ["move", "shift"],
-      "bend": ["bend", "flex"],
-      "extend": ["extend", "stretch"]
-    },
-    "body_parts": {
-      "arm": ["arm"],
-      "forearm": ["forearm"],
-      "elbow": ["elbow"],
-      "hand": ["hand"],
-      "fingers": ["fingers"],
-      "thumb": ["thumb"],
-      "index": ["index finger", "first finger"],
-      "middle": ["middle finger"],
-      "ring": ["ring finger"],
-      "pinky": ["little finger", "pinky"]
-    },
-    "hand_shapes": {
-      "fist": ["fist", "closed hand"],
-      "flat": ["flat", "open hand"],
-      "curved": ["curved", "c shape"],
-      "point": ["pointing", "finger extended"]
-    },
-    "modifiers": {
-      "together": ["together", "close"],
-      "apart": ["apart", "spread"],
-      "bent": ["bent", "flexed"],
-      "straight": ["straight", "extended"]
-    }
-  },
   "overrides": {
     "comment": "BSL-specific adjustments",
     "cultural_notes": "BSL uses both hands more frequently and has different spatial grammar",

@@ -13,7 +13,16 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from .instruction_parser import InstructionParser
+try:
+    from .instruction_parser import InstructionParser  # type: ignore
+except ImportError:
+    # Fallback for when running as script
+    import os
+    import sys
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, current_dir)
+    from instruction_parser import InstructionParser  # type: ignore
 
 
 class UniversalHandShape(Enum):
@@ -102,10 +111,48 @@ class UniversalInstructionToPoseGenerator:
         self.instruction_parser = InstructionParser("asl")
 
     def _load_language_config(self) -> Dict[str, Any]:
-        """Load language-specific configuration"""
+        """Load language-specific configuration with inheritance from universal config"""
+        # First, always load the universal config as the base
+        universal_config = self._load_universal_config()
+
+        # If a specific language config is provided, merge it with the universal config
         if self.config_path and os.path.exists(self.config_path):
             with open(self.config_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                language_config = json.load(f)
+                # Merge language-specific config with universal config
+                merged_config = self._merge_configs(universal_config, language_config)
+                print(
+                    f"✅ DEBUG: Loaded {os.path.basename(self.config_path)} with inheritance from universal_config.json"
+                )
+                return merged_config
+
+        # Return universal config if no language-specific config
+        print("✅ DEBUG: Using universal_config.json directly")
+        return universal_config
+
+    def _load_universal_config(self) -> Dict[str, Any]:
+        """Load the universal configuration file"""
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            universal_config_path = os.path.join(
+                current_dir,
+                "..",
+                "..",
+                "..",
+                "..",
+                "resources",
+                "data",
+                "pose_generation",
+                "universal_config.json",
+            )
+            universal_config_path = os.path.normpath(universal_config_path)
+
+            if os.path.exists(universal_config_path):
+                with open(universal_config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    return config
+        except Exception as e:
+            print(f"⚠️ Could not load universal_config.json: {e}")
 
         # Return default universal configuration (legacy format for backward compatibility)
         return {
@@ -146,6 +193,39 @@ class UniversalInstructionToPoseGenerator:
                 },
             },
         }
+
+    def _merge_configs(
+        self, base_config: Dict[str, Any], override_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Merge language-specific config with universal config (inheritance)"""
+        merged = base_config.copy()
+
+        # Override top-level keys
+        for key, value in override_config.items():
+            if key == "keywords" and key in merged:
+                # Deep merge keywords section
+                merged[key] = self._deep_merge(merged[key], value)
+            else:
+                # Simple override for other keys
+                merged[key] = value
+
+        return merged
+
+    def _deep_merge(
+        self, base: Dict[str, Any], override: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Deep merge two dictionaries"""
+        result = base.copy()
+        for key, value in override.items():
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
 
     def _init_universal_hand_shapes(self) -> Dict[str, Dict[str, Any]]:
         """Universal hand shape mappings that work across sign languages"""
