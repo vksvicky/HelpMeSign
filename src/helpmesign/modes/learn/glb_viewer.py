@@ -175,16 +175,41 @@ class GLBViewerWindow(QMainWindow):
             "right_forearm",
             "left_hand",
             "right_hand",
-            "left_fingers_thumb",
-            "right_fingers_thumb",
-            "left_fingers_index",
-            "right_fingers_index",
-            "left_fingers_middle",
-            "right_fingers_middle",
-            "left_fingers_ring",
-            "right_fingers_ring",
-            "left_fingers_pinky",
-            "right_fingers_pinky",
+            # Thumb joints (all 3)
+            "left_fingers_thumb_base",
+            "right_fingers_thumb_base",
+            "left_fingers_thumb_middle",
+            "right_fingers_thumb_middle",
+            "left_fingers_thumb_tip",
+            "right_fingers_thumb_tip",
+            # Index finger joints (all 3)
+            "left_fingers_index_base",
+            "right_fingers_index_base",
+            "left_fingers_index_middle",
+            "right_fingers_index_middle",
+            "left_fingers_index_tip",
+            "right_fingers_index_tip",
+            # Middle finger joints (all 3)
+            "left_fingers_middle_base",
+            "right_fingers_middle_base",
+            "left_fingers_middle_middle",
+            "right_fingers_middle_middle",
+            "left_fingers_middle_tip",
+            "right_fingers_middle_tip",
+            # Ring finger joints (all 3)
+            "left_fingers_ring_base",
+            "right_fingers_ring_base",
+            "left_fingers_ring_middle",
+            "right_fingers_ring_middle",
+            "left_fingers_ring_tip",
+            "right_fingers_ring_tip",
+            # Pinky finger joints (all 3)
+            "left_fingers_pinky_base",
+            "right_fingers_pinky_base",
+            "left_fingers_pinky_middle",
+            "right_fingers_pinky_middle",
+            "left_fingers_pinky_tip",
+            "right_fingers_pinky_tip",
             "left_leg",
             "right_leg",
             "left_foot",
@@ -901,11 +926,26 @@ class GLBViewerWindow(QMainWindow):
             ("Arm", "Upper arm rotation"),
             ("ForeArm", "Forearm rotation"),
             ("Hand", "Hand and wrist movement"),
-            ("Fingers (Thumb)", "Thumb finger control"),
-            ("Fingers (Index)", "Index finger control"),
-            ("Fingers (Middle)", "Middle finger control"),
-            ("Fingers (Ring)", "Ring finger control"),
-            ("Fingers (Pinky)", "Pinky finger control"),
+            # Thumb joints (all 3)
+            ("Fingers (Thumb Base)", "Thumb base joint control"),
+            ("Fingers (Thumb Middle)", "Thumb middle joint control"),
+            ("Fingers (Thumb Tip)", "Thumb tip joint control"),
+            # Index finger joints (all 3)
+            ("Fingers (Index Base)", "Index finger base joint control"),
+            ("Fingers (Index Middle)", "Index finger middle joint control"),
+            ("Fingers (Index Tip)", "Index finger tip joint control"),
+            # Middle finger joints (all 3)
+            ("Fingers (Middle Base)", "Middle finger base joint control"),
+            ("Fingers (Middle Middle)", "Middle finger middle joint control"),
+            ("Fingers (Middle Tip)", "Middle finger tip joint control"),
+            # Ring finger joints (all 3)
+            ("Fingers (Ring Base)", "Ring finger base joint control"),
+            ("Fingers (Ring Middle)", "Ring finger middle joint control"),
+            ("Fingers (Ring Tip)", "Ring finger tip joint control"),
+            # Pinky finger joints (all 3)
+            ("Fingers (Pinky Base)", "Pinky finger base joint control"),
+            ("Fingers (Pinky Middle)", "Pinky finger middle joint control"),
+            ("Fingers (Pinky Tip)", "Pinky finger tip joint control"),
             ("Leg", "Upper leg and thigh movement"),
             ("Foot", "Foot and ankle movement"),
         ]
@@ -947,6 +987,33 @@ class GLBViewerWindow(QMainWindow):
                     part_name,
                 )
                 part_layout.addWidget(single_controls)
+            elif "Fingers" in part_name:
+                # Individual finger joint controls with left/right split
+                controls_layout = QHBoxLayout()
+
+                # Extract the finger joint name from the UI name
+                # e.g., "Fingers (Thumb Base)" -> "thumb_base"
+                joint_name = (
+                    part_name.lower()
+                    .replace("fingers (", "")
+                    .replace(")", "")
+                    .replace(" ", "_")
+                )
+
+                # Left side controls
+                left_controls = self.create_hpr_xyz_controls_with_labels(
+                    f"left_fingers_{joint_name}",
+                    f"Left {part_name}",
+                )
+                # Right side controls
+                right_controls = self.create_hpr_xyz_controls_with_labels(
+                    f"right_fingers_{joint_name}",
+                    f"Right {part_name}",
+                )
+
+                controls_layout.addWidget(left_controls)
+                controls_layout.addWidget(right_controls)
+                part_layout.addLayout(controls_layout)
             else:
                 # Left and right controls side by side
                 controls_layout = QHBoxLayout()
@@ -1457,16 +1524,41 @@ class GLBViewerWindow(QMainWindow):
             "right_forearm": "mixamorig:RightForeArm",
             "left_hand": "mixamorig:LeftHand",
             "right_hand": "mixamorig:RightHand",
-            "left_fingers_thumb": "mixamorig:LeftHandThumb1",
-            "right_fingers_thumb": "mixamorig:RightHandThumb1",
-            "left_fingers_index": "mixamorig:LeftHandIndex1",
-            "right_fingers_index": "mixamorig:RightHandIndex1",
-            "left_fingers_middle": "mixamorig:LeftHandMiddle1",
-            "right_fingers_middle": "mixamorig:RightHandMiddle1",
-            "left_fingers_ring": "mixamorig:LeftHandRing1",
-            "right_fingers_ring": "mixamorig:RightHandRing1",
-            "left_fingers_pinky": "mixamorig:LeftHandPinky1",
-            "right_fingers_pinky": "mixamorig:RightHandPinky1",
+            # Thumb joints (all 3)
+            "left_fingers_thumb_base": "mixamorig:LeftHandThumb1",
+            "right_fingers_thumb_base": "mixamorig:RightHandThumb1",
+            "left_fingers_thumb_middle": "mixamorig:LeftHandThumb2",
+            "right_fingers_thumb_middle": "mixamorig:RightHandThumb2",
+            "left_fingers_thumb_tip": "mixamorig:LeftHandThumb3",
+            "right_fingers_thumb_tip": "mixamorig:RightHandThumb3",
+            # Index finger joints (all 3)
+            "left_fingers_index_base": "mixamorig:LeftHandIndex1",
+            "right_fingers_index_base": "mixamorig:RightHandIndex1",
+            "left_fingers_index_middle": "mixamorig:LeftHandIndex2",
+            "right_fingers_index_middle": "mixamorig:RightHandIndex2",
+            "left_fingers_index_tip": "mixamorig:LeftHandIndex3",
+            "right_fingers_index_tip": "mixamorig:RightHandIndex3",
+            # Middle finger joints (all 3)
+            "left_fingers_middle_base": "mixamorig:LeftHandMiddle1",
+            "right_fingers_middle_base": "mixamorig:RightHandMiddle1",
+            "left_fingers_middle_middle": "mixamorig:LeftHandMiddle2",
+            "right_fingers_middle_middle": "mixamorig:RightHandMiddle2",
+            "left_fingers_middle_tip": "mixamorig:LeftHandMiddle3",
+            "right_fingers_middle_tip": "mixamorig:RightHandMiddle3",
+            # Ring finger joints (all 3)
+            "left_fingers_ring_base": "mixamorig:LeftHandRing1",
+            "right_fingers_ring_base": "mixamorig:RightHandRing1",
+            "left_fingers_ring_middle": "mixamorig:LeftHandRing2",
+            "right_fingers_ring_middle": "mixamorig:RightHandRing2",
+            "left_fingers_ring_tip": "mixamorig:LeftHandRing3",
+            "right_fingers_ring_tip": "mixamorig:RightHandRing3",
+            # Pinky finger joints (all 3)
+            "left_fingers_pinky_base": "mixamorig:LeftHandPinky1",
+            "right_fingers_pinky_base": "mixamorig:RightHandPinky1",
+            "left_fingers_pinky_middle": "mixamorig:LeftHandPinky2",
+            "right_fingers_pinky_middle": "mixamorig:RightHandPinky2",
+            "left_fingers_pinky_tip": "mixamorig:LeftHandPinky3",
+            "right_fingers_pinky_tip": "mixamorig:RightHandPinky3",
             "left_leg": "mixamorig:LeftUpLeg",
             "right_leg": "mixamorig:RightUpLeg",
             "left_foot": "mixamorig:LeftFoot",
@@ -1761,6 +1853,8 @@ class GLBViewerWindow(QMainWindow):
             # Only affect arms/hands; do not touch spine/hips/head/legs
             safe_joints = {
                 "mixamorig:Neck",
+                "mixamorig:LeftShoulder",
+                "mixamorig:RightShoulder",
                 "mixamorig:LeftArm",
                 "mixamorig:RightArm",
                 "mixamorig:LeftForeArm",
@@ -2238,8 +2332,10 @@ class GLBViewerWindow(QMainWindow):
         error_count = 0
         skipped_count = 0
 
-        # Define safe joints (arms, hands, fingers only - skip shoulders, legs, spine)
+        # Define safe joints (arms, hands, fingers only - skip legs, spine)
         safe_joints = [
+            "mixamorig:RightShoulder",
+            "mixamorig:LeftShoulder",
             "mixamorig:RightArm",
             "mixamorig:LeftArm",
             "mixamorig:RightForeArm",
@@ -2967,6 +3063,8 @@ class GLBViewerWindow(QMainWindow):
         # Apply the pose data (reuse the same logic as apply_selected_sign)
         applied_count = 0
         safe_joints = [
+            "mixamorig:RightShoulder",
+            "mixamorig:LeftShoulder",
             "mixamorig:RightArm",
             "mixamorig:LeftArm",
             "mixamorig:RightForeArm",

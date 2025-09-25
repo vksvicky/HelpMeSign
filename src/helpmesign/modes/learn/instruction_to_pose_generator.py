@@ -99,9 +99,7 @@ class UniversalInstructionToPoseGenerator:
         self.config_path = config_path
         self.language_config = self._load_language_config()
 
-        # Universal pose mappings (work for all sign languages)
-        self.universal_hand_shapes = self._init_universal_hand_shapes()
-        self.universal_actions = self._init_universal_actions()
+        # Joint mappings for body parts
         self.joint_mappings = self._init_joint_mappings()
 
         # Language-specific overrides (if provided)
@@ -227,100 +225,6 @@ class UniversalInstructionToPoseGenerator:
                 result[key] = value
         return result
 
-    def _init_universal_hand_shapes(self) -> Dict[str, Dict[str, Any]]:
-        """Universal hand shape mappings that work across sign languages"""
-        return {
-            "fist": {
-                # Real working values from manual pose creation
-                "index": {
-                    "hpr": [0, 77.1, 0],
-                    "xyz": [0, 0, 0],
-                },  # Real index finger curl
-                "middle": {
-                    "hpr": [0, 84.8, 0],
-                    "xyz": [0, 0, 0],
-                },  # Real middle finger curl
-                "ring": {
-                    "hpr": [0, 94.3, 0],
-                    "xyz": [0, 0, 0],
-                },  # Real ring finger curl
-                "pinky": {"hpr": [0, 90.0, 0], "xyz": [0, 0, 0]},  # Real pinky curl
-                "thumb": {
-                    "hpr": [0.0, 2.1, 10.3],
-                    "xyz": [0, 0, 0],
-                },  # Real thumb position for 'A'
-            },
-            "flat": {
-                # All fingers extended straight
-                "index": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
-                "middle": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
-                "ring": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
-                "pinky": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
-                "thumb": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},
-            },
-            "curved": {
-                # Fingers slightly curved, forming C shape
-                "index": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
-                "middle": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
-                "ring": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
-                "pinky": {"hpr": [0, 30, 0], "xyz": [0, 0, 0]},
-                "thumb": {"hpr": [-20, 15, 5], "xyz": [0, 0, 0]},
-            },
-            "point": {
-                # One finger extended, others closed
-                "index": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},  # Extended
-                "middle": {
-                    "hpr": [0, 45, 0],
-                    "xyz": [0, 0, 0],
-                },  # Closed (reduced from 90)
-                "ring": {
-                    "hpr": [0, 45, 0],
-                    "xyz": [0, 0, 0],
-                },  # Closed (reduced from 90)
-                "pinky": {
-                    "hpr": [0, 45, 0],
-                    "xyz": [0, 0, 0],
-                },  # Closed (reduced from 90)
-                "thumb": {"hpr": [-20, 15, 5], "xyz": [0, 0, 0]},  # More natural
-            },
-        }
-
-    def _init_universal_actions(self) -> Dict[str, Dict[str, Any]]:
-        """Universal action mappings"""
-        return {
-            "raise_arm": {
-                "arm": {
-                    "hpr": [4.3, 90.0, 0.0],
-                    "xyz": [0, 0, 0],
-                },  # Real working values from manual pose
-                # Don't set forearm here - let bend_elbow handle it
-            },
-            "bend_elbow": {
-                "forearm": {
-                    "hpr": [77.1, 132.9, 0.0],
-                    "xyz": [0, 0, 0],
-                },  # Real working elbow bend values
-            },
-            "arm_to_side": {
-                "arm": {"hpr": [0, 0, -90], "xyz": [0, 0, 0]},  # Arm out to side
-            },
-            "arm_forward": {
-                "arm": {"hpr": [0, 45, 0], "xyz": [0, 0, 0]},  # Arm forward
-            },
-            "hand_up": {
-                "hand": {"hpr": [0, -30, 0], "xyz": [0, 0, 0]},  # Wrist bent up
-            },
-            "hand_flat": {
-                "hand": {"hpr": [0, 0, 0], "xyz": [0, 0, 0]},  # Neutral wrist position
-            },
-            "hand_fist_orientation": {
-                "hand": {
-                    "hpr": [180.0, 0.0, 0.0],
-                    "xyz": [0, 0, 0],
-                },  # Hand orientation for fist
-            },
-        }
-
     def _init_joint_mappings(self) -> Dict[str, str]:
         """Map universal body parts to actual joint names"""
         return {
@@ -440,73 +344,39 @@ class UniversalInstructionToPoseGenerator:
         pose_data: Dict[str, List[float]] = {}
 
         for instr in parsed:
-            # Apply hand shape mappings
-            if (
-                instr.hand_shape
-                and instr.hand_shape.value in self.universal_hand_shapes
-            ):
-                shape_mapping = self.universal_hand_shapes[instr.hand_shape.value]
-                finger_pose = self._apply_hand_shape(shape_mapping, hand)
-                # Extract HPR values from the new HPR+XYZ format
-                for joint_name, joint_data in finger_pose.items():
-                    if isinstance(joint_data, dict) and "hpr" in joint_data:
-                        pose_data[joint_name] = joint_data["hpr"]
-                    elif isinstance(joint_data, list):
-                        pose_data[joint_name] = joint_data  # Legacy format
+            # Apply hand shape mappings from config
+            if instr.hand_shape:
+                hand_shape_name = instr.hand_shape.value
+                if "hand_shapes" in self.language_config["keywords"]:
+                    hand_shapes = self.language_config["keywords"]["hand_shapes"]
+                    if hand_shape_name in hand_shapes:
+                        hand_shape_data = hand_shapes[hand_shape_name]
+                        if "pose_data" in hand_shape_data:
+                            # Apply hand shape pose data directly from config
+                            for joint_name, hpr_values in hand_shape_data[
+                                "pose_data"
+                            ].items():
+                                if hand == "right" and "Right" in joint_name:
+                                    pose_data[joint_name] = hpr_values
+                                elif hand == "left" and "Left" in joint_name:
+                                    pose_data[joint_name] = hpr_values
 
-            # Apply action-specific poses
-            if (
-                instr.action == UniversalAction.RAISE
-                and instr.body_part == BodyPart.ARM
-            ):
-                arm_pose = self._apply_arm_action("raise_arm", hand)
-                # Extract HPR values from the new HPR+XYZ format
-                for joint_name, joint_data in arm_pose.items():
-                    if isinstance(joint_data, dict) and "hpr" in joint_data:
-                        pose_data[joint_name] = joint_data["hpr"]
-                    elif isinstance(joint_data, list):
-                        pose_data[joint_name] = joint_data  # Legacy format
-
-            # Handle elbow bending - both "BEND + ELBOW" and "RAISE + ELBOW" (from "elbow bent")
-            if (
-                instr.action == UniversalAction.BEND
-                and instr.body_part == BodyPart.ELBOW
-            ) or (
-                instr.action == UniversalAction.RAISE
-                and instr.body_part == BodyPart.ELBOW
-            ):
-                elbow_pose = self._apply_arm_action("bend_elbow", hand)
-                # Extract HPR values from the new HPR+XYZ format
-                for joint_name, joint_data in elbow_pose.items():
-                    if isinstance(joint_data, dict) and "hpr" in joint_data:
-                        pose_data[joint_name] = joint_data["hpr"]
-                    elif isinstance(joint_data, list):
-                        pose_data[joint_name] = joint_data  # Legacy format
-
-            if instr.action == UniversalAction.POINT and instr.body_part in [
-                BodyPart.INDEX,
-                BodyPart.MIDDLE,
-                BodyPart.RING,
-                BodyPart.PINKY,
-            ]:
-                # finger_pose: Dict[str, List[float]] = self._apply_single_finger_point(
-                #     instr.body_part.value, hand
-                # )
-                # Extract HPR values from the new HPR+XYZ format
-                for joint_name, joint_data in finger_pose.items():
-                    if isinstance(joint_data, dict) and "hpr" in joint_data:
-                        pose_data[joint_name] = joint_data["hpr"]
-                    elif isinstance(joint_data, list):
-                        pose_data[joint_name] = joint_data  # Legacy format
-
-        # Apply hand orientation for fist (specific to letter A)
-        if any(instr.hand_shape == UniversalHandShape.FIST for instr in parsed):
-            hand_pose = self._apply_arm_action("hand_fist_orientation", hand)
-            for joint_name, joint_data in hand_pose.items():
-                if isinstance(joint_data, dict) and "hpr" in joint_data:
-                    pose_data[joint_name] = joint_data["hpr"]
-                elif isinstance(joint_data, list):
-                    pose_data[joint_name] = joint_data
+            # Apply action mappings from config
+            if instr.action:
+                action_name = instr.action.value
+                if "actions" in self.language_config["keywords"]:
+                    actions = self.language_config["keywords"]["actions"]
+                    if action_name in actions:
+                        action_data = actions[action_name]
+                        if "pose_data" in action_data:
+                            # Apply action pose data directly from config
+                            for joint_name, hpr_values in action_data[
+                                "pose_data"
+                            ].items():
+                                if hand == "right" and "Right" in joint_name:
+                                    pose_data[joint_name] = hpr_values
+                                elif hand == "left" and "Left" in joint_name:
+                                    pose_data[joint_name] = hpr_values
 
         return pose_data
 
@@ -552,20 +422,28 @@ class UniversalInstructionToPoseGenerator:
         pose_data: Dict[str, Dict[str, List[float]]] = {}
         hand_prefix = hand.lower()
 
-        if action_key in self.universal_actions:
-            action_mapping = self.universal_actions[action_key]
-            for body_part, part_data in action_mapping.items():
-                # Handle new HPR+XYZ format or legacy HPR-only format
-                if isinstance(part_data, dict) and "hpr" in part_data:
-                    hpr = part_data["hpr"]
-                    xyz = part_data["xyz"]
-                else:
-                    hpr = part_data  # Legacy format (just HPR list)
-                    xyz = [0, 0, 0]  # Default XYZ for legacy format
+        if (
+            "keywords" in self.language_config
+            and "actions" in self.language_config["keywords"]
+        ):
+            actions = self.language_config["keywords"]["actions"]
+            if action_key in actions:
+                action_mapping = actions[action_key]
+                for body_part, part_data in action_mapping.items():
+                    # Handle new HPR+XYZ format or legacy HPR-only format
+                    if isinstance(part_data, dict) and "hpr" in part_data:
+                        hpr = part_data["hpr"]
+                        xyz = part_data["xyz"]
+                    else:
+                        hpr = part_data  # Legacy format (just HPR list)
+                        xyz = [0, 0, 0]  # Default XYZ for legacy format
 
-                joint_key = f"{hand_prefix}_{body_part}"
-                if joint_key in self.joint_mappings:
-                    pose_data[self.joint_mappings[joint_key]] = {"hpr": hpr, "xyz": xyz}
+                    joint_key = f"{hand_prefix}_{body_part}"
+                    if joint_key in self.joint_mappings:
+                        pose_data[self.joint_mappings[joint_key]] = {
+                            "hpr": hpr,
+                            "xyz": xyz,
+                        }
 
         return pose_data
 

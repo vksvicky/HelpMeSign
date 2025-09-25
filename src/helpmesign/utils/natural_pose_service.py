@@ -40,44 +40,129 @@ class NaturalPoseService:
             # Hands relaxed, palms facing body
             "mixamorig:LeftHand": {"hpr": [12.9, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
             "mixamorig:RightHand": {"hpr": [-8.6, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
+            # Thumb joints (all 3)
             "mixamorig:LeftHandThumb1": {
                 "hpr": [0.0, 20.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandThumb2": {
+                "hpr": [0.0, 15.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandThumb3": {
+                "hpr": [0.0, 10.0, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandThumb1": {
                 "hpr": [0.0, 10.3, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
+            "mixamorig:RightHandThumb2": {
+                "hpr": [0.0, 8.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:RightHandThumb3": {
+                "hpr": [0.0, 5.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            # Index finger joints (all 3)
             "mixamorig:LeftHandIndex1": {
                 "hpr": [0.0, 12.9, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandIndex2": {
+                "hpr": [0.0, 10.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandIndex3": {
+                "hpr": [0.0, 8.0, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandIndex1": {
                 "hpr": [0.0, 8.6, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
+            "mixamorig:RightHandIndex2": {
+                "hpr": [0.0, 6.5, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:RightHandIndex3": {
+                "hpr": [0.0, 4.5, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            # Middle finger joints (all 3)
             "mixamorig:LeftHandMiddle1": {
                 "hpr": [0.0, 15.6, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandMiddle2": {
+                "hpr": [0.0, 12.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandMiddle3": {
+                "hpr": [0.0, 9.0, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandMiddle1": {
                 "hpr": [0.0, 14.5, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
+            "mixamorig:RightHandMiddle2": {
+                "hpr": [0.0, 11.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:RightHandMiddle3": {
+                "hpr": [0.0, 8.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            # Ring finger joints (all 3)
             "mixamorig:LeftHandRing1": {
                 "hpr": [0.0, 12.9, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandRing2": {
+                "hpr": [0.0, 10.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandRing3": {
+                "hpr": [0.0, 7.5, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:RightHandRing1": {
                 "hpr": [0.0, 12.9, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
+            "mixamorig:RightHandRing2": {
+                "hpr": [0.0, 10.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:RightHandRing3": {
+                "hpr": [0.0, 7.5, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            # Pinky finger joints (all 3)
             "mixamorig:LeftHandPinky1": {
                 "hpr": [0.0, 17.1, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
+            "mixamorig:LeftHandPinky2": {
+                "hpr": [0.0, 13.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:LeftHandPinky3": {
+                "hpr": [0.0, 10.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
             "mixamorig:RightHandPinky1": {
                 "hpr": [0.0, 4.3, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:RightHandPinky2": {
+                "hpr": [0.0, 3.0, 0.0],
+                "pos": [0.0, 0.0, 0.0],
+            },
+            "mixamorig:RightHandPinky3": {
+                "hpr": [0.0, 2.0, 0.0],
                 "pos": [0.0, 0.0, 0.0],
             },
             "mixamorig:LeftUpLeg": {"hpr": [0.0, 0.0, 0.0], "pos": [0.0, 0.0, 0.0]},
@@ -106,16 +191,37 @@ class NaturalPoseService:
             "right_forearm": "mixamorig:RightForeArm",
             "left_hand": "mixamorig:LeftHand",
             "right_hand": "mixamorig:RightHand",
-            "left_fingers_thumb": "mixamorig:LeftHandThumb1",
-            "right_fingers_thumb": "mixamorig:RightHandThumb1",
-            "left_fingers_index": "mixamorig:LeftHandIndex1",
-            "right_fingers_index": "mixamorig:RightHandIndex1",
-            "left_fingers_middle": "mixamorig:LeftHandMiddle1",
-            "right_fingers_middle": "mixamorig:RightHandMiddle1",
-            "left_fingers_ring": "mixamorig:LeftHandRing1",
-            "right_fingers_ring": "mixamorig:RightHandRing1",
-            "left_fingers_pinky": "mixamorig:LeftHandPinky1",
-            "right_fingers_pinky": "mixamorig:RightHandPinky1",
+            # Individual finger joints (all 3 per finger)
+            "left_fingers_thumb_base": "mixamorig:LeftHandThumb1",
+            "right_fingers_thumb_base": "mixamorig:RightHandThumb1",
+            "left_fingers_thumb_middle": "mixamorig:LeftHandThumb2",
+            "right_fingers_thumb_middle": "mixamorig:RightHandThumb2",
+            "left_fingers_thumb_tip": "mixamorig:LeftHandThumb3",
+            "right_fingers_thumb_tip": "mixamorig:RightHandThumb3",
+            "left_fingers_index_base": "mixamorig:LeftHandIndex1",
+            "right_fingers_index_base": "mixamorig:RightHandIndex1",
+            "left_fingers_index_middle": "mixamorig:LeftHandIndex2",
+            "right_fingers_index_middle": "mixamorig:RightHandIndex2",
+            "left_fingers_index_tip": "mixamorig:LeftHandIndex3",
+            "right_fingers_index_tip": "mixamorig:RightHandIndex3",
+            "left_fingers_middle_base": "mixamorig:LeftHandMiddle1",
+            "right_fingers_middle_base": "mixamorig:RightHandMiddle1",
+            "left_fingers_middle_middle": "mixamorig:LeftHandMiddle2",
+            "right_fingers_middle_middle": "mixamorig:RightHandMiddle2",
+            "left_fingers_middle_tip": "mixamorig:LeftHandMiddle3",
+            "right_fingers_middle_tip": "mixamorig:RightHandMiddle3",
+            "left_fingers_ring_base": "mixamorig:LeftHandRing1",
+            "right_fingers_ring_base": "mixamorig:RightHandRing1",
+            "left_fingers_ring_middle": "mixamorig:LeftHandRing2",
+            "right_fingers_ring_middle": "mixamorig:RightHandRing2",
+            "left_fingers_ring_tip": "mixamorig:LeftHandRing3",
+            "right_fingers_ring_tip": "mixamorig:RightHandRing3",
+            "left_fingers_pinky_base": "mixamorig:LeftHandPinky1",
+            "right_fingers_pinky_base": "mixamorig:RightHandPinky1",
+            "left_fingers_pinky_middle": "mixamorig:LeftHandPinky2",
+            "right_fingers_pinky_middle": "mixamorig:RightHandPinky2",
+            "left_fingers_pinky_tip": "mixamorig:LeftHandPinky3",
+            "right_fingers_pinky_tip": "mixamorig:RightHandPinky3",
             "left_leg": "mixamorig:LeftUpLeg",
             "right_leg": "mixamorig:RightUpLeg",
             "left_foot": "mixamorig:LeftFoot",
