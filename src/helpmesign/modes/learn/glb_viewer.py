@@ -7,8 +7,6 @@ Based on the proven approach used in the main HelpMeSign app
 import json
 import os
 import sys
-from multiprocessing import parent_process
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Add the project root to the Python path
@@ -130,8 +128,8 @@ class GLBViewerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("GLB Viewer - Arivo Character")
-        self.setGeometry(100, 100, 1200, 800)
-        self.setMinimumSize(1000, 600)
+        self.setGeometry(50, 50, 1200, 800)
+        self.setMinimumSize(1200, 800)
 
         # Initialize Panda3D offscreen
         self.panda_ready = False
@@ -257,16 +255,16 @@ class GLBViewerWindow(QMainWindow):
         body_parts_data = pose_service.get_all_body_parts_pose()
 
         return {
-            "camera_scale": 4.2,
-            "camera_distance": 7.9,
+            "camera_scale": 3.5,
+            "camera_distance": 6.5,
             "camera_x_rot": 0.0,
-            "camera_y_rot": 19.0,
+            "camera_y_rot": 38.0,
             "camera_z_rot": 0.0,
             "ambient_light": 0.3,
             "character_x": 0.0,
             "character_y": 0.0,
             "character_z": 0.0,
-            "character_tilt": 23.0,
+            "character_tilt": 20.0,
             "body_parts": body_parts_data,
         }
 
@@ -415,8 +413,8 @@ class GLBViewerWindow(QMainWindow):
 
         # Main horizontal layout
         main_layout = QHBoxLayout(central_widget)
-        main_layout.setSpacing(30)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(5, 5, 5, 5)
 
         # Left panel - 3D viewer
         self.create_viewer_panel(main_layout)
@@ -440,7 +438,7 @@ class GLBViewerWindow(QMainWindow):
             """
             QLabel {
                 border: 2px solid #ccc;
-                border-radius: 8px;
+                border-radius: 2px;
                 background-color: transparent;
                 min-height: 100%;
             }
@@ -453,7 +451,7 @@ class GLBViewerWindow(QMainWindow):
     def create_control_panel(self, parent_layout):
         """Create the control panel with native system fonts."""
         control_widget = QWidget()
-        control_widget.setFixedWidth(400)  # Compact control panel
+        control_widget.setFixedWidth(500)  # Compact control panel
         control_layout = QVBoxLayout(control_widget)
 
         # Title and Export button row
@@ -484,8 +482,7 @@ class GLBViewerWindow(QMainWindow):
                 background-color: #2196F3;
                 color: white;
                 border: none;
-                border-radius: 4px;
-                padding: 6px 12px;
+                border-radius: 2px;
                 font-size: 11px;
                 font-weight: bold;
                 margin-right: 5px;
@@ -509,8 +506,7 @@ class GLBViewerWindow(QMainWindow):
                 background-color: #4CAF50;
                 color: white;
                 border: none;
-                border-radius: 4px;
-                padding: 6px 12px;
+                border-radius: 2px;
                 font-size: 11px;
                 font-weight: bold;
             }
@@ -536,7 +532,7 @@ class GLBViewerWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 border: 2px solid #ccc;
-                border-radius: 8px;
+                border-radius: 2px;
                 margin-top: 10px;
                 padding-top: 10px;
             }
@@ -678,7 +674,7 @@ class GLBViewerWindow(QMainWindow):
                 background-color: #f0f0f0;
                 border: 1px solid #ccc;
                 border-radius: 4px;
-                padding: 8px;
+                padding: 2px;
                 font-size: 12px;
             }
             QPushButton:hover {
@@ -910,8 +906,10 @@ class GLBViewerWindow(QMainWindow):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setMaximumHeight(400)  # Limit height to make it scrollable
+        scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )  # Disable horizontal scrolling
+        scroll_area.setMaximumHeight(600)  # Increased height for better visibility
 
         # Create content widget for the scroll area
         content_widget = QWidget()
@@ -1344,7 +1342,7 @@ class GLBViewerWindow(QMainWindow):
                         original_pos[2] + xyz_values[2],
                     )
                 return True
-        except Exception as e:
+        except Exception:
             pass
 
         return False
@@ -1628,7 +1626,7 @@ class GLBViewerWindow(QMainWindow):
                     }
                 else:
                     return None
-            except:
+            except Exception:
                 return None
 
         # Return the position from the stored data
@@ -1650,7 +1648,7 @@ class GLBViewerWindow(QMainWindow):
             loadPrcFileData("", "gl-check-errors false")
             loadPrcFileData("", "notify-level-glgsg fatal")
             loadPrcFileData("", "notify-level-display fatal")
-            loadPrcFileData("", "win-size 800 800")
+            loadPrcFileData("", "win-size 1200 1200")
             loadPrcFileData("", "framebuffer-multisample 1")
 
             # Initialize ShowBase
@@ -1761,25 +1759,22 @@ class GLBViewerWindow(QMainWindow):
         except Exception as e:
             print(f"Error loading GLB file: {e}")
 
-    def discover_joints(self):
-        """Discover all joints in the character model using GLTF extraction."""
-        if not self.character:
+    def _traverse_node(self, node, depth=0, max_depth=10):
+        """Traverse a node and its children to discover joints."""
+        if depth > max_depth:
             return
-
-        # Simple Panda3D joint discovery - no GLTF complexity
-        self.discovered_joints = []
-
-        def traverse_node(node, depth=0, max_depth=10):
-            if depth > max_depth:
-                return
-            node_name = node.getName()
-            if node_name:
-                self.discovered_joints.append(node_name)
+        node_name = node.getName()
+        if node_name:
+            self.discovered_joints.append(node_name)
             for child in node.getChildren():
-                traverse_node(child, depth + 1, max_depth)
+                self._traverse_node(child, depth + 1, max_depth)
 
-        traverse_node(self.character)
-        print(f"Discovered {len(self.discovered_joints)} joints")
+    def discover_joints(self):
+        """Discover all joints in the character."""
+        self.discovered_joints = []
+        if self.character:
+            self._traverse_node(self.character)
+            print(f"Discovered {len(self.discovered_joints)} joints")
 
     def find_similar_joint(self, target_name):
         """Find a joint with a similar name to the target."""
@@ -1861,16 +1856,37 @@ class GLBViewerWindow(QMainWindow):
                 "mixamorig:RightForeArm",
                 "mixamorig:LeftHand",
                 "mixamorig:RightHand",
+                # All finger joints (1, 2, 3)
                 "mixamorig:LeftHandThumb1",
+                "mixamorig:LeftHandThumb2",
+                "mixamorig:LeftHandThumb3",
                 "mixamorig:RightHandThumb1",
+                "mixamorig:RightHandThumb2",
+                "mixamorig:RightHandThumb3",
                 "mixamorig:LeftHandIndex1",
+                "mixamorig:LeftHandIndex2",
+                "mixamorig:LeftHandIndex3",
                 "mixamorig:RightHandIndex1",
+                "mixamorig:RightHandIndex2",
+                "mixamorig:RightHandIndex3",
                 "mixamorig:LeftHandMiddle1",
+                "mixamorig:LeftHandMiddle2",
+                "mixamorig:LeftHandMiddle3",
                 "mixamorig:RightHandMiddle1",
+                "mixamorig:RightHandMiddle2",
+                "mixamorig:RightHandMiddle3",
                 "mixamorig:LeftHandRing1",
+                "mixamorig:LeftHandRing2",
+                "mixamorig:LeftHandRing3",
                 "mixamorig:RightHandRing1",
+                "mixamorig:RightHandRing2",
+                "mixamorig:RightHandRing3",
                 "mixamorig:LeftHandPinky1",
+                "mixamorig:LeftHandPinky2",
+                "mixamorig:LeftHandPinky3",
                 "mixamorig:RightHandPinky1",
+                "mixamorig:RightHandPinky2",
+                "mixamorig:RightHandPinky3",
             }
 
             # Apply natural pose to joints
@@ -2116,12 +2132,27 @@ class GLBViewerWindow(QMainWindow):
                     self.camera_x_rot, self.camera_y_rot, self.camera_z_rot
                 )
 
-            # Apply natural pose from NaturalPoseService
+            # Apply natural pose directly (this will reset to natural pose and update sliders)
             self.apply_natural_pose()
+
             print("✅ Reset complete - natural pose applied")
 
         except Exception as e:
             print(f"Error in reset function: {e}")
+
+    def reset_to_t_pose(self):
+        """Reset character to T-pose by reloading the character."""
+        try:
+            print("🔄 Resetting to T-pose by reloading character...")
+
+            # Reload the character (this loads it in T-pose by default)
+            glb_path = self.get_character_glb_path()
+            self.load_glb(glb_path)
+
+            print("✅ Character reloaded in T-pose")
+
+        except Exception as e:
+            print(f"❌ Error resetting to T-pose: {e}")
 
     def export_values(self):
         """Export current control values including both right and left hand data to clipboard and console."""

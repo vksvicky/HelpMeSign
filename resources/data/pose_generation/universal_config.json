@@ -6,10 +6,10 @@
       "raise": {
         "synonyms": ["raise", "lift", "up", "elevate", "bring up", "hoist"],
         "pose_data": {
-          "mixamorig:RightArm": [0.0, 45.0, 0.0],
-          "mixamorig:LeftArm": [0.0, 45.0, 0.0],
-          "mixamorig:RightShoulder": [0.0, 15.0, 0.0],
-          "mixamorig:LeftShoulder": [0.0, 15.0, 0.0]
+          "mixamorig:RightArm": [0.0, 5.0, 0.0],
+          "mixamorig:LeftArm": [0.0, 5.0, 0.0],
+          "mixamorig:RightShoulder": [0.0, 5.0, 0.0],
+          "mixamorig:LeftShoulder": [0.0, 5.0, 0.0]
         }
       },
       "lower": {
